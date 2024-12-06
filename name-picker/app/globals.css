@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
+    --background: 224 71% 4%;
     --foreground: 213 31% 91%;
     
-    --card: 222 47% 11%;
+    --card: 224 71% 4%;
     --card-foreground: 213 31% 91%;
     
-    --popover: 222 47% 11%;
+    --popover: 224 71% 4%;
     --popover-foreground: 213 31% 91%;
     
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
     
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 222.2 47.4% 11.2%;
     --secondary-foreground: 210 40% 98%;
     
     --muted: 217.2 32.6% 17.5%;
@@ -38,7 +38,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-[hsl(var(--border))];
   }
   
   html {
@@ -47,29 +47,10 @@
   
   body {
     @apply bg-background text-foreground font-sans min-h-screen;
-    background: linear-gradient(to bottom,
-      rgba(var(--background) / 1) 0%,
-      rgba(var(--background) / 0.9) 100%
-    ),
-    radial-gradient(
-      circle at top left,
-      rgba(var(--primary) / 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at top right,
-      rgba(var(--secondary) / 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at bottom left,
-      rgba(59, 130, 246, 0.15) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      circle at bottom right,
-      rgba(99, 102, 241, 0.15) 0%,
-      transparent 50%
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--background)) 0%,
+      hsl(224 71% 2%) 100%
     );
     background-attachment: fixed;
   }

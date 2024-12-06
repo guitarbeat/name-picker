@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Option } from '../utils/sortingLogic';
+import { Option } from '../lib/sortingLogic';
 import { motion } from "framer-motion";
 
 interface ConfirmNamesProps {
@@ -13,22 +13,39 @@ interface ConfirmNamesProps {
   onRandomPick?: () => void;
 }
 
-export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRandomPick }: ConfirmNamesProps) {
-  const [listName, setListName] = useState('');
-  const [showSave, setShowSave] = useState(false);
+interface SaveState {
+  showSave: boolean;
+  listName: string;
+}
 
-  const handleSave = () => {
+export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRandomPick }: ConfirmNamesProps) {
+  const [saveState, setSaveState] = useState<SaveState>({
+    showSave: false,
+    listName: ''
+  });
+
+  const handleSave = useCallback(() => {
+    const { listName } = saveState;
     if (listName.trim() && onSave) {
       onSave(listName.trim());
-      setShowSave(false);
-      setListName('');
+      setSaveState({ showSave: false, listName: '' });
     }
-  };
+  }, [saveState, onSave]);
+
+  const toggleSave = useCallback(() => {
+    setSaveState(prev => ({ ...prev, showSave: !prev.showSave }));
+  }, []);
+
+  const updateListName = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSaveState(prev => ({ ...prev, listName: e.target.value }));
+  }, []);
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card>
       <CardHeader>
-        <CardTitle>Confirm Names</CardTitle>
+        <CardTitle className="text-2xl text-center">
+          🐱 Pawesome Name List 🐱
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-2">
@@ -38,8 +55,11 @@ export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRan
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="p-2 bg-gray-800 rounded-lg"
+              className="p-3 bg-card rounded-lg border border-border flex items-center gap-2"
+              role="listitem"
+              aria-label={`Name option: ${option.name}`}
             >
+              <span className="text-lg" role="img" aria-label="Cat emoji">😺</span>
               {option.name}
             </motion.div>
           ))}
@@ -47,11 +67,20 @@ export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRan
 
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <Button onClick={onEdit} variant="outline" className="flex-1">
-              Edit List
+            <Button 
+              onClick={onEdit} 
+              variant="outline" 
+              className="flex-1"
+              aria-label="Edit names"
+            >
+              <span role="img" aria-label="Edit">✏️</span> Edit Names
             </Button>
-            <Button onClick={onConfirm} className="flex-1">
-              Start Sorting
+            <Button 
+              onClick={onConfirm} 
+              className="flex-1"
+              aria-label="Start picking names"
+            >
+              <span role="img" aria-label="Target">🎯</span> Start Picking
             </Button>
           </div>
 
@@ -60,49 +89,54 @@ export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRan
               onClick={onRandomPick}
               variant="secondary"
               className="w-full"
+              aria-label="Pick a random name"
             >
-              Pick Random Name
+              <span role="img" aria-label="Dice">🎲</span> Random Pick
             </Button>
           )}
 
           {onSave && (
             <div className="space-y-2">
-              {!showSave ? (
+              {!saveState.showSave ? (
                 <Button 
-                  onClick={() => setShowSave(true)}
+                  onClick={toggleSave}
                   variant="outline"
                   className="w-full"
+                  aria-label="Save names for later"
                 >
-                  Save This List
+                  <span role="img" aria-label="Save">💾</span> Save These Names for Later
                 </Button>
               ) : (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="space-y-2"
+                  className="space-y-2 p-3 bg-card/50 rounded-lg border border-border"
                 >
                   <Input
                     type="text"
-                    value={listName}
-                    onChange={(e) => setListName(e.target.value)}
-                    placeholder="Enter a name for this list"
+                    value={saveState.listName}
+                    onChange={updateListName}
+                    placeholder="Name this list of potential cat names..."
                     className="w-full"
+                    aria-label="List name input"
                   />
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => setShowSave(false)}
+                      onClick={toggleSave}
                       variant="outline"
                       className="flex-1"
+                      aria-label="Cancel saving"
                     >
                       Cancel
                     </Button>
                     <Button 
                       onClick={handleSave}
-                      disabled={!listName.trim()}
                       className="flex-1"
+                      disabled={!saveState.listName.trim()}
+                      aria-label="Save list"
                     >
-                      Save
+                      Save List
                     </Button>
                   </div>
                 </motion.div>

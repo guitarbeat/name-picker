@@ -1,54 +1,61 @@
 'use client'
 
-import { useState } from 'react';
-import NameInput from '../components/NameInput';
-import ConfirmNames from '../components/ConfirmNames';
-import BiasSorter from '../components/BiasSorter';
-import { Option } from '../utils/sortingLogic';
+import { useState, useCallback } from 'react';
+import NameInput from '@/components/features/name-picker/NameInput';
+import ConfirmNames from '@/components/features/name-picker/ConfirmNames';
+import BiasSorter from '@/components/features/name-picker/BiasSorter';
+import { Option } from '@/lib/sortingLogic';
+import { TournamentHistory } from '@/components/features/tournament/TournamentHistory';
+import { toast } from 'react-hot-toast';
+import { BracketType } from '@/lib/defaults';
 
 type Step = 'input' | 'confirm' | 'sort';
 
 export default function Home() {
   const [options, setOptions] = useState<Option[]>([]);
   const [step, setStep] = useState<Step>('input');
-  const [sorterName, setSorterName] = useState<string>('');
   const [savedLists, setSavedLists] = useState<{ 
     name: string; 
-    options: Option[]; 
-    sorterName: string;
+    options: string[]; 
     timestamp: string;
+    type: string;
   }[]>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('savedLists');
+      const saved = localStorage.getItem('nameLists');
       return saved ? JSON.parse(saved) : [];
     }
     return [];
   });
+  const [bracketType, setBracketType] = useState<BracketType>('single');
 
-  const handleNameSubmit = (names: string[]) => {
-    const newOptions = names.map((name, index) => ({
-      id: index + 1,
-      name: name.trim()
-    }));
+  const handleReset = useCallback(() => {
+    setStep('input');
+    setOptions([]);
+  }, []);
+
+  const handleNamesConfirmed = useCallback((names: string[], selectedBracketType: BracketType) => {
+    const newOptions = names.map((name, index) => ({ id: index, name }));
     setOptions(newOptions);
-    setStep('confirm');
-  };
+    setBracketType(selectedBracketType);
+    setStep('confirm');  // Show confirmation step first
+  }, []);
 
   const handleSaveList = (listName: string) => {
     const newList = { 
       name: listName, 
-      options,
-      sorterName,
-      timestamp: new Date().toISOString()
+      options: options.map(option => option.name),
+      timestamp: new Date().toISOString(),
+      type: 'nameList'
     };
     const updatedLists = [...savedLists, newList];
     setSavedLists(updatedLists);
-    localStorage.setItem('savedLists', JSON.stringify(updatedLists));
+    localStorage.setItem('nameLists', JSON.stringify(updatedLists));
   };
 
-  const handleLoadList = (list: { name: string; options: Option[] }) => {
-    setOptions(list.options);
-    setStep('confirm');
+  const handleLoadList = (list: { name: string; options: string[] }) => {
+    const newOptions = list.options.map((name, index) => ({ id: index, name }));
+    setOptions(newOptions);
+    setStep('sort');
   };
 
   const handleRandomPick = () => {
@@ -66,48 +73,41 @@ export default function Home() {
     setStep('sort');
   };
 
-  const handleReset = () => {
-    setOptions([]);
-    setStep('input');
+  const handleTournamentComplete = (winner: Option) => {
+    toast.success(`Tournament completed! Winner: ${winner.name}`, {
+      duration: 3000,
+    });
   };
 
   return (
-    <main className="container mx-auto px-4 py-8 min-h-screen bg-gray-900 text-white">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">Name Picker</h1>
-        {step === 'input' && (
-          <div className="space-y-6 w-full max-w-2xl mx-auto">
-            <NameInput 
-              onSubmit={handleNameSubmit} 
-              initialNames={options.map(opt => opt.name)}
-              savedLists={savedLists}
-              onLoadList={handleLoadList}
-            />
-          </div>
-        )}
-        {step === 'confirm' && (
-          <div className="space-y-4 w-full max-w-2xl mx-auto">
-            <ConfirmNames 
-              options={options}
-              onConfirm={handleConfirm}
-              onEdit={handleEdit}
-              onSave={handleSaveList}
-              onRandomPick={handleRandomPick}
-            />
-          </div>
-        )}
-        {step === 'sort' && (
-          <div className="w-full max-w-2xl mx-auto">
-            <BiasSorter 
-              title="My Bias Sorter" 
-              options={options} 
-              onReset={handleReset}
-              sorterName={sorterName}
-              onSorterNameChange={setSorterName}
-            />
-          </div>
-        )}
-      </div>
+    <main className="min-h-screen p-4 md:p-8 max-w-4xl mx-auto">
+      {step === 'input' && (
+        <NameInput 
+          onSubmit={handleNamesConfirmed}
+          savedLists={savedLists}
+          onLoadList={handleLoadList}
+        />
+      )}
+      {step === 'confirm' && (
+        <ConfirmNames
+          options={options}
+          onConfirm={handleConfirm}
+          onEdit={handleEdit}
+          onSave={handleSaveList}
+          onRandomPick={handleRandomPick}
+        />
+      )}
+      {step === 'sort' && (
+        <BiasSorter
+          options={options}
+          onReset={handleReset}
+          onComplete={handleTournamentComplete}
+          bracketType={bracketType}
+        />
+      )}
+      {step === 'sort' && (
+        <TournamentHistory />
+      )}
     </main>
   );
 }
