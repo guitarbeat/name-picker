@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getCurrentUser, setCurrentUser } from '@/lib/storage';
+import React, { useState } from 'react';
+import { Button } from "@chakra-ui/react"
+import { Input } from "@chakra-ui/react"
+import { Card, CardBody, CardHeader, Heading } from "@chakra-ui/react"
+import { getCurrentUser, setCurrentUser } from '@/app/lib/storage';
 
 interface UserNameInputProps {
   onSubmit: () => void;
@@ -27,9 +27,9 @@ export default function UserNameInput({ onSubmit }: UserNameInputProps) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Enter Your Name</CardTitle>
+        <Heading>Enter Your Name</Heading>
       </CardHeader>
-      <CardContent>
+      <CardBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Input
@@ -47,7 +47,7 @@ export default function UserNameInput({ onSubmit }: UserNameInputProps) {
             Continue
           </Button>
         </form>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }

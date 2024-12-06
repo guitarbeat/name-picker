@@ -1,8 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Option } from '../lib/sortingLogic';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Heading,
+  Input
+} from "@chakra-ui/react";
+import { Option } from '../../lib/sortingLogic';
 import { motion } from "framer-motion";
 
 interface ConfirmNamesProps {
@@ -41,13 +46,13 @@ export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRan
   }, []);
 
   return (
-    <Card>
+    <Card variant="outline">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">
+        <Heading className="text-2xl text-center">
           🐱 Pawesome Name List 🐱
-        </CardTitle>
+        </Heading>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardBody className="space-y-4">
         <div className="grid gap-2">
           {options.map((option, index) => (
             <motion.div
@@ -144,7 +149,7 @@ export default function ConfirmNames({ options, onConfirm, onEdit, onSave, onRan
             </div>
           )}
         </div>
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }

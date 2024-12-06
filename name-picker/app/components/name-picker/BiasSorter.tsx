@@ -1,15 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Button } from "../../../ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "../../../ui/card"
-import { Option, sortList, SortChoice, initializeList, getNextComparison } from '../../../lib/sortingLogic'
-import { motion } from 'framer-motion'
-import cn from 'classnames'
+import { Button, Box, Flex, Text, VStack, Heading } from "@chakra-ui/react"
+import { Card, CardHeader, CardBody } from "@chakra-ui/card"
+import { Option, sortList, SortChoice, initializeList, getNextComparison } from '../../lib/sortingLogic'
 import { toast } from 'react-hot-toast'
-import { saveTournamentResult, getCurrentUser } from '../../../lib/storage'
-import { UserNameInput } from './UserNameInput'
-import { BracketType } from '../../../lib/defaults'
+import { saveTournamentResult, getCurrentUser } from '../../lib/storage'
+import UserNameInput from './UserNameInput'
+import { BracketType } from '../../lib/defaults'
 
 interface Match {
   player1: string;
@@ -314,18 +312,32 @@ const BiasSorter: React.FC<BiasSorterProps> = ({
 
   if (sortedList.length > 0) {
     return (
-      <div className="flex flex-col items-center gap-4">
-        <h2 className="text-2xl font-bold">🎉 Tournament Complete! 🎉</h2>
-        <div className="flex flex-col items-center gap-2">
-          <p className="text-lg">Winner: {sortedList[0].name}</p>
-          <p className="text-sm text-gray-500">
-            Total matches: {matches.length} | 
-            Ties: {stats.tieCount} | 
-            No opinions: {stats.noOpinionCount}
-          </p>
-        </div>
-        <Button onClick={onReset}>Start New Tournament</Button>
-      </div>
+      <VStack spacing={6} w="full" maxW="800px" mx="auto" p={4}>
+        <Card w="full">
+          <CardHeader>
+            <Heading size="lg" textAlign="center">🎉 Tournament Complete! 🎉</Heading>
+          </CardHeader>
+          <CardBody>
+            <VStack spacing={4}>
+              <Text fontSize="xl" fontWeight="bold" textAlign="center">
+                Winner: {sortedList[0].name}
+              </Text>
+              <Text fontSize="sm" color="gray.500" textAlign="center">
+                Total matches: {matches.length} | 
+                Ties: {stats.tieCount} | 
+                No opinions: {stats.noOpinionCount}
+              </Text>
+              <Button
+                size="lg"
+                colorScheme="blue"
+                onClick={onReset}
+              >
+                Start New Tournament
+              </Button>
+            </VStack>
+          </CardBody>
+        </Card>
+      </VStack>
     );
   }
 
@@ -343,99 +355,102 @@ const BiasSorter: React.FC<BiasSorterProps> = ({
   const currentRound = Math.floor(finishedComparisons / 2) + 1;
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-center">{title}</CardTitle>
-        <div className="flex justify-between items-center text-sm text-gray-500">
-          <span>Round {currentRound} of {totalRounds}</span>
-          <span>{progress}% complete</span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="col-span-1"
-            >
+    <VStack spacing={6} w="full" maxW="800px" mx="auto" p={4}>
+      <Card w="full">
+        <CardHeader>
+          <Heading size="lg" textAlign="center">{title}</Heading>
+          <Flex justify="space-between" align="center" w="full" mt={2}>
+            <Text fontSize="sm" color="gray.500">
+              Round {currentRound} of {totalRounds}
+            </Text>
+            <Text fontSize="sm" color="gray.500">
+              {progress}% complete
+            </Text>
+          </Flex>
+        </CardHeader>
+        <CardBody>
+          <VStack spacing={4}>
+            <Text fontSize="xl" fontWeight="bold" textAlign="center">
+              Which do you prefer?
+            </Text>
+            <Flex justify="center" gap={4} w="full">
               <Button
-                variant="outline"
-                className={cn(
-                  "w-full h-32 text-lg font-medium",
-                  "hover:bg-primary hover:text-primary-foreground"
-                )}
+                size="lg"
+                flex={1}
                 onClick={() => handleChoice(-1)}
               >
                 {currentPlayer1.name}
               </Button>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="col-span-1"
-            >
               <Button
-                variant="outline"
-                className={cn(
-                  "w-full h-32 text-lg font-medium",
-                  "hover:bg-primary hover:text-primary-foreground"
-                )}
+                size="lg"
+                flex={1}
                 onClick={() => handleChoice(1)}
               >
                 {currentPlayer2.name}
               </Button>
-            </motion.div>
-          </div>
-          <div className="flex justify-center gap-4">
+            </Flex>
             <Button
-              variant="secondary"
+              variant="ghost"
+              size="sm"
               onClick={() => handleChoice(0)}
-              className="w-32"
             >
-              Like Both
+              I like both equally
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
+              size="sm"
               onClick={() => handleChoice(2)}
-              className="w-32"
             >
-              No Opinion
+              Skip / No opinion
             </Button>
-          </div>
-          <div className="flex justify-between items-center mt-4">
-            <Button
-              variant="ghost"
-              onClick={() => setShowHelp(prev => !prev)}
-              size="sm"
-            >
-              Help
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleUndo}
-              size="sm"
-              disabled={matches.length === 0}
-            >
-              Undo
-            </Button>
-          </div>
-          {showHelp && (
-            <div className="text-sm text-gray-500 mt-4">
-              <p>Keyboard shortcuts:</p>
-              <ul className="list-disc list-inside">
-                <li>Left Arrow or A: Choose left option</li>
-                <li>Right Arrow or D: Choose right option</li>
-                <li>Down Arrow or S: Like both</li>
-                <li>Up Arrow or W: No opinion</li>
-                <li>Ctrl/Cmd + Z: Undo last choice</li>
-                <li>H: Toggle help</li>
-              </ul>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <Flex justify="space-between" align="center" w="full">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHelp(prev => !prev)}
+              >
+                Help
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUndo}
+                disabled={matches.length === 0}
+              >
+                Undo
+              </Button>
+            </Flex>
+            {showHelp && (
+              <Box>
+                <Text fontSize="sm" color="gray.500" mb={2}>
+                  Keyboard shortcuts:
+                </Text>
+                <Flex direction="column" align="flex-start" w="full">
+                  <Text fontSize="sm" color="gray.500" mb={1}>
+                    Left Arrow or A: Choose left option
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mb={1}>
+                    Right Arrow or D: Choose right option
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mb={1}>
+                    Down Arrow or S: Like both
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mb={1}>
+                    Up Arrow or W: No opinion
+                  </Text>
+                  <Text fontSize="sm" color="gray.500" mb={1}>
+                    Ctrl/Cmd + Z: Undo last choice
+                  </Text>
+                  <Text fontSize="sm" color="gray.500">
+                    H: Toggle help
+                  </Text>
+                </Flex>
+              </Box>
+            )}
+          </VStack>
+        </CardBody>
+      </Card>
+    </VStack>
   );
 };
 

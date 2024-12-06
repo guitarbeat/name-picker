@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { getTournamentResults, renameTournament, TournamentResult, getCurrentUser } from '@/lib/storage';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { getTournamentResults, renameTournament, TournamentResult, getCurrentUser } from '@/app/lib/storage';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Button,
+  Input,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Select
+} from "@chakra-ui/react";
 import { format } from 'date-fns';
 
 export function TournamentHistory() {
@@ -45,16 +48,16 @@ export function TournamentHistory() {
     <div className="mt-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Recent Tournaments</h2>
-        <select
-          className="px-3 py-2 border rounded-md"
+        <Select
           value={filterUser || ''}
           onChange={(e) => setFilterUser(e.target.value || null)}
+          width="auto"
         >
           <option value="">All Users</option>
           {uniqueUsers.map(user => (
             <option key={user} value={user}>{user}</option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="space-y-4">
         {filteredResults.map((result) => (
@@ -98,31 +101,31 @@ export function TournamentHistory() {
         ))}
       </div>
 
-      <Dialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} title="Rename Tournament">
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename Tournament</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+      <Modal isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Rename Tournament</ModalHeader>
+          <ModalBody>
             <Input
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
               placeholder="Enter tournament name"
             />
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleSaveRename}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="outline"
+              mr={3}
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button colorScheme="blue" onClick={handleSaveRename}>
+              Save
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

@@ -1,9 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { defaultNames, bracketTypes, BracketType } from '@/lib/defaults';
+import {
+  Button,
+  CardBody,
+  CardHeader,
+  Alert,
+  AlertTitle,
+  AlertDescription,
+  Select
+} from "@chakra-ui/react";
+import { Card } from '@chakra-ui/card';
+import { defaultNames, bracketTypes, BracketType } from '@/app/lib/defaults';
 
 interface NameInputProps {
   onSubmit: (names: string[], bracketType: BracketType) => void;
@@ -24,17 +30,22 @@ interface SavedList {
   options: string[];
 }
 
-export default function NameInput({ onSubmit, initialNames, savedLists = [], onLoadList }: NameInputProps) {
+export default function NameInput({ 
+  onSubmit, 
+  initialNames, 
+  savedLists = [], 
+  onLoadList 
+}: NameInputProps) {
   const [state, setState] = useState<NameInputState>({
     inputValue: initialNames ? initialNames.join(', ') : defaultNames.join(', '),
     error: null,
     showTooltip: true,
-    bracketType: 'single'
+    bracketType: 'single',
   });
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setState(prev => ({ ...prev, showTooltip: false }));
+      setState((prev) => ({ ...prev, showTooltip: false }));
     }, 5000);
     return () => clearTimeout(timer);
   }, []);
@@ -43,72 +54,84 @@ export default function NameInput({ onSubmit, initialNames, savedLists = [], onL
     if (names.length < 2) {
       return 'Please enter at least two names separated by commas.';
     }
-    
+
     const uniqueNames = new Set(names);
     if (uniqueNames.size !== names.length) {
       return 'Please remove duplicate names before continuing.';
     }
-    
+
     return null;
   }, []);
 
   const processNames = useCallback((inputValue: string): string[] => {
     return inputValue
       .split(',')
-      .map(name => name.trim())
-      .filter(name => name !== '');
+      .map((name) => name.trim())
+      .filter((name) => name !== '');
   }, []);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const names = processNames(state.inputValue);
-    const error = validateNames(names);
-    
-    setState(prev => ({ ...prev, error }));
-    
-    if (!error) {
-      onSubmit(names, state.bracketType);
-    }
-  }, [state.inputValue, state.bracketType, onSubmit, processNames, validateNames]);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setState(prev => ({ ...prev, inputValue: e.target.value }));
-  }, []);
+      const names = processNames(state.inputValue);
+      const error = validateNames(names);
 
-  const handleLoadList = useCallback((list: SavedList) => {
-    onLoadList?.(list);
-  }, [onLoadList]);
+      setState((prev) => ({ ...prev, error }));
+
+      if (!error) {
+        onSubmit(names, state.bracketType);
+      }
+    },
+    [state.inputValue, state.bracketType, onSubmit, processNames, validateNames]
+  );
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setState((prev) => ({ ...prev, inputValue: e.target.value }));
+    },
+    []
+  );
+
+  const handleLoadList = useCallback(
+    (list: SavedList) => {
+      onLoadList?.(list);
+    },
+    [onLoadList]
+  );
+
+  const handleBracketTypeChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      setState((prev) => ({ ...prev, bracketType: e.target.value as BracketType }));
+    },
+    []
+  );
 
   return (
-    <Card>
+    <Card variant="outline" w="full" maxW="xl" mx="auto">
       <CardHeader>
-        <CardTitle className="text-2xl text-center">
+        <h2 className="text-2xl text-center">
           🐱 Aaron&apos;s Baby Boy Cat Name Picker 🐱
-        </CardTitle>
-        <CardDescription className="text-center text-base">
-          Let&apos;s find the purrfect name for your new furry friend! 
-        </CardDescription>
+        </h2>
+        <p className="text-center text-base">
+          Let&apos;s find the purrfect name for your new furry friend!
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardBody className="space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Select
               value={state.bracketType}
-              onValueChange={(value: BracketType) => 
-                setState(prev => ({ ...prev, bracketType: value }))
-              }
+              onChange={handleBracketTypeChange}
+              variant="outline"
+              size="md"
+              mb={4}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select bracket type" />
-              </SelectTrigger>
-              <SelectContent>
-                {bracketTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+              {bracketTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
             </Select>
             <textarea
               value={state.inputValue}
@@ -122,15 +145,18 @@ export default function NameInput({ onSubmit, initialNames, savedLists = [], onL
               aria-describedby={state.error ? 'name-input-error' : undefined}
             />
             {state.error && (
-              <Alert variant="destructive">
-                <AlertDescription id="name-input-error">{state.error}</AlertDescription>
+              <Alert status="error">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{state.error}</AlertDescription>
               </Alert>
             )}
           </div>
-          <Button 
+          <Button
             type="submit"
             disabled={!state.inputValue.trim()}
-            className="w-full"
+            variant="solid"
+            colorScheme="blue"
+            w="full"
             aria-label="Start picking names"
           >
             Start Picking! 🐾
@@ -144,8 +170,10 @@ export default function NameInput({ onSubmit, initialNames, savedLists = [], onL
                 <Button
                   key={index}
                   variant="outline"
+                  size="sm"
                   onClick={() => handleLoadList(list)}
-                  className="w-full justify-between"
+                  w="full"
+                  justifyContent="space-between"
                   aria-label={`Load saved list: ${list.name}`}
                 >
                   <span>{list.name} 🐱</span>
@@ -157,7 +185,7 @@ export default function NameInput({ onSubmit, initialNames, savedLists = [], onL
             </div>
           </div>
         )}
-      </CardContent>
+      </CardBody>
     </Card>
   );
 }
