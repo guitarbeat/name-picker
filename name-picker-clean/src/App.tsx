@@ -24,6 +24,7 @@ export function App() {
   const tournament = useTournament();
   const { session, login, logout, updatePreferences } = useSession();
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout>();
+  const isAutoAdvancingRef = useRef(false);
   const [matchesPerPage, setMatchesPerPage] = useState(session?.preferences.matchesPerPage ?? 1);
   const [autoAdvance, setAutoAdvance] = useState(session?.preferences.autoAdvance ?? true);
   const [showTimer, setShowTimer] = useState(session?.preferences.showTimer ?? false);
@@ -77,16 +78,22 @@ export function App() {
   }, [tournament.state, tournament.winner, session]);
 
   const handleMatchVote = (matchId: string, result: MatchResult) => {
-    // Clear any existing timeout
+    // Clear any existing timeout and reset state
     if (autoAdvanceTimeoutRef.current) {
       clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = undefined;
     }
+    isAutoAdvancingRef.current = false;
 
     tournament.updateMatch(matchId, result);
     
     if (autoAdvance && tournament.currentMatchIndex < tournament.currentRound.length - 1) {
+      isAutoAdvancingRef.current = true;
       autoAdvanceTimeoutRef.current = setTimeout(() => {
-        tournament.advanceToNextMatch();
+        if (isAutoAdvancingRef.current) {
+          tournament.advanceToNextMatch();
+          isAutoAdvancingRef.current = false;
+        }
       }, 500);
     }
   };
@@ -96,7 +103,9 @@ export function App() {
     return () => {
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current);
+        autoAdvanceTimeoutRef.current = undefined;
       }
+      isAutoAdvancingRef.current = false;
     };
   }, []);
 
@@ -137,6 +146,39 @@ export function App() {
     setIsAdmin(username.toLowerCase() === 'aaron');
   };
 
+  const validateTournamentData = (data: unknown): data is TournamentResult[] => {
+    if (!Array.isArray(data)) return false;
+    
+    return data.every(item => {
+      if (typeof item !== 'object' || item === null) return false;
+      
+      const hasRequiredFields = 
+        'id' in item &&
+        'createdAt' in item &&
+        'matches' in item &&
+        'winner' in item &&
+        'names' in item &&
+        'points' in item;
+      
+      if (!hasRequiredFields) return false;
+      
+      // Validate matches array
+      if (!Array.isArray(item.matches)) return false;
+      return item.matches.every((match: unknown) => {
+        if (typeof match !== 'object' || match === null) return false;
+        const m = match as Record<string, unknown>;
+        return (
+          typeof m.id === 'string' &&
+          typeof m.name1 === 'string' &&
+          (m.name2 === null || typeof m.name2 === 'string') &&
+          (m.winner === null || (typeof m.winner === 'number' && [-1, 0, 1, 2].includes(m.winner))) &&
+          typeof m.timestamp === 'number' &&
+          typeof m.createdAt === 'string'
+        );
+      });
+    });
+  };
+
   const handleImport = async (file: File) => {
     try {
       if (!file) {
@@ -151,12 +193,19 @@ export function App() {
         throw new Error('FILE_TOO_LARGE');
       }
 
-      const importedTournaments = await importData(file);
-      if (!Array.isArray(importedTournaments)) {
-        throw new Error('INVALID_DATA');
+      const fileContent = await file.text();
+      let importedData;
+      try {
+        importedData = JSON.parse(fileContent);
+      } catch {
+        throw new Error('INVALID_JSON');
       }
 
-      setTournaments(importedTournaments);
+      if (!validateTournamentData(importedData)) {
+        throw new Error('INVALID_DATA_STRUCTURE');
+      }
+
+      setTournaments(importedData);
     } catch (error) {
       console.error('Import error:', error);
       
@@ -164,7 +213,8 @@ export function App() {
         'NO_FILE': 'No file selected for import.',
         'INVALID_FORMAT': 'Please select a valid JSON file.',
         'FILE_TOO_LARGE': 'File size exceeds 10MB limit.',
-        'INVALID_DATA': 'Invalid tournament data format.',
+        'INVALID_JSON': 'Invalid JSON format.',
+        'INVALID_DATA_STRUCTURE': 'Invalid tournament data structure.',
       } as const;
 
       const errorMessage = error instanceof Error && error.message in errorMessages

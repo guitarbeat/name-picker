@@ -1,4 +1,3 @@
-
 import type { Match, MatchResult } from '../types/tournament';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -51,27 +50,34 @@ export function createInitialMatches(names: string[]): Match[] {
  * @returns An array of Match objects representing the next round.
  */
 export function createNextRound(matches: Match[]): Match[] {
-  const winners: (string | null)[] = [];
+  if (!Array.isArray(matches) || matches.length === 0) {
+    return [];
+  }
+
+  const winners: string[] = [];
 
   for (const match of matches) {
+    // Validate match structure
+    if (!match || typeof match !== 'object') continue;
+    if (typeof match.name1 !== 'string') continue;
+    if (match.name2 !== null && typeof match.name2 !== 'string') continue;
+    if (match.winner !== null && ![-1, 0, 1, 2].includes(match.winner)) continue;
+
     if (match.winner === -1) {
       winners.push(match.name1);
     } else if (match.winner === 1 && match.name2) {
       winners.push(match.name2);
     } else if (match.winner === 0) {
       // For "like both", randomly choose one
-      winners.push(Math.random() < 0.5 ? match.name1 : (match.name2 || match.name1));
+      winners.push(Math.random() < 0.5 ? match.name1 : (match.name2 ?? match.name1));
     } else if (match.winner === 2 || match.winner === null) {
-        // Handle "no opinion" or incomplete matches:
-        if (match.name2) {
-          // If there's a competitor, randomly choose one
-          winners.push(Math.random() < 0.5 ? match.name1 : match.name2);
-        } else {
-          // If it's a bye, advance the single name
-          winners.push(match.name1);
-        }
+      // Handle "no opinion" or incomplete matches
+      if (match.name2) {
+        winners.push(Math.random() < 0.5 ? match.name1 : match.name2);
+      } else {
+        winners.push(match.name1);
+      }
     } else {
-      // Invalid winner value, default to first name
       winners.push(match.name1);
     }
   }
@@ -82,10 +88,15 @@ export function createNextRound(matches: Match[]): Match[] {
   const now = new Date().toISOString();
 
   for (let i = 0; i < winners.length; i += 2) {
+    const name1 = winners[i];
+    const name2 = i + 1 < winners.length ? winners[i + 1] : null;
+
+    if (!name1) continue; // Skip if somehow we got an invalid winner
+
     nextMatches.push({
       id: uuidv4(),
-      name1: winners[i]!, // We know winners[i] will be a string if there's a match
-      name2: i + 1 < winners.length ? winners[i + 1]! : null, // Handle odd number of winners with a bye
+      name1,
+      name2,
       winner: null,
       timestamp: Date.now(),
       createdAt: now,
@@ -114,9 +125,14 @@ export function calculateTotalRounds(numNames: number): number {
  * @returns A new array of matches with the updated match.
  */
 export function updateMatch(matches: Match[], matchId: string, result: MatchResult): Match[] {
-  return matches.map(match =>
-    match.id === matchId ? { ...match, winner: result, timestamp: Date.now() } : match
-  );
+  if (!Array.isArray(matches)) return [];
+  if (typeof matchId !== 'string') return matches;
+  if (typeof result !== 'number' || ![-1, 0, 1, 2].includes(result)) return matches;
+
+  return matches.map(match => {
+    if (!match || typeof match !== 'object') return match;
+    return match.id === matchId ? { ...match, winner: result, timestamp: Date.now() } : match;
+  });
 }
 
 /**
@@ -136,7 +152,7 @@ export function isRoundComplete(matches: Match[]): boolean {
  * @returns A sorted array of names, ranked from highest points to lowest.
  */
 export function getSortedNames(matches: Match[]): string[] {
-  const namePoints: Record<string, number> = {};
+  const namePoints: Record<string, { points: number, wins: number, timestamp: number }> = {};
 
   // Initialize points for all names that participated
   const allNames = new Set<string>();
@@ -146,24 +162,45 @@ export function getSortedNames(matches: Match[]): string[] {
       allNames.add(match.name2);
     }
   });
-  allNames.forEach(name => namePoints[name] = 0);
+  allNames.forEach(name => namePoints[name] = { points: 0, wins: 0, timestamp: 0 });
 
   // Calculate points from match results
   matches.forEach(match => {
     if (match.winner === -1) {
-      namePoints[match.name1] += 2;
+      namePoints[match.name1].points += 2;
+      namePoints[match.name1].wins += 1;
+      namePoints[match.name1].timestamp = Math.max(namePoints[match.name1].timestamp, match.timestamp);
     } else if (match.winner === 1 && match.name2) {
-      namePoints[match.name2] += 2;
+      namePoints[match.name2].points += 2;
+      namePoints[match.name2].wins += 1;
+      namePoints[match.name2].timestamp = Math.max(namePoints[match.name2].timestamp, match.timestamp);
     } else if (match.winner === 0 && match.name2) {
-      namePoints[match.name1] += 1;
-      namePoints[match.name2] += 1;
+      namePoints[match.name1].points += 1;
+      namePoints[match.name2].points += 1;
+      namePoints[match.name1].timestamp = Math.max(namePoints[match.name1].timestamp, match.timestamp);
+      namePoints[match.name2].timestamp = Math.max(namePoints[match.name2].timestamp, match.timestamp);
     }
     // No points for "no opinion" (2) or byes (name2 is null)
   });
 
-  // Sort names by points (descending)
+  // Sort names by points (descending), then by wins (descending), then by most recent win (descending)
   return Object.entries(namePoints)
-    .sort(([, pointsA], [, pointsB]) => pointsB - pointsA)
+    .sort(([nameA, statsA], [nameB, statsB]) => {
+      // First sort by points
+      if (statsB.points !== statsA.points) {
+        return statsB.points - statsA.points;
+      }
+      // Then by number of wins
+      if (statsB.wins !== statsA.wins) {
+        return statsB.wins - statsA.wins;
+      }
+      // Then by most recent win timestamp
+      if (statsB.timestamp !== statsA.timestamp) {
+        return statsB.timestamp - statsA.timestamp;
+      }
+      // Finally, alphabetically as a last resort
+      return nameA.localeCompare(nameB);
+    })
     .map(([name]) => name);
 }
 
@@ -175,19 +212,49 @@ export function getSortedNames(matches: Match[]): string[] {
  * @returns True if the tournament is complete, false otherwise.
  */
 export function isTournamentComplete(matches: Match[], numNames: number): boolean {
-  const totalRounds = calculateTotalRounds(numNames);
-  // Count the number of rounds that have been played by checking the depth of matches
-  const roundsPlayed = matches.reduce((maxRound, match) => {
-    let round = 1;
-    let currentMatchId = match.id;
-    while (matches.some(m => m.name1 === currentMatchId || m.name2 === currentMatchId)) {
-      round++;
-      const nextMatch = matches.find(m => m.name1 === currentMatchId || m.name2 === currentMatchId);
-      if (!nextMatch) break;
-      currentMatchId = nextMatch.id;
-    }
-    return Math.max(maxRound, round);
-  }, 0);
+  if (matches.length === 0) return false;
+  if (numNames <= 1) return true;
 
-  return roundsPlayed >= totalRounds && isRoundComplete(matches.filter(m => m.winner !== null));
+  // Get matches grouped by round (based on creation timestamp)
+  const matchesByRound = matches.reduce((acc, match) => {
+    const round = acc.find(r => r[0].createdAt === match.createdAt);
+    if (round) {
+      round.push(match);
+    } else {
+      acc.push([match]);
+    }
+    return acc;
+  }, [] as Match[][]);
+
+  // Check if we have the correct number of rounds
+  const expectedRounds = calculateTotalRounds(numNames);
+  if (matchesByRound.length < expectedRounds) return false;
+
+  // Check if all matches in the final round are complete
+  const finalRound = matchesByRound[matchesByRound.length - 1];
+  if (!finalRound.every(match => match.winner !== null)) return false;
+
+  // Check if we have a clear winner (only one match in final round)
+  if (finalRound.length !== 1) return false;
+
+  // Verify that all matches leading to the final round are complete
+  for (let i = 0; i < matchesByRound.length - 1; i++) {
+    const round = matchesByRound[i];
+    if (!round.every(match => match.winner !== null)) return false;
+
+    // Verify that winners advanced correctly
+    const nextRound = matchesByRound[i + 1];
+    const winners = round.flatMap(match => {
+      if (match.winner === -1) return [match.name1];
+      if (match.winner === 1 && match.name2) return [match.name2];
+      if (match.winner === 0) return [match.name1]; // In case of tie, first name advances
+      return [];
+    });
+
+    // Check if all winners are present in the next round
+    const nextRoundNames = nextRound.flatMap(match => [match.name1, match.name2].filter(Boolean));
+    if (!winners.every(winner => nextRoundNames.includes(winner))) return false;
+  }
+
+  return true;
 }
