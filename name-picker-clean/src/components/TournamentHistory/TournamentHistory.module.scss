@@ -1,0 +1,209 @@
+.history {
+  margin-top: 2rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(to right, var(--color-primary), var(--color-primary-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+.adminControls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.adminHint {
+  color: var(--color-text);
+  opacity: 0.7;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.historyCard {
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+  }
+
+  &.selected {
+    border-color: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.1);
+  }
+}
+
+.winner {
+  text-align: center;
+  margin-bottom: 1rem;
+
+  h3 {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text);
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+  }
+
+  p {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+}
+
+.details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  opacity: 0.7;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
+.tournamentDetails {
+  grid-column: 1 / -1;
+  background: rgba(var(--color-card-rgb), 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: -1rem;
+  animation: slideDown 0.3s ease-out;
+
+  h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--color-primary);
+  }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(var(--color-background-rgb), 0.3);
+  border-radius: 8px;
+
+  span:first-child {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+  }
+
+  span:last-child {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+}
+
+.matchHistory {
+  margin-bottom: 2rem;
+}
+
+.matches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.matchResult {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(var(--color-background-rgb), 0.3);
+  border-radius: 8px;
+  font-size: 0.875rem;
+
+  .matchNumber {
+    color: var(--color-text);
+    opacity: 0.5;
+    font-size: 0.75rem;
+    min-width: 2rem;
+  }
+
+  .name {
+    flex: 1;
+    text-align: center;
+
+    &.winner {
+      color: var(--color-primary);
+      font-weight: 600;
+    }
+  }
+
+  .vs {
+    color: var(--color-text);
+    opacity: 0.5;
+    font-size: 0.75rem;
+    padding: 0 0.5rem;
+  }
+}
+
+.finalRanking {
+  .rankingList {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    list-style-position: inside;
+    padding: 0;
+
+    li {
+      padding: 0.5rem;
+      background: rgba(var(--color-background-rgb), 0.3);
+      border-radius: 4px;
+      font-size: 0.875rem;
+
+      &.winner {
+        color: var(--color-primary);
+        font-weight: 600;
+        background: rgba(var(--color-primary-rgb), 0.1);
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+} 

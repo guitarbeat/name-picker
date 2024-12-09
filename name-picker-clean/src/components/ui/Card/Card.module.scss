@@ -1,0 +1,42 @@
+.card {
+  background-color: rgba(var(--color-card-rgb), 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s ease;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.default {
+  background-color: rgba(var(--color-card-rgb), 0.8);
+}
+
+.active {
+  border-color: var(--color-primary);
+  background-color: rgba(var(--color-card-rgb), 0.9);
+}
+
+.winner {
+  border-color: var(--color-winner-border);
+  background-color: var(--color-winner);
+}
+
+.loser {
+  border-color: var(--color-loser-border);
+  background-color: var(--color-loser);
+  opacity: 0.8;
+} 

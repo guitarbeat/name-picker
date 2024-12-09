@@ -1,0 +1,45 @@
+{
+  "name": "name-picker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@types/node": "^20.10.4",
+    "@types/react": "^18.2.42",
+    "@types/react-dom": "^18.2.17",
+    "@types/uuid": "^10.0.0",
+    "clsx": "^2.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-spring": "^9.7.3",
+    "sass": "^1.82.0",
+    "typescript": "^5.3.3",
+    "uuid": "^11.0.3"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.7",
+    "vitest": "^1.0.4"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
