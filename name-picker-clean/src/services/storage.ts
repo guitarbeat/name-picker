@@ -1,9 +1,11 @@
 import type { TournamentResult, UserSession } from '../types/tournament';
+import { getTournaments, addTournament, clearTournaments, importTournaments } from '../api/tournaments';
+import { getUserSession, saveUserSession, clearUserSession } from '../api/sessions';
 
-// Storage keys used for localStorage operations
-const STORAGE_KEYS = {
-  TOURNAMENTS: 'tournaments',
-  USER_SESSION: 'user_session',
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  TOURNAMENTS: 'cached_tournaments',
+  USER_SESSION: 'cached_user_session',
 } as const;
 
 // Common error messages
@@ -17,13 +19,22 @@ const ERROR_MESSAGES = {
 };
 
 /**
- * Load tournaments from localStorage.
- * @returns {TournamentResult[]} Array of tournaments.
+ * Load tournaments with local caching.
  */
-export function loadTournaments(): TournamentResult[] {
+export async function loadTournaments(): Promise<TournamentResult[]> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.TOURNAMENTS);
-    return stored ? JSON.parse(stored) : [];
+    // Try to get from cache first
+    const cached = localStorage.getItem(CACHE_KEYS.TOURNAMENTS);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // If not in cache, fetch from API
+    const tournaments = await getTournaments();
+    
+    // Cache the results
+    localStorage.setItem(CACHE_KEYS.TOURNAMENTS, JSON.stringify(tournaments));
+    return tournaments;
   } catch (error) {
     console.error(`${ERROR_MESSAGES.LOAD_FAIL} tournaments`, error);
     return [];
@@ -31,15 +42,23 @@ export function loadTournaments(): TournamentResult[] {
 }
 
 /**
- * Load user session from localStorage.
- * @returns {UserSession | null} The user session or null if not found.
+ * Load user session with local caching.
  */
-export function loadUserSession(): UserSession | null {
+export async function loadUserSession(): Promise<UserSession | null> {
   try {
-    const stored = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
-    if (!stored) return null;
+    // Try to get from cache first
+    const cached = localStorage.getItem(CACHE_KEYS.USER_SESSION);
+    if (cached) {
+      return JSON.parse(cached);
+    }
 
-    const session = JSON.parse(stored);
+    // If not in cache, fetch from API
+    const session = await getUserSession();
+    
+    // Cache the results if we got them
+    if (session) {
+      localStorage.setItem(CACHE_KEYS.USER_SESSION, JSON.stringify(session));
+    }
     return session;
   } catch (error) {
     console.error(`${ERROR_MESSAGES.LOAD_FAIL} user session`, error);
@@ -48,39 +67,34 @@ export function loadUserSession(): UserSession | null {
 }
 
 /**
- * Save user session to localStorage.
- * @param {UserSession} session - The session to save.
+ * Save user session and update cache.
  */
-export function saveUserSession(session: UserSession): void {
+export async function saveUserSessionToAPI(session: UserSession): Promise<void> {
   try {
-    // Validate required fields
     if (!session.username || !session.createdAt) {
       throw new Error(`${ERROR_MESSAGES.VALIDATION_FAIL} missing required fields`);
     }
 
-    // Update lastLoginAt
-    const updatedSession = {
-      ...session,
-      lastLoginAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(updatedSession));
+    await saveUserSession(session);
+    localStorage.setItem(CACHE_KEYS.USER_SESSION, JSON.stringify(session));
   } catch (error) {
     console.error(`${ERROR_MESSAGES.SAVE_FAIL} user session`, error);
-    throw error; // Re-throw to allow handling by the caller
+    throw error;
   }
 }
 
 /**
- * Add a new tournament and save it to localStorage.
- * @param {TournamentResult} tournament - Tournament data to add.
+ * Add a new tournament and update cache.
  */
-export function addTournament(tournament: TournamentResult): void {
+export async function addTournamentToAPI(tournament: TournamentResult): Promise<void> {
   try {
-    const tournaments = loadTournaments();
+    await addTournament(tournament);
+    
+    // Update cache with new tournament
+    const cached = await loadTournaments();
     localStorage.setItem(
-      STORAGE_KEYS.TOURNAMENTS,
-      JSON.stringify([tournament, ...tournaments])
+      CACHE_KEYS.TOURNAMENTS,
+      JSON.stringify([tournament, ...cached])
     );
   } catch (error) {
     console.error(`${ERROR_MESSAGES.SAVE_FAIL} tournament`, error);
@@ -89,11 +103,12 @@ export function addTournament(tournament: TournamentResult): void {
 }
 
 /**
- * Clear all tournaments from localStorage.
+ * Clear all tournaments and cache.
  */
-export function clearTournaments(): void {
+export async function clearTournamentsFromAPI(): Promise<void> {
   try {
-    localStorage.removeItem(STORAGE_KEYS.TOURNAMENTS);
+    await clearTournaments();
+    localStorage.removeItem(CACHE_KEYS.TOURNAMENTS);
   } catch (error) {
     console.error(`${ERROR_MESSAGES.CLEAR_FAIL} tournaments`, error);
     throw error;
@@ -101,11 +116,12 @@ export function clearTournaments(): void {
 }
 
 /**
- * Clear user session from localStorage.
+ * Clear user session and cache.
  */
-export function clearUserSession(): void {
+export async function clearUserSessionFromAPI(): Promise<void> {
   try {
-    localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
+    await clearUserSession();
+    localStorage.removeItem(CACHE_KEYS.USER_SESSION);
   } catch (error) {
     console.error(`${ERROR_MESSAGES.CLEAR_FAIL} user session`, error);
     throw error;
@@ -114,7 +130,6 @@ export function clearUserSession(): void {
 
 /**
  * Export tournament data as a JSON file.
- * @param {TournamentResult[]} tournaments - Array of tournament data to export.
  */
 export function exportData(tournaments: TournamentResult[]): void {
   try {
@@ -140,23 +155,21 @@ export function exportData(tournaments: TournamentResult[]): void {
 }
 
 /**
- * Import tournament data from a JSON file.
- * @param {File} file - File object containing tournament data.
- * @returns {Promise<TournamentResult[]>} Promise resolving with the imported tournaments.
+ * Import tournament data and update cache.
  */
-export function importData(file: File): Promise<TournamentResult[]> {
+export async function importData(file: File): Promise<TournamentResult[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
         if (!Array.isArray(data.tournaments)) {
           throw new Error(`${ERROR_MESSAGES.VALIDATION_FAIL} missing tournaments array`);
         }
-        localStorage.setItem(
-          STORAGE_KEYS.TOURNAMENTS,
-          JSON.stringify(data.tournaments)
-        );
+        await importTournaments(data.tournaments);
+        
+        // Update cache with imported tournaments
+        localStorage.setItem(CACHE_KEYS.TOURNAMENTS, JSON.stringify(data.tournaments));
         resolve(data.tournaments);
       } catch (error) {
         reject(error);
@@ -165,4 +178,4 @@ export function importData(file: File): Promise<TournamentResult[]> {
     reader.onerror = () => reject(new Error(`${ERROR_MESSAGES.IMPORT_FAIL} file`));
     reader.readAsText(file);
   });
-}
+} 

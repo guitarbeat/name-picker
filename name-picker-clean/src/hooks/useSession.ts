@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { UserSession, UserPreferences } from '../types/tournament';
-import { loadUserSession, saveUserSession, clearUserSession } from '../services/storage';
+import { 
+  loadUserSession, 
+  saveUserSessionToAPI, 
+  clearUserSessionFromAPI 
+} from '../services/storage';
 
 // Default preferences for a new user session
 const DEFAULT_PREFERENCES: UserPreferences = {
@@ -15,18 +19,21 @@ export function useSession() {
 
   // Load the session from storage on component mount
   useEffect(() => {
-    try {
-      const savedSession = loadUserSession();
-      if (savedSession) {
-        setSession(savedSession);
+    const loadSession = async () => {
+      try {
+        const savedSession = await loadUserSession();
+        if (savedSession) {
+          setSession(savedSession);
+        }
+      } catch (error) {
+        console.error('Failed to load user session:', error);
       }
-    } catch (error) {
-      console.error('Failed to load user session:', error);
-    }
+    };
+    loadSession();
   }, []);
 
   // Log in a user by creating a new session
-  const login = useCallback((username: string) => {
+  const login = useCallback(async (username: string) => {
     try {
       const newSession: UserSession = {
         username,
@@ -34,7 +41,7 @@ export function useSession() {
         lastLoginAt: new Date().toISOString(),
         preferences: DEFAULT_PREFERENCES,
       };
-      saveUserSession(newSession);
+      await saveUserSessionToAPI(newSession);
       setSession(newSession);
     } catch (error) {
       console.error('Failed to create user session:', error);
@@ -42,9 +49,9 @@ export function useSession() {
   }, []);
 
   // Log out the user by clearing the session
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     try {
-      clearUserSession();
+      await clearUserSessionFromAPI();
       setSession(null);
     } catch (error) {
       console.error('Failed to clear user session:', error);
@@ -53,7 +60,7 @@ export function useSession() {
 
   // Update the user's preferences
   const updatePreferences = useCallback(
-    (updatedPreferences: Partial<UserPreferences>) => {
+    async (updatedPreferences: Partial<UserPreferences>) => {
       if (session) {
         const newSession = {
           ...session,
@@ -63,7 +70,7 @@ export function useSession() {
           },
         };
         try {
-          saveUserSession(newSession);
+          await saveUserSessionToAPI(newSession);
           setSession(newSession);
         } catch (error) {
           console.error('Failed to update user preferences:', error);

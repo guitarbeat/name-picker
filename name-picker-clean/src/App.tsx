@@ -8,17 +8,39 @@ import { Tournament } from './components/Tournament';
 import { Results } from './components/Results';
 import { useTournament } from './hooks/useTournament';
 import { useSession } from './hooks/useSession';
-import type { MatchResult, TournamentResult } from './types/tournament';
+import type { MatchResult, TournamentResult, Match } from './types/tournament';
 import { DEFAULT_NAMES } from './constants/names';
 import {
   loadTournaments,
-  addTournament,
-  clearTournaments,
+  addTournamentToAPI,
+  clearTournamentsFromAPI,
   exportData,
   importData,
 } from './services/storage';
 import { UserMenu } from './components/UserMenu';
 import { TournamentHistory } from './components/TournamentHistory';
+
+// Type guard for tournament winner
+function isValidWinner(winner: string | null): winner is string {
+  return typeof winner === 'string' && winner.length > 0;
+}
+
+// Helper function to create tournament result
+function createTournamentResult(
+  winner: string,
+  matches: Match[],
+  names: string[],
+  points: Record<string, number>
+): TournamentResult {
+  return {
+    id: uuidv4(),
+    createdAt: new Date().toISOString(),
+    matches,
+    winner,
+    names,
+    points,
+  };
+}
 
 export function App() {
   const tournament = useTournament();
@@ -32,50 +54,110 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentResult[]>([]);
 
-  // Combined preferences effect
+  // Synchronize UI state with session preferences
   useEffect(() => {
-    const isInitialLoad = session && !matchesPerPage && !autoAdvance && !showTimer;
-    
-    if (isInitialLoad) {
-      // Load initial preferences from session
-      setMatchesPerPage(session.preferences.matchesPerPage);
-      setAutoAdvance(session.preferences.autoAdvance);
-      setShowTimer(session.preferences.showTimer);
-    } else if (session) {
-      // Update preferences when local state changes
-      const debounceTimeout = setTimeout(() => {
-        updatePreferences({
-          matchesPerPage,
-          autoAdvance,
-          showTimer,
-        });
-      }, 300); // Debounce preference updates
+    if (!session) return;
 
-      return () => clearTimeout(debounceTimeout);
-    }
+    const syncPreferences = () => {
+      setMatchesPerPage(session.preferences.matchesPerPage ?? 1);
+      setAutoAdvance(session.preferences.autoAdvance ?? true);
+      setShowTimer(session.preferences.showTimer ?? false);
+    };
+
+    // Initial sync
+    syncPreferences();
+
+    // Set up interval to check for session changes
+    const syncInterval = setInterval(syncPreferences, 1000);
+
+    return () => {
+      clearInterval(syncInterval);
+    };
+  }, [session]);
+
+  // Debounced preference updates
+  useEffect(() => {
+    if (!session) return;
+
+    const debounceTimeout = setTimeout(() => {
+      updatePreferences({
+        matchesPerPage,
+        autoAdvance,
+        showTimer,
+      });
+    }, 300);
+
+    return () => {
+      clearTimeout(debounceTimeout);
+    };
   }, [matchesPerPage, autoAdvance, showTimer, session, updatePreferences]);
 
-  // Load tournaments from storage
+  // Tournament state cleanup
   useEffect(() => {
-    const storedTournaments = loadTournaments();
-    setTournaments(storedTournaments);
+    let mounted = true;
+
+    const saveTournament = async (winner: string) => {
+      const result = createTournamentResult(
+        winner,
+        tournament.allMatches,
+        tournament.names,
+        tournament.points
+      );
+      await addTournamentToAPI(result);
+      if (mounted) {
+        setTournaments(prev => [result, ...prev]);
+      }
+    };
+
+    // Save tournament results
+    if (tournament.state === 'results' && tournament.winner && session && mounted) {
+      if (isValidWinner(tournament.winner)) {
+        saveTournament(tournament.winner);
+      }
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [tournament.state, tournament.winner, session, tournament.allMatches, tournament.names, tournament.points]);
+
+  // Load tournaments with cleanup
+  useEffect(() => {
+    let mounted = true;
+
+    const loadStoredTournaments = async () => {
+      try {
+        const storedTournaments = await loadTournaments();
+        if (mounted) {
+          setTournaments(storedTournaments);
+        }
+      } catch (error) {
+        console.error('Failed to load tournaments:', error);
+        if (mounted) {
+          setTournaments([]); // Set empty array on error
+        }
+      }
+    };
+
+    loadStoredTournaments();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  // Save tournament results
+  // Auto-advance cleanup
   useEffect(() => {
-    if (tournament.state === 'results' && tournament.winner && session) {
-      const result: TournamentResult = {
-        id: uuidv4(),
-        createdAt: new Date().toISOString(),
-        matches: tournament.allMatches,
-        winner: tournament.winner,
-        names: tournament.names,
-        points: tournament.points,
-      };
-      addTournament(result);
-      setTournaments(prev => [result, ...prev]);
-    }
-  }, [tournament.state, tournament.winner, session]);
+    const currentTimeout = autoAdvanceTimeoutRef.current;
+
+    return () => {
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+        autoAdvanceTimeoutRef.current = undefined;
+      }
+      isAutoAdvancingRef.current = false;
+    };
+  }, []);
 
   const handleMatchVote = (matchId: string, result: MatchResult) => {
     // Clear any existing timeout and reset state
@@ -98,17 +180,6 @@ export function App() {
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (autoAdvanceTimeoutRef.current) {
-        clearTimeout(autoAdvanceTimeoutRef.current);
-        autoAdvanceTimeoutRef.current = undefined;
-      }
-      isAutoAdvancingRef.current = false;
-    };
-  }, []);
-
   const handleNavigation = (direction: 'prev' | 'next') => {
     const currentPage = Math.floor(tournament.currentMatchIndex / matchesPerPage);
     const totalPages = Math.ceil(tournament.currentRound.length / matchesPerPage);
@@ -118,7 +189,6 @@ export function App() {
     if (direction === 'next') {
       if (tournament.currentMatchIndex < tournament.currentRound.length - 1) {
         tournament.advanceToNextMatch();
-        // If we're at the last match of the current page and not the last page
         if (tournament.currentMatchIndex === lastMatchOnPage && currentPage < totalPages - 1) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -126,7 +196,6 @@ export function App() {
     } else {
       if (tournament.currentMatchIndex > 0) {
         tournament.goToPreviousMatch();
-        // If we're moving to the previous page
         if (tournament.currentMatchIndex === firstMatchOnPage && currentPage > 0) {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -134,9 +203,23 @@ export function App() {
     }
   };
 
-  const handleClearHistory = () => {
+  // Navigation event listeners
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') handleNavigation('prev');
+      if (e.key === 'ArrowRight') handleNavigation('next');
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleNavigation]);
+
+  const handleClearHistory = async () => {
     if (window.confirm('Are you sure you want to clear all tournament history?')) {
-      clearTournaments();
+      await clearTournamentsFromAPI();
       setTournaments([]);
     }
   };
@@ -259,7 +342,7 @@ export function App() {
       <div className={styles.background} aria-hidden="true" />
       
       <header className={styles.header} role="banner">
-        <h1>Name Tournament</h1>
+        <h1>Help Name My Cat! 🐱</h1>
         {session ? (
           <UserMenu
             session={session}
@@ -275,139 +358,103 @@ export function App() {
             variant="outline"
             size="small"
             onClick={() => {
-              const username = prompt('Enter username:');
+              const username = prompt('Enter your name to help me choose:');
               if (username) handleLogin(username);
             }}
-            aria-label="Login"
+            aria-label="Join naming tournament"
           >
-            Login
+            Join Tournament
           </Button>
         )}
       </header>
 
       <main className={styles.main} role="main">
+        {tournament.state === 'input' && (
+          <div className={styles.welcomeSection}>
+            <h2>Ready to Help Choose a Name?</h2>
+            <p className={styles.welcomeText}>
+              Thanks for helping me name my new cat! This is a fun tournament where you'll vote between different name options.
+              It only takes a few minutes, and your votes will help me pick the perfect name.
+            </p>
+            
+            <div className={styles.startOptions}>
+              <div className={styles.tournamentOption}>
+                <Button
+                  variant="primary"
+                  size="large"
+                  onClick={handleStartCatTournament}
+                  className={styles.optionButton}
+                >
+                  <span className={styles.buttonTitle}>Use Suggested Cat Names</span>
+                  <span className={styles.buttonDescription}>Vote on a curated list of cat names</span>
+                </Button>
+              </div>
+
+              <div className={styles.tournamentOption}>
+                <Button
+                  variant="secondary"
+                  size="large"
+                  onClick={handleStartCustomTournament}
+                  className={styles.optionButton}
+                >
+                  <span className={styles.buttonTitle}>Enter Custom Names</span>
+                  <span className={styles.buttonDescription}>Add your own name suggestions</span>
+                </Button>
+              </div>
+            </div>
+
+            {!session && (
+              <p className={styles.loginPrompt}>
+                👋 Enter your name above to get started and help me choose!
+              </p>
+            )}
+          </div>
+        )}
+
         <div aria-live="polite" aria-atomic="true">
           {tournament.state === 'results' && (
-            <div role="status">Tournament completed! Winner: {tournament.winner}</div>
-          )}
-        </div>
-
-        <div 
-          role="region" 
-          aria-label="Tournament matches"
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowLeft') handleNavigation('prev');
-            if (e.key === 'ArrowRight') handleNavigation('next');
-          }}
-          tabIndex={0}
-        >
-          {tournament.state === 'tournament' && (
-            <div className={styles.tournamentSection}>
-              <div className={styles.controls}>
-                <div className={styles.matchesPerPage}>
-                  <span>Matches per page:</span>
-                  {[1, 2, 4].map(num => (
-                    <Button
-                      key={num}
-                      variant={matchesPerPage === num ? 'primary' : 'outline'}
-                      size="small"
-                      onClick={() => setMatchesPerPage(num)}
-                    >
-                      {num}
-                    </Button>
-                  ))}
-                </div>
-                <div className={styles.options}>
-                  <Button
-                    variant="outline"
-                    size="small"
-                    onClick={() => setAutoAdvance(!autoAdvance)}
-                  >
-                    Auto-advance {autoAdvance ? 'On' : 'Off'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="small"
-                    onClick={() => setShowTimer(!showTimer)}
-                  >
-                    {showTimer ? 'Hide Timer' : 'Show Timer'}
-                  </Button>
-                </div>
-              </div>
-
-              <div className={styles.matches}>
-                {tournament.currentRound.slice(0, matchesPerPage).map(match => (
-                  <Tournament
-                    key={match.id}
-                    currentMatch={match}
-                    onVote={(result) => handleMatchVote(match.id, result)}
-                    showTimer={showTimer}
-                    autoAdvance={autoAdvance}
-                    roundNumber={tournament.roundNumber}
-                    totalMatches={tournament.currentRound.length}
-                    currentMatchNumber={tournament.currentMatchIndex + 1}
-                    onNavigate={handleNavigation}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {tournament.state === 'input' && (
-            <div className={styles.startSection}>
-              <Card className={styles.startCard}>
-                <h2>Ready to Pick a Name?</h2>
-                <p>Start a new tournament!</p>
-                {!showCustomInput && (
-                  <div className={styles.startOptions}>
-                    <Button
-                      variant="primary"
-                      onClick={handleStartCatTournament}
-                      className={styles.optionButton}
-                    >
-                      Cat Names Tournament
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleStartCustomTournament}
-                      className={styles.optionButton}
-                    >
-                      Custom Names Tournament
-                    </Button>
-                  </div>
-                )}
-                {showCustomInput && (
-                  <>
-                    <NameInput onSubmit={handleCustomNamesSubmit} useDefaultNames={false} />
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCustomInput(false)}
-                      className={styles.backButton}
-                    >
-                      Back to Options
-                    </Button>
-                  </>
-                )}
-              </Card>
-              <TournamentHistory 
-                tournaments={tournaments}
-                isAdmin={isAdmin}
-                onClearHistory={handleClearHistory}
-              />
-            </div>
-          )}
-
-          {tournament.state === 'results' && tournament.winner && (
-            <div className={styles.resultsSection}>
-              <Results
-                winner={tournament.winner}
-                matches={tournament.allMatches}
-                points={tournament.points}
-                onRestart={tournament.reset}
-              />
+            <div role="status" className={styles.results}>
+              Tournament completed! Winner: {tournament.winner}
             </div>
           )}
         </div>
+
+        {tournament.state === 'tournament' && (
+          <Tournament
+            currentMatch={tournament.currentRound[tournament.currentMatchIndex]}
+            onVote={(result) => handleMatchVote(tournament.currentRound[tournament.currentMatchIndex].id, result)}
+            showTimer={showTimer}
+            autoAdvance={autoAdvance}
+            roundNumber={tournament.roundNumber}
+            totalMatches={tournament.currentRound.length}
+            currentMatchNumber={tournament.currentMatchIndex + 1}
+            onNavigate={handleNavigation}
+          />
+        )}
+
+        {tournament.state === 'results' && tournament.winner && (
+          <Results
+            winner={tournament.winner}
+            matches={tournament.allMatches}
+            points={tournament.points}
+            onRestart={tournament.reset}
+          />
+        )}
+
+        {showCustomInput && (
+          <NameInput
+            onSubmit={handleCustomNamesSubmit}
+            useDefaultNames={false}
+          />
+        )}
+
+        {session && tournaments.length > 0 && (
+          <TournamentHistory
+            tournaments={tournaments}
+            isAdmin={isAdmin}
+            onClearHistory={handleClearHistory}
+          />
+        )}
       </main>
     </div>
   );
