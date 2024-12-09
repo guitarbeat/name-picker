@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import styles from './App.module.scss';
 import { Card } from './components/ui/Card';
@@ -23,6 +23,7 @@ import { TournamentHistory } from './components/TournamentHistory';
 export function App() {
   const tournament = useTournament();
   const { session, login, logout, updatePreferences } = useSession();
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout>();
   const [matchesPerPage, setMatchesPerPage] = useState(session?.preferences.matchesPerPage ?? 1);
   const [autoAdvance, setAutoAdvance] = useState(session?.preferences.autoAdvance ?? true);
   const [showTimer, setShowTimer] = useState(session?.preferences.showTimer ?? false);
@@ -30,25 +31,28 @@ export function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentResult[]>([]);
 
-  // Update preferences when local state changes
+  // Combined preferences effect
   useEffect(() => {
-    if (session) {
-      updatePreferences({
-        matchesPerPage,
-        autoAdvance,
-        showTimer,
-      });
-    }
-  }, [matchesPerPage, autoAdvance, showTimer, session, updatePreferences]);
-
-  // Load user preferences when session changes
-  useEffect(() => {
-    if (session) {
+    const isInitialLoad = session && !matchesPerPage && !autoAdvance && !showTimer;
+    
+    if (isInitialLoad) {
+      // Load initial preferences from session
       setMatchesPerPage(session.preferences.matchesPerPage);
       setAutoAdvance(session.preferences.autoAdvance);
       setShowTimer(session.preferences.showTimer);
+    } else if (session) {
+      // Update preferences when local state changes
+      const debounceTimeout = setTimeout(() => {
+        updatePreferences({
+          matchesPerPage,
+          autoAdvance,
+          showTimer,
+        });
+      }, 300); // Debounce preference updates
+
+      return () => clearTimeout(debounceTimeout);
     }
-  }, [session]);
+  }, [matchesPerPage, autoAdvance, showTimer, session, updatePreferences]);
 
   // Load tournaments from storage
   useEffect(() => {
@@ -73,14 +77,28 @@ export function App() {
   }, [tournament.state, tournament.winner, session]);
 
   const handleMatchVote = (matchId: string, result: MatchResult) => {
+    // Clear any existing timeout
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+    }
+
     tournament.updateMatch(matchId, result);
     
     if (autoAdvance && tournament.currentMatchIndex < tournament.currentRound.length - 1) {
-      setTimeout(() => {
+      autoAdvanceTimeoutRef.current = setTimeout(() => {
         tournament.advanceToNextMatch();
       }, 500);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleNavigation = (direction: 'prev' | 'next') => {
     const currentPage = Math.floor(tournament.currentMatchIndex / matchesPerPage);
@@ -121,16 +139,55 @@ export function App() {
 
   const handleImport = async (file: File) => {
     try {
+      if (!file) {
+        throw new Error('NO_FILE');
+      }
+
+      if (!file.name.endsWith('.json')) {
+        throw new Error('INVALID_FORMAT');
+      }
+
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error('FILE_TOO_LARGE');
+      }
+
       const importedTournaments = await importData(file);
+      if (!Array.isArray(importedTournaments)) {
+        throw new Error('INVALID_DATA');
+      }
+
       setTournaments(importedTournaments);
     } catch (error) {
-      console.error('Failed to import data:', error);
-      alert('Failed to import data. Please check the file format.');
+      console.error('Import error:', error);
+      
+      const errorMessages = {
+        'NO_FILE': 'No file selected for import.',
+        'INVALID_FORMAT': 'Please select a valid JSON file.',
+        'FILE_TOO_LARGE': 'File size exceeds 10MB limit.',
+        'INVALID_DATA': 'Invalid tournament data format.',
+      } as const;
+
+      const errorMessage = error instanceof Error && error.message in errorMessages
+        ? errorMessages[error.message as keyof typeof errorMessages]
+        : 'Failed to import data. Please try again.';
+
+      alert(errorMessage);
     }
   };
 
   const handleUpdatePreferences = (preferences: Record<string, unknown>) => {
-    console.log('Update preferences:', preferences);
+    if (!session) return;
+
+    const validatedPreferences = {
+      matchesPerPage: typeof preferences.matchesPerPage === 'number' ? preferences.matchesPerPage : matchesPerPage,
+      autoAdvance: typeof preferences.autoAdvance === 'boolean' ? preferences.autoAdvance : autoAdvance,
+      showTimer: typeof preferences.showTimer === 'boolean' ? preferences.showTimer : showTimer,
+    };
+
+    setMatchesPerPage(validatedPreferences.matchesPerPage);
+    setAutoAdvance(validatedPreferences.autoAdvance);
+    setShowTimer(validatedPreferences.showTimer);
+    updatePreferences(validatedPreferences);
   };
 
   const handleStartCatTournament = () => {
@@ -148,10 +205,10 @@ export function App() {
   };
 
   return (
-    <div className={styles.app}>
-      <div className={styles.background} />
+    <div className={styles.app} role="application">
+      <div className={styles.background} aria-hidden="true" />
       
-      <header className={styles.header}>
+      <header className={styles.header} role="banner">
         <h1>Name Tournament</h1>
         {session ? (
           <UserMenu
@@ -161,6 +218,7 @@ export function App() {
             onImport={handleImport}
             onUpdatePreferences={handleUpdatePreferences}
             isAdmin={isAdmin}
+            aria-label="User menu"
           />
         ) : (
           <Button
@@ -170,119 +228,136 @@ export function App() {
               const username = prompt('Enter username:');
               if (username) handleLogin(username);
             }}
+            aria-label="Login"
           >
             Login
           </Button>
         )}
       </header>
 
-      <main className={styles.main}>
-        {tournament.state === 'tournament' && (
-          <div className={styles.tournamentSection}>
-            <div className={styles.controls}>
-              <div className={styles.matchesPerPage}>
-                <span>Matches per page:</span>
-                {[1, 2, 4].map(num => (
+      <main className={styles.main} role="main">
+        <div aria-live="polite" aria-atomic="true">
+          {tournament.state === 'results' && (
+            <div role="status">Tournament completed! Winner: {tournament.winner}</div>
+          )}
+        </div>
+
+        <div 
+          role="region" 
+          aria-label="Tournament matches"
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') handleNavigation('prev');
+            if (e.key === 'ArrowRight') handleNavigation('next');
+          }}
+          tabIndex={0}
+        >
+          {tournament.state === 'tournament' && (
+            <div className={styles.tournamentSection}>
+              <div className={styles.controls}>
+                <div className={styles.matchesPerPage}>
+                  <span>Matches per page:</span>
+                  {[1, 2, 4].map(num => (
+                    <Button
+                      key={num}
+                      variant={matchesPerPage === num ? 'primary' : 'outline'}
+                      size="small"
+                      onClick={() => setMatchesPerPage(num)}
+                    >
+                      {num}
+                    </Button>
+                  ))}
+                </div>
+                <div className={styles.options}>
                   <Button
-                    key={num}
-                    variant={matchesPerPage === num ? 'primary' : 'outline'}
+                    variant="outline"
                     size="small"
-                    onClick={() => setMatchesPerPage(num)}
+                    onClick={() => setAutoAdvance(!autoAdvance)}
                   >
-                    {num}
-                  </Button>
-                ))}
-              </div>
-              <div className={styles.options}>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => setAutoAdvance(!autoAdvance)}
-                >
-                  Auto-advance {autoAdvance ? 'On' : 'Off'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="small"
-                  onClick={() => setShowTimer(!showTimer)}
-                >
-                  {showTimer ? 'Hide Timer' : 'Show Timer'}
-                </Button>
-              </div>
-            </div>
-
-            <div className={styles.matches}>
-              {tournament.currentRound.slice(0, matchesPerPage).map(match => (
-                <Tournament
-                  key={match.id}
-                  currentMatch={match}
-                  onVote={(result) => handleMatchVote(match.id, result)}
-                  showTimer={showTimer}
-                  autoAdvance={autoAdvance}
-                  roundNumber={tournament.roundNumber}
-                  totalMatches={tournament.currentRound.length}
-                  currentMatchNumber={tournament.currentMatchIndex + 1}
-                  onNavigate={handleNavigation}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {tournament.state === 'input' && (
-          <div className={styles.startSection}>
-            <Card className={styles.startCard}>
-              <h2>Ready to Pick a Name?</h2>
-              <p>Start a new tournament!</p>
-              {!showCustomInput && (
-                <div className={styles.startOptions}>
-                  <Button
-                    variant="primary"
-                    onClick={handleStartCatTournament}
-                    className={styles.optionButton}
-                  >
-                    Cat Names Tournament
+                    Auto-advance {autoAdvance ? 'On' : 'Off'}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleStartCustomTournament}
-                    className={styles.optionButton}
+                    size="small"
+                    onClick={() => setShowTimer(!showTimer)}
                   >
-                    Custom Names Tournament
+                    {showTimer ? 'Hide Timer' : 'Show Timer'}
                   </Button>
                 </div>
-              )}
-              {showCustomInput && (
-                <>
-                  <NameInput onSubmit={handleCustomNamesSubmit} useDefaultNames={false} />
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowCustomInput(false)}
-                    className={styles.backButton}
-                  >
-                    Back to Options
-                  </Button>
-                </>
-              )}
-            </Card>
-            <TournamentHistory 
-              tournaments={tournaments}
-              isAdmin={isAdmin}
-              onClearHistory={handleClearHistory}
-            />
-          </div>
-        )}
+              </div>
 
-        {tournament.state === 'results' && tournament.winner && (
-          <div className={styles.resultsSection}>
-            <Results
-              winner={tournament.winner}
-              matches={tournament.allMatches}
-              points={tournament.points}
-              onRestart={tournament.reset}
-            />
-          </div>
-        )}
+              <div className={styles.matches}>
+                {tournament.currentRound.slice(0, matchesPerPage).map(match => (
+                  <Tournament
+                    key={match.id}
+                    currentMatch={match}
+                    onVote={(result) => handleMatchVote(match.id, result)}
+                    showTimer={showTimer}
+                    autoAdvance={autoAdvance}
+                    roundNumber={tournament.roundNumber}
+                    totalMatches={tournament.currentRound.length}
+                    currentMatchNumber={tournament.currentMatchIndex + 1}
+                    onNavigate={handleNavigation}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tournament.state === 'input' && (
+            <div className={styles.startSection}>
+              <Card className={styles.startCard}>
+                <h2>Ready to Pick a Name?</h2>
+                <p>Start a new tournament!</p>
+                {!showCustomInput && (
+                  <div className={styles.startOptions}>
+                    <Button
+                      variant="primary"
+                      onClick={handleStartCatTournament}
+                      className={styles.optionButton}
+                    >
+                      Cat Names Tournament
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleStartCustomTournament}
+                      className={styles.optionButton}
+                    >
+                      Custom Names Tournament
+                    </Button>
+                  </div>
+                )}
+                {showCustomInput && (
+                  <>
+                    <NameInput onSubmit={handleCustomNamesSubmit} useDefaultNames={false} />
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCustomInput(false)}
+                      className={styles.backButton}
+                    >
+                      Back to Options
+                    </Button>
+                  </>
+                )}
+              </Card>
+              <TournamentHistory 
+                tournaments={tournaments}
+                isAdmin={isAdmin}
+                onClearHistory={handleClearHistory}
+              />
+            </div>
+          )}
+
+          {tournament.state === 'results' && tournament.winner && (
+            <div className={styles.resultsSection}>
+              <Results
+                winner={tournament.winner}
+                matches={tournament.allMatches}
+                points={tournament.points}
+                onRestart={tournament.reset}
+              />
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

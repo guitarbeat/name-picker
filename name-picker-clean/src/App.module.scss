@@ -1,3 +1,8 @@
+// Mobile breakpoints
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+
 .app {
   display: flex;
   flex-direction: column;
@@ -19,6 +24,10 @@
     opacity: 0.95;
     z-index: 0;
   }
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.5rem;
+  }
 }
 
 .header {
@@ -37,6 +46,10 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
+
+    @media (max-width: $breakpoint-sm) {
+      font-size: 1.75rem;
+    }
   }
 
   p {
@@ -91,8 +104,12 @@
   max-width: 1200px;
   margin: 0 auto;
 
-  @media (max-width: 768px) {
+  @media (max-width: $breakpoint-md) {
     padding: 1rem;
+  }
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.5rem;
   }
 }
 
@@ -216,7 +233,15 @@
   box-shadow: var(--shadow-lg);
   position: sticky;
   top: 1rem;
-  z-index: 10;
+  z-index: var(--z-sticky);
+
+  @media (max-width: $breakpoint-sm) {
+    padding: 0.75rem;
+    gap: 0.5rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 .matchSettings {
@@ -292,8 +317,16 @@
   font-weight: 600;
   color: var(--color-text);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: var(--z-timer);
   transition: all 0.3s ease;
+
+  @media (max-width: $breakpoint-sm) {
+    bottom: 1rem;
+    right: 1rem;
+    width: 50px;
+    height: 50px;
+    font-size: 1.25rem;
+  }
 }
 
 .urgent {

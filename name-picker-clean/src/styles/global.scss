@@ -36,10 +36,15 @@
 
   /* Z-index Layers */
   --z-base: 1;
+  --z-above-base: 5;
   --z-dropdown: 10;
-  --z-sticky: 100;
-  --z-modal: 1000;
-  --z-tooltip: 1500;
+  --z-sticky: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-popover: 50;
+  --z-tooltip: 60;
+  --z-toast: 70;
+  --z-timer: 80;
 }
 
 /* Global Reset */
