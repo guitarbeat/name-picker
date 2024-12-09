@@ -1,38 +1,38 @@
 /* Theme Variables */
 :root {
   /* Color Palette */
-  --color-background: #1a1a1a;
-  --color-background-rgb: 26, 26, 26;
-  --color-text: #ffffff;
-  --color-text-rgb: 255, 255, 255;
-  --color-primary: #646cff;
-  --color-primary-rgb: 100, 108, 255;
-  --color-primary-hover: #747bff;
-  --color-primary-hover-rgb: 116, 123, 255;
-  --color-border: #333333;
-  --color-border-rgb: 51, 51, 51;
-  --color-card: #242424;
-  --color-card-rgb: 36, 36, 36;
-  --color-card-hover: #2a2a2a;
-  --color-card-hover-rgb: 42, 42, 42;
+  --color-background: #0f172a;
+  --color-background-rgb: 15, 23, 42;
+  --color-text: #f8fafc;
+  --color-text-rgb: 248, 250, 252;
+  --color-primary: #3b82f6;
+  --color-primary-rgb: 59, 130, 246;
+  --color-primary-hover: #60a5fa;
+  --color-primary-hover-rgb: 96, 165, 250;
+  --color-border: #1e293b;
+  --color-border-rgb: 30, 41, 59;
+  --color-card: #1e293b;
+  --color-card-rgb: 30, 41, 59;
+  --color-card-hover: #334155;
+  --color-card-hover-rgb: 51, 65, 85;
   
   /* Status Colors */
-  --color-winner: rgba(74, 222, 128, 0.2);
-  --color-winner-rgb: 74, 222, 128;
-  --color-winner-border: rgb(74, 222, 128);
+  --color-winner: rgba(34, 197, 94, 0.2);
+  --color-winner-rgb: 34, 197, 94;
+  --color-winner-border: rgb(34, 197, 94);
   --color-loser: rgba(239, 68, 68, 0.1);
   --color-loser-rgb: 239, 68, 68;
   --color-loser-border: rgb(239, 68, 68);
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 
   /* Transitions */
-  --transition-fast: 0.2s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s ease;
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
 
   /* Z-index Layers */
   --z-base: 1;
@@ -59,7 +59,7 @@ body {
 /* Base Styles */
 body {
   color: var(--color-text);
-  background: var(--color-background);
+  background: linear-gradient(to bottom right, var(--color-background), #1a365d);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
     Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   font-size: 16px;
@@ -68,6 +68,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
 }
 
 /* Anchor Styles */
@@ -87,10 +88,17 @@ button {
   font-family: inherit;
   font-size: inherit;
   transition: all var(--transition-fast);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.7;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
@@ -106,25 +114,27 @@ input, select, textarea {
   font-family: inherit;
   font-size: inherit;
   color: var(--color-text);
-  background-color: rgba(var(--color-background-rgb), 0.5);
+  background-color: rgba(var(--color-card-rgb), 0.5);
   border: 2px solid var(--color-border);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
 
   &:focus {
     outline: none;
     border-color: var(--color-primary);
-    background-color: rgba(var(--color-background-rgb), 0.8);
+    background-color: rgba(var(--color-card-rgb), 0.8);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
   }
 
   &::placeholder {
     color: var(--color-text);
-    opacity: 0.5;
+    opacity: 0.4;
   }
 
   &:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 }
@@ -136,17 +146,17 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-background);
+  background: rgba(var(--color-background-rgb), 0.3);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: rgba(var(--color-primary-rgb), 0.3);
   border-radius: 4px;
   transition: background var(--transition-fast);
 
   &:hover {
-    background: var(--color-primary);
+    background: rgba(var(--color-primary-rgb), 0.5);
   }
 }
 

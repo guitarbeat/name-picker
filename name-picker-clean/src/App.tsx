@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import styles from './App.module.scss';
-import { Card } from './components/ui/Card/Card';
-import { Button } from './components/ui/Button/Button';
-import { NameInput } from './components/NameInput/NameInput';
-import { Tournament } from './components/Tournament/Tournament';
-import { Results } from './components/Results/Results';
+import { Card } from './components/ui/Card';
+import { Button } from './components/ui/Button';
+import { NameInput } from './components/NameInput';
+import { Tournament } from './components/Tournament';
+import { Results } from './components/Results';
 import { useTournament } from './hooks/useTournament';
 import { useSession } from './hooks/useSession';
 import type { MatchResult, TournamentResult } from './types/tournament';
@@ -17,8 +17,8 @@ import {
   exportData,
   importData,
 } from './services/storage';
-import { UserMenu } from './components/UserMenu/UserMenu';
-import { TournamentHistory } from './components/TournamentHistory/TournamentHistory';
+import { UserMenu } from './components/UserMenu';
+import { TournamentHistory } from './components/TournamentHistory';
 
 export function App() {
   const tournament = useTournament();
