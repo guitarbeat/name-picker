@@ -1,0 +1,25 @@
+/* Color Palette */
+:root {
+  --color-background: #0f172a;
+  --color-background-rgb: 15, 23, 42;
+  --color-text: #f8fafc;
+  --color-text-rgb: 248, 250, 252;
+  --color-primary: #3b82f6;
+  --color-primary-rgb: 59, 130, 246;
+  --color-primary-hover: #60a5fa;
+  --color-primary-hover-rgb: 96, 165, 250;
+  --color-border: #1e293b;
+  --color-border-rgb: 30, 41, 59;
+  --color-card: #1e293b;
+  --color-card-rgb: 30, 41, 59;
+  --color-card-hover: #334155;
+  --color-card-hover-rgb: 51, 65, 85;
+  
+  /* Status Colors */
+  --color-winner: rgba(34, 197, 94, 0.2);
+  --color-winner-rgb: 34, 197, 94;
+  --color-winner-border: rgb(34, 197, 94);
+  --color-loser: rgba(239, 68, 68, 0.1);
+  --color-loser-rgb: 239, 68, 68;
+  --color-loser-border: rgb(239, 68, 68);
+} 

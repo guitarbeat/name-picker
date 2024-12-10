@@ -1,0 +1,70 @@
+#mainTable {
+    font-size: 19px;
+    font-family: 'Times New Roman', serif;
+    text-align: center;
+    vertical-align: middle;
+    width: 410px;
+    margin: 0 auto;
+    border-collapse: separate;
+    border-spacing: 10px 5px;
+}
+
+#leftField, #rightField {
+    width: 120px;
+    height: 150px;
+    border: 1px solid #000;
+    cursor: pointer;
+}
+
+.middleField {
+    width: 120px;
+    height: 70px;
+    border: 1px solid #000;
+    cursor: pointer;
+}
+
+a {
+    color: #e097d9;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #8f8f8f;
+}
+
+body {
+    max-width: 600px;
+    margin: 0 auto;
+    font-family: 'Times New Roman', serif;
+}
+
+.user-input {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.user-input label {
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.user-input input {
+    padding: 8px;
+    font-size: 16px;
+    width: 200px;
+}
+
+.user-input button {
+    padding: 8px 16px;
+    font-size: 16px;
+    background-color: #e097d9;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.user-input button:hover {
+    background-color: #d086c5;
+}

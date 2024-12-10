@@ -1,31 +1,34 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "allowJs": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "baseUrl": ".",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./*"],
+      "@components/*": ["components/*"],
+      "@features/*": ["features/*"],
+      "@styles/*": ["styles/*"],
+      "@constants/*": ["constants/*"],
+      "@types/*": ["types/*"],
+      "@utils/*": ["utils/*"]
     },
-    "plugins": [
-      {
-        "name": "typescript-plugin-css-modules"
-      }
-    ]
+    "types": ["node", "vite/client"],
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*", "server.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["vite.config.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 } 

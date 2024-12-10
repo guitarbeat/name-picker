@@ -1,1 +1,0 @@
-export { TournamentHistory } from './TournamentHistory'; 

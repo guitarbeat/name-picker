@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Name Picker Sorter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="instructions">
+        <h1 style="text-align: center;">SORTER NAME</h1>
+        <p style="text-align: center;">
+            Pick who you like better in each battle to get an accurate list of your favorite members from the group.
+            <br>Note: Hitting 'No Opinion' or 'I Like Both' frequently will negatively affect your results.
+        </p>
+    </div>
+    <div class="user-input">
+        <label for="userName">Enter your name:</label>
+        <input type="text" id="userName" placeholder="Your Name" required>
+        <button id="startQuiz" onclick="startQuiz()">Start Quiz</button>
+    </div>
+    
+    <div id="quizSection" style="display: none;">
+        <!-- Existing quiz table -->
+
+    
+    <table id="mainTable">
+        <thead>
+            <tr>
+                <th id="battleNumber" colspan="3">battle #1<br>0% sorted</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td id="leftField" onclick="if (!finishFlag) sortList(-1);" rowspan="2"></td>
+                <td class="middleField" onclick="if (!finishFlag) sortList(0);">I like both</td>
+                <td id="rightField" onclick="if (!finishFlag) sortList(1);" rowspan="2"></td>
+            </tr>
+            <tr>
+                <td class="middleField" onclick="if (!finishFlag) sortList(0);">No Opinion</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div id="resultField" style="text-align: center;"></div>
+
+    <footer style="text-align: center; margin-top: 20px;">
+        <p>
+            <small>
+                Used with permission. <br>
+                <a href="http://biasorter.tumblr.com/" target="_blank" rel="noopener">Created by Biasorter</a>
+            </small>
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            initList();
+            showImage();
+        });
+    </script>
+</body>
+</html>

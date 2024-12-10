@@ -1,28 +1,33 @@
 import React from 'react';
 import styles from './Button.module.scss';
+import clsx from 'clsx';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline';
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'text';
   size?: 'small' | 'medium' | 'large';
   fullWidth?: boolean;
 }
 
-export function Button({
+export const Button: React.FC<ButtonProps> = ({
   children,
+  className,
   variant = 'primary',
   size = 'medium',
   fullWidth = false,
-  className,
   ...props
-}: ButtonProps) {
+}) => {
   return (
     <button
-      className={`${styles.button} ${styles[variant]} ${styles[size]} ${
-        fullWidth ? styles.fullWidth : ''
-      } ${className || ''}`}
+      className={clsx(
+        styles.button,
+        styles[variant],
+        styles[size],
+        fullWidth && styles.fullWidth,
+        className
+      )}
       {...props}
     >
       {children}
     </button>
   );
-} 
+}; 

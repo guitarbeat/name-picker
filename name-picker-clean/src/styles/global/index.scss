@@ -1,0 +1,59 @@
+@use '@styles/theme' as theme;
+@use './reset';
+@use './typography';
+
+/* Base Styles */
+body {
+  color: var(--color-text);
+  background: linear-gradient(to bottom right, var(--color-background), #1a365d);
+  min-height: 100vh;
+}
+
+/* Form Element Styles */
+button {
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  transition: all var(--transition-fast);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text);
+  background-color: rgba(var(--color-card-rgb), 0.5);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  transition: all var(--transition-fast);
+  backdrop-filter: blur(8px);
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background-color: rgba(var(--color-card-rgb), 0.8);
+    box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.2);
+  }
+
+  &::placeholder {
+    color: var(--color-text);
+    opacity: 0.4;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+} 

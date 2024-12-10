@@ -2,20 +2,22 @@ import React from 'react';
 import styles from './Card.module.scss';
 import clsx from 'clsx';
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface CardProps {
   children: React.ReactNode;
   className?: string;
-  variant?: 'default' | 'active' | 'winner' | 'loser';
+  variant?: 'default' | 'winner' | 'loser';
   isClickable?: boolean;
+  onClick?: () => void;
 }
 
-export function Card({ 
+export const Card: React.FC<CardProps> = ({ 
   children, 
-  className, 
+  className,
   variant = 'default',
   isClickable = false,
+  onClick,
   ...props 
-}: CardProps) {
+}) => {
   return (
     <div 
       className={clsx(
@@ -23,10 +25,11 @@ export function Card({
         styles[variant],
         isClickable && styles.clickable,
         className
-      )} 
+      )}
+      onClick={onClick}
       {...props}
     >
       {children}
     </div>
   );
-} 
+}; 

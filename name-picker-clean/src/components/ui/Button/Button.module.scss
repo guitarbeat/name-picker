@@ -1,3 +1,7 @@
+@import '@styles/theme/colors';
+@import '@styles/theme/shadows';
+@import '@styles/theme/animations';
+
 .button {
   display: inline-flex;
   align-items: center;
@@ -40,13 +44,13 @@
   }
 }
 
-.outline {
+.text {
   background-color: transparent;
-  color: var(--color-primary);
-  border: 1px solid currentColor;
+  color: var(--color-text);
+  padding: 0;
 
   &:hover:not(:disabled) {
-    background-color: var(--color-card-hover);
+    color: var(--color-primary);
   }
 }
 
