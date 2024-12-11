@@ -21,8 +21,7 @@ import {
   ErrorBoundary,
   Login,
   Profile,
-  TournamentSetup,
-  RankingAdjustment
+  TournamentSetup
 } from './components';
 import useUserSession from './hooks/useUserSession';
 import useSupabaseStorage from './supabase/useSupabaseStorage';
@@ -38,27 +37,96 @@ function App() {
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
 
-  const handleTournamentComplete = async (finalRankings) => {
+  const handleTournamentComplete = async (finalRatings) => {
     try {
-      // Convert finalRankings array to the format expected by handleUpdateRatings
-      const ratingsForUpdate = finalRankings.map(item => ({
-        name: item.name,
-        rating: item.rating,
-        // Preserve existing wins/losses if available, or default to 0
-        wins: ratings[item.name]?.wins || 0,
-        losses: ratings[item.name]?.losses || 0
-      }));
+      if (!userName) {
+        console.error('No user name available');
+        return;
+      }
+
+      console.log('Starting tournament completion for user:', userName);
+
+      // Merge new ratings with existing ones, preserving wins/losses
+      const updatedRatings = { ...ratings };
+      finalRatings.forEach(({ name, rating }) => {
+        const existingRating = typeof updatedRatings[name] === 'object'
+          ? updatedRatings[name]
+          : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };
+
+        // If rating improved, count as a win, otherwise a loss
+        const isImprovement = rating > (existingRating.rating || 1500);
+        updatedRatings[name] = {
+          rating: Math.round(rating),
+          wins: (existingRating.wins || 0) + (isImprovement ? 1 : 0),
+          losses: (existingRating.losses || 0) + (isImprovement ? 0 : 1)
+        };
+      });
+
+      console.log('Fetching name_ids for:', Object.keys(updatedRatings));
+
+      // Get name_ids from name_options table
+      const { data: nameOptions, error: nameError } = await supabase
+        .from('name_options')
+        .select('id, name')
+        .in('name', Object.keys(updatedRatings));
+
+      if (nameError) {
+        console.error('Error fetching name options:', nameError);
+        return;
+      }
+
+      console.log('Retrieved name options:', nameOptions);
+
+      // Create a map of name to name_id
+      const nameToIdMap = nameOptions.reduce((acc, { id, name }) => {
+        acc[name] = id;
+        return acc;
+      }, {});
+
+      // Prepare records for database
+      const recordsToUpsert = Object.entries(updatedRatings)
+        .map(([name, data]) => {
+          const name_id = nameToIdMap[name];
+          if (!name_id) {
+            console.warn(`No name_id found for ${name}`);
+            return null;
+          }
+          return {
+            user_name: userName,
+            name_id,
+            rating: data.rating,
+            wins: data.wins,
+            losses: data.losses,
+            updated_at: new Date().toISOString()
+          };
+        })
+        .filter(Boolean);
+
+      console.log('Prepared records for upsert:', recordsToUpsert);
+
+      if (recordsToUpsert.length > 0) {
+        // Update ratings directly without checking user
+        const { error: upsertError } = await supabase
+          .from('cat_name_ratings')
+          .upsert(recordsToUpsert, {
+            onConflict: 'user_name,name_id',
+            returning: 'minimal'
+          });
+
+        if (upsertError) {
+          console.error('Error updating ratings:', upsertError);
+          return;
+        }
+
+        console.log('Successfully updated ratings');
+      }
 
       // Update local state
-      setRatings(finalRankings);
+      setRatings(updatedRatings);
       setTournamentComplete(true);
 
-      // Save to database
-      await handleUpdateRatings(ratingsForUpdate);
-      console.log('Tournament results saved successfully');
     } catch (error) {
-      console.error('Error saving tournament results:', error);
-      // Optionally show an error message to the user
+      console.error('Tournament completion error:', error);
     }
   };
 

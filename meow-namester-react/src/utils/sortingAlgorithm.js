@@ -13,6 +13,17 @@ export class PreferenceSorter {
         console.log('PreferenceSorter initialized with items:', items);
     }
 
+    getCurrentRankings() {
+        // If we have completed rankings, return those
+        if (this.ranks.length > 0) {
+            return this.ranks;
+        }
+
+        // Otherwise, return the current state of namMember
+        // This will give us the best approximation of current rankings
+        return [...this.namMember];
+    }
+
     async sort(compareCallback) {
         console.log('Starting sort process with items:', this.namMember);
         const n = this.namMember.length;
