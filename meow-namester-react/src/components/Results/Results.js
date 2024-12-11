@@ -22,7 +22,14 @@ import RankingAdjustment from '../RankingAdjustment/RankingAdjustment';
 import './Results.css';
 
 function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTournamentNames }) {
-  const [isAdjusting, setIsAdjusting] = useState(true);
+  const [currentRankings, setCurrentRankings] = useState(
+    Object.entries(ratings || {})
+      .map(([name, rating]) => ({
+        name,
+        rating: Math.round(typeof rating === 'number' ? rating : 1500)
+      }))
+      .sort((a, b) => b.rating - a.rating)
+  );
 
   // Convert ratings to object format if it's an array
   const ratingsObject = Array.isArray(ratings) 
@@ -52,16 +59,15 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
       )
     : ratingsObject;
 
-  const handleAdjustRankings = () => {
-    setIsAdjusting(true);
-  };
-
+  // Update rankings immediately when adjustments are made
   const handleSaveAdjustments = async (adjustedRankings) => {
+    setCurrentRankings(adjustedRankings);
+    
     // Convert the array to the expected ratings object format while preserving name_id
     const newRatings = adjustedRankings.map(({ name, rating }) => {
       const existingRating = ratings[name];
       return {
-        name_id: existingRating?.name_id,  // Preserve the name_id
+        name_id: existingRating?.name_id,
         name: name,
         rating: Math.round(rating),
         wins: existingRating?.wins || 0,
@@ -70,56 +76,24 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
     });
     
     if (onUpdateRatings) {
-      onUpdateRatings(newRatings);
+      await onUpdateRatings(newRatings);
     }
-    setIsAdjusting(false);
   };
-
-  const handleCancelAdjustments = () => {
-    setIsAdjusting(false);
-  };
-
-  // Convert ratings object to array format for RankingAdjustment
-  const rankingsArray = currentTournamentNames
-    ? currentTournamentNames.map(name => ({
-        name,
-        rating: Math.round(typeof currentRatings[name] === 'number' ? currentRatings[name] : 1500)
-      }))
-    : Object.entries(currentRatings || {})
-        .map(([name, rating]) => ({
-          name,
-          rating: Math.round(typeof rating === 'number' ? rating : 1500)
-        }))
-        .sort((a, b) => b.rating - a.rating);
-
-  if (isAdjusting) {
-    return (
-      <RankingAdjustment
-        rankings={rankingsArray}
-        onSave={handleSaveAdjustments}
-        onCancel={handleCancelAdjustments}
-      />
-    );
-  }
 
   return (
     <div className="results-container">
-      <h2>Tournament Results</h2>
+      <h2>Name Rankings</h2>
       <p className="results-info">
-        Here are your rankings for this tournament, {userName}! You can adjust these rankings
-        or start a new tournament with different names.
+        Adjust your name rankings here, {userName}! Drag and drop to reorder names.
       </p>
 
-      <ResultsTable ratings={currentRatings} orderedNames={currentTournamentNames} />
+      <RankingAdjustment
+        rankings={currentRankings}
+        onSave={handleSaveAdjustments}
+        onCancel={() => {}} // Empty function since we're not using cancel anymore
+      />
 
       <div className="results-actions">
-        <button 
-          onClick={handleAdjustRankings} 
-          className="adjust-button"
-          disabled={!Object.keys(currentRatings || {}).length}
-        >
-          Adjust Rankings
-        </button>
         <button 
           onClick={onStartNew} 
           className="primary-button"
