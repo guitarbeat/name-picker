@@ -1,14 +1,72 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
+import { supabase } from '../../supabase/supabaseClient';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
   const [ratings, , { loading, error }] = useSupabaseStorage('cat_name_ratings', [], userName);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [allUsersRatings, setAllUsersRatings] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(userName);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 
-  if (loading) return (
+  useEffect(() => {
+    // Check if user is admin (Aaron)
+    setIsAdmin(userName.toLowerCase() === 'aaron');
+  }, [userName]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchAllUsersRatings();
+    }
+  }, [isAdmin]);
+
+  const fetchAllUsersRatings = async () => {
+    try {
+      setLoadingAllUsers(true);
+      const { data, error: fetchError } = await supabase
+        .from('cat_name_ratings')
+        .select(`
+          rating,
+          wins,
+          losses,
+          user_name,
+          name_options (
+            id,
+            name
+          )
+        `);
+
+      if (fetchError) throw fetchError;
+
+      // Group ratings by user
+      const ratingsByUser = data.reduce((acc, item) => {
+        const userName = item.user_name;
+        if (!acc[userName]) {
+          acc[userName] = [];
+        }
+        acc[userName].push({
+          id: item.name_options.id,
+          name: item.name_options.name,
+          rating: item.rating,
+          wins: item.wins,
+          losses: item.losses
+        });
+        return acc;
+      }, {});
+
+      setAllUsersRatings(ratingsByUser);
+    } catch (err) {
+      console.error('Error fetching all users ratings:', err);
+    } finally {
+      setLoadingAllUsers(false);
+    }
+  };
+
+  if (loading || loadingAllUsers) return (
     <div className="profile-loading">
       <div className="loading-spinner"></div>
-      <p>Loading your profile...</p>
+      <p>Loading profile data...</p>
     </div>
   );
   
@@ -19,14 +77,19 @@ function Profile({ userName, onStartNewTournament }) {
     </div>
   );
 
-  // Calculate statistics
-  const totalNames = ratings.length;
+  // Get the current ratings to display (either selected user's or current user's)
+  const currentRatings = isAdmin && selectedUser !== userName 
+    ? allUsersRatings[selectedUser] || []
+    : ratings;
+
+  // Calculate statistics for current view
+  const totalNames = currentRatings.length;
   const averageRating = totalNames > 0 
-    ? Math.round(ratings.reduce((sum, r) => sum + (r.rating || 1500), 0) / totalNames) 
+    ? Math.round(currentRatings.reduce((sum, r) => sum + (r.rating || 1500), 0) / totalNames) 
     : 0;
-  const totalMatches = ratings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
+  const totalMatches = currentRatings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
   
-  const topNames = [...ratings]
+  const topNames = [...currentRatings]
     .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
     .slice(0, 5);
 
@@ -36,9 +99,36 @@ function Profile({ userName, onStartNewTournament }) {
         <div className="profile-title">
           <h2>
             <span className="profile-emoji">😺</span>
-            {userName}'s Profile
+            {isAdmin ? 'Admin Dashboard' : `${userName}'s Profile`}
           </h2>
-          <p className="profile-subtitle">Cat Name Connoisseur</p>
+          {isAdmin && (
+            <div className="admin-controls">
+              <p className="profile-subtitle">Viewing data for: {selectedUser}</p>
+              <select 
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="user-select"
+              >
+                <option value={userName}>Your Profile</option>
+                {Object.keys(allUsersRatings)
+                  .filter(user => user !== userName)
+                  .sort()
+                  .map(user => (
+                    <option key={user} value={user}>{user}</option>
+                  ))
+                }
+              </select>
+              <button 
+                onClick={fetchAllUsersRatings} 
+                className="refresh-button"
+              >
+                🔄 Refresh Data
+              </button>
+            </div>
+          )}
+          {!isAdmin && (
+            <p className="profile-subtitle">Cat Name Connoisseur</p>
+          )}
         </div>
         <button 
           onClick={onStartNewTournament}
@@ -107,7 +197,7 @@ function Profile({ userName, onStartNewTournament }) {
           All Rated Names
         </h3>
         <div className="names-grid">
-          {ratings.map(name => (
+          {currentRatings.map(name => (
             <div key={name.id} className="name-card">
               <h4>{name.name}</h4>
               <div className="name-stats">
