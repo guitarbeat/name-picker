@@ -31,10 +31,10 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
     const [reorderedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, reorderedItem);
 
-    // Recalculate ratings based on new positions
+    // Recalculate ratings based on new positions - higher index = higher rating
     const adjustedItems = newItems.map((item, index) => ({
       ...item,
-      rating: Math.round(Math.max(1000, 2000 - ((newItems.length - 1 - index) * 50)))
+      rating: Math.round(Math.max(1000, 1500 + ((newItems.length - 1 - index) * 50)))
     }));
 
     setItems(adjustedItems);

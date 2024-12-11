@@ -74,9 +74,9 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
           ? existingRatings[name].rating
           : (existingRatings[name] || 1500);
         
-        // Calculate new rating based on position (higher index = better rank)
+        // Calculate new rating based on position (lower index = better rank)
         const totalNames = sortedResults.length;
-        const position = index; // Keep original index (winners at start)
+        const position = index;
         const ratingSpread = 500; // Total rating spread from top to bottom
         const positionValue = ((totalNames - position - 1) / (totalNames - 1)) * ratingSpread;
         
@@ -175,7 +175,7 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
         ? existingRatings[name].rating
         : (existingRatings[name] || 1500);
       
-      // Calculate new rating based on current position
+      // Calculate new rating based on position (lower index = better rank)
       const totalNames = names.length;
       const position = index;
       const ratingSpread = 500;
