@@ -1,0 +1,384 @@
+/* Define CSS variables */
+:root {
+    --background-color: #faf3f3;
+    --text-color: #333;
+    --primary-color: #e097d9;
+    --primary-hover-color: #d086c5;
+    --font-family: 'Josefin Slab', serif;
+    --link-hover-color: #8f8f8f;
+    --progress-color: #4CAF50;
+    --progress-background: #f0f0f0;
+    --card-background: #ffffff;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+    --border-radius: 8px;
+    --spacing-sm: 10px;
+    --spacing-md: 20px;
+}
+
+body {
+    max-width: 100%;
+    margin: 0;
+    font-family: var(--font-family);
+    text-align: center;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    padding: 20px;
+}
+
+@media (min-width: 600px) {
+  body {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+.App-header {
+    margin-top: 20px;
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.user-input {
+    margin: 20px 0;
+}
+
+.user-input input, .user-input button {
+    padding: 10px;
+    font-size: 16px;
+    margin: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.user-input button {
+    background-color: var(--primary-color);
+    color: #fff;
+    cursor: pointer;
+}
+
+.user-input button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.quiz-section {
+    margin-top: 20px;
+}
+
+.matchup {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px auto;
+    max-width: 600px;
+}
+
+.matchup button {
+    flex: 1 1 45%;
+    max-width: 200px;
+    height: 50px;
+    border: 1px solid #000;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin: 10px;
+    min-height: 60px;
+}
+
+.matchup button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.matchup button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.middleField {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+    width: 120px;
+    height: 150px;
+    margin: 20px auto;
+    width: auto;
+    max-width: 400px;
+}
+
+.middleField button {
+    width: 150px;
+    height: 50px;
+    border: 1px solid #000;
+    cursor: pointer;
+    margin: 0 10px;
+    flex: 1;
+    max-width: 180px;
+}
+
+.result-display {
+    margin-top: 20px;
+    font-size: 16px;
+    color: #555;
+}
+
+.progress {
+    margin: 20px 0;
+    font-size: 18px;
+}
+
+.suggest-name {
+    margin: 20px 0;
+}
+
+.suggest-name input {
+    padding: 10px;
+    font-size: 16px;
+    margin-right: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.suggest-name button {
+    padding: 10px;
+    font-size: 16px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.suggest-name button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+footer {
+    margin-top: 30px;
+}
+
+footer p {
+    font-size: 14px;
+    color: #777;
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--link-hover-color);
+}
+
+button {
+    padding: 12px 24px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: none;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    background-color: var(--primary-color);
+    color: #fff;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.loading {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-color);
+    font-style: italic;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: var(--progress-background);
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--progress-color);
+    transition: width 0.3s ease;
+}
+
+.progress-bar span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: #333;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.keyboard-hints {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+    padding: 10px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--progress-background);
+  border-top: 5px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-container {
+  text-align: center;
+  padding: 20px;
+  margin: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Add focus styles for better accessibility */
+button:focus,
+input:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Add skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+  padding: 1em;
+  background-color: white;
+  color: black;
+  opacity: 0;
+}
+
+.skip-link:focus {
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 1;
+}
+
+/* Improve mobile responsiveness */
+@media (max-width: 480px) {
+  .matchup {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .matchup button {
+    width: 90%;
+    max-width: none;
+  }
+  
+  .middleField {
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .middleField button {
+    width: 90%;
+    margin: 5px auto;
+  }
+}
+
+.setup-section {
+  display: grid;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  margin: var(--spacing-md) 0;
+}
+
+.options-management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+}
+
+.options-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  background: var(--background-color);
+  border-radius: var(--border-radius);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.option-item {
+  padding: var(--spacing-sm);
+  background: var(--card-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-option {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm) 0;
+}
+
+.add-option input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border: 2px solid transparent;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+}
+
+.add-option input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(224, 151, 217, 0.2);
+}
+
+.primary-button {
+  background: var(--primary-color);
+  color: white;
+}
+
+.secondary-button {
+  background: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
