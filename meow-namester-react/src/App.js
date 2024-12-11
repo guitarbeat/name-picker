@@ -14,7 +14,7 @@
  * @returns {JSX.Element} The complete application UI
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Tournament, 
   Results, 
@@ -25,7 +25,7 @@ import {
 } from './components';
 import useUserSession from './hooks/useUserSession';
 import useSupabaseStorage from './supabase/useSupabaseStorage';
-import { supabase } from './supabase/supabaseClient';
+import { supabase, getNamesWithDescriptions } from './supabase/supabaseClient';
 
 function App() {
   const { userName, isLoggedIn, login, logout, session } = useUserSession();
@@ -33,9 +33,24 @@ function App() {
   const [view, setView] = useState('tournament');
   const [tournamentComplete, setTournamentComplete] = useState(false);
   const [tournamentNames, setTournamentNames] = useState(null);
+  const [names, setNames] = useState([]);
 
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
+
+  useEffect(() => {
+    const loadNames = async () => {
+      try {
+        const namesData = await getNamesWithDescriptions();
+        console.log('Loaded names:', namesData); // Debug log
+        setNames(namesData);
+      } catch (error) {
+        console.error('Error loading names:', error);
+      }
+    };
+
+    loadNames();
+  }, []);
 
   const handleTournamentComplete = async (finalRatings) => {
     try {
@@ -263,9 +278,9 @@ function App() {
 
     return (
       <Tournament 
-        onComplete={handleTournamentComplete}
+        names={names}
         existingRatings={ratings}
-        names={tournamentNames}
+        onComplete={handleTournamentComplete}
         userName={userName}
       />
     );

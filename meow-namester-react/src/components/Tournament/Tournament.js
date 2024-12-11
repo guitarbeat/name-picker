@@ -40,6 +40,10 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
   const [showEndEarlyConfirmation, setShowEndEarlyConfirmation] = useState(false);
 
   useEffect(() => {
+    console.log('Tournament received names:', names);
+  }, [names]);
+
+  useEffect(() => {
     startNewTournament();
   }, []);
 
@@ -169,13 +173,13 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
 
   const handleConfirmEnd = () => {
     // Calculate current rankings based on completed matches
-    const currentRankings = sorter.getCurrentRankings().map((name, index) => {
+    const currentRankings = sorter.getCurrentRankings().map((nameObj, index) => {
       // Get existing rating or default
-      const currentRating = typeof existingRatings[name] === 'object'
-        ? existingRatings[name].rating
-        : (existingRatings[name] || 1500);
+      const currentRating = typeof existingRatings[nameObj.name] === 'object'
+        ? existingRatings[nameObj.name].rating
+        : (existingRatings[nameObj.name] || 1500);
       
-      // Calculate new rating based on position (lower index = better rank)
+      // Calculate new rating based on position
       const totalNames = names.length;
       const position = index;
       const ratingSpread = 500;
@@ -192,8 +196,9 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
       const finalRating = Math.max(1000, Math.min(2000, newRating));
       
       return {
-        name,
-        rating: finalRating
+        name: nameObj.name,
+        rating: finalRating,
+        description: nameObj.description
       };
     });
 
@@ -204,7 +209,12 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
     setShowEndEarlyConfirmation(false);
   };
 
-  if (!currentMatch) return <div>Loading tournament...</div>;
+  if (!currentMatch) {
+    console.log('No current match');
+    return <div>Loading tournament...</div>;
+  }
+
+  console.log('Current match:', currentMatch);
 
   const progress = Math.round((currentMatchNumber / totalMatches) * 100);
 
@@ -256,7 +266,8 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
               tabIndex={0}
               title="Press ← arrow key"
             >
-              <h3>{currentMatch.left}</h3>
+              <h3>{currentMatch.left.name}</h3>
+              <p className="name-description">{currentMatch.left.description}</p>
             </div>
           </div>
 
@@ -272,7 +283,8 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
               tabIndex={0}
               title="Press → arrow key"
             >
-              <h3>{currentMatch.right}</h3>
+              <h3>{currentMatch.right.name}</h3>
+              <p className="name-description">{currentMatch.right.description}</p>
             </div>
           </div>
         </div>

@@ -6,31 +6,47 @@
 
 export class PreferenceSorter {
     constructor(items) {
-        this.namMember = [...items];
-        this.nrec = 0;
-        this.rec = new Array(items.length);
+        this.items = items;
+        this.preferences = new Map();
+        this.currentRankings = [...items];
         this.ranks = [];
-        console.log('PreferenceSorter initialized with items:', items);
+        this.rec = new Array(items.length).fill(0);
+    }
+
+    // When comparing items, we'll use the name property for the map key
+    addPreference(item1, item2, value) {
+        const key = `${item1.name}-${item2.name}`;
+        this.preferences.set(key, value);
+    }
+
+    getPreference(item1, item2) {
+        const key = `${item1.name}-${item2.name}`;
+        const reverseKey = `${item2.name}-${item1.name}`;
+        
+        if (this.preferences.has(key)) {
+            return this.preferences.get(key);
+        }
+        if (this.preferences.has(reverseKey)) {
+            return -this.preferences.get(reverseKey);
+        }
+        return 0;
     }
 
     getCurrentRankings() {
-        // If we have completed rankings, return those
         if (this.ranks.length > 0) {
             return this.ranks;
         }
-
-        // Otherwise, return the current state of namMember
-        // This will give us the best approximation of current rankings
-        return [...this.namMember];
+        return this.currentRankings;
     }
 
     async sort(compareCallback) {
-        console.log('Starting sort process with items:', this.namMember);
-        const n = this.namMember.length;
-        for (let i = 0; i < n; i++) {
-            this.rec[i] = 0;
+        console.log('Starting sort process with items:', this.items);
+        const n = this.items.length;
+        
+        if (!this.rec || this.rec.length !== n) {
+            this.rec = new Array(n).fill(0);
         }
-        let mid = Math.floor(n / 2);
+        
         await this.sortRecursive(0, n - 1, compareCallback);
         console.log('Sort completed. Final ranks:', this.ranks);
         return this.ranks;
@@ -39,8 +55,8 @@ export class PreferenceSorter {
     async sortRecursive(left, right, compareCallback) {
         if (right - left < 1) {
             if (left === right) {
-                this.ranks.push(this.namMember[left]);
-                console.log(`Added single item to ranks: ${this.namMember[left]}`);
+                this.ranks.push(this.items[left]);
+                console.log(`Added single item to ranks: ${this.items[left].name}`);
             }
             return;
         }
@@ -59,49 +75,50 @@ export class PreferenceSorter {
         const merged = [];
 
         while (i <= mid && j <= right) {
-            console.log(`Comparing ${this.namMember[i]} with ${this.namMember[j]}`);
-            const result = await compareCallback(this.namMember[i], this.namMember[j]);
+            console.log(`Comparing ${this.items[i].name} with ${this.items[j].name}`);
+            const result = await compareCallback(this.items[i], this.items[j]);
             console.log(`Comparison result: ${result}`);
 
             if (result <= -0.5) {  // First name preferred
-                console.log(`${this.namMember[i]} preferred over ${this.namMember[j]}`);
-                merged.push(this.namMember[i++]);  // Add preferred name first
+                console.log(`${this.items[i].name} preferred over ${this.items[j].name}`);
+                merged.push(this.items[i++]);
             } else if (result >= 0.5) {  // Second name preferred
-                console.log(`${this.namMember[j]} preferred over ${this.namMember[i]}`);
-                merged.push(this.namMember[j++]);  // Add preferred name first
+                console.log(`${this.items[j].name} preferred over ${this.items[i].name}`);
+                merged.push(this.items[j++]);
             } else {
                 // Handle near-ties with slight preference
-                console.log(`Near tie between ${this.namMember[i]} and ${this.namMember[j]}`);
+                console.log(`Near tie between ${this.items[i].name} and ${this.items[j].name}`);
                 if (result < 0) {
-                    merged.push(this.namMember[i++]);
-                    merged.push(this.namMember[j++]);
+                    merged.push(this.items[i++]);
+                    merged.push(this.items[j++]);
                 } else {
-                    merged.push(this.namMember[j++]);
-                    merged.push(this.namMember[i++]);
+                    merged.push(this.items[j++]);
+                    merged.push(this.items[i++]);
                 }
             }
         }
 
         // Add remaining elements
         while (i <= mid) {
-            console.log(`Adding remaining left item: ${this.namMember[i]}`);
-            merged.push(this.namMember[i++]);
+            console.log(`Adding remaining left item: ${this.items[i].name}`);
+            merged.push(this.items[i++]);
         }
         while (j <= right) {
-            console.log(`Adding remaining right item: ${this.namMember[j]}`);
-            merged.push(this.namMember[j++]);
+            console.log(`Adding remaining right item: ${this.items[j].name}`);
+            merged.push(this.items[j++]);
         }
 
         // Update original array
         for (let k = 0; k < merged.length; k++) {
-            this.namMember[left + k] = merged[k];
+            this.items[left + k] = merged[k];
+            this.currentRankings[left + k] = merged[k];
         }
 
         // Only update ranks at the final merge
-        if (left === 0 && right === this.namMember.length - 1) {
+        if (left === 0 && right === this.items.length - 1) {
             this.ranks = [...merged];
         }
 
-        console.log(`Merged result: ${merged.join(', ')}`);
+        console.log(`Merged result: ${merged.map(item => item.name).join(', ')}`);
     }
 }

@@ -33,4 +33,28 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     persistSession: true
   }
-}); 
+});
+
+// Add this function to get names with descriptions
+export const getNamesWithDescriptions = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('name_options')
+      .select('name, description')
+      .order('name');
+      
+    if (error) throw error;
+    
+    // Log the data to see what we're getting
+    console.log('Fetched names with descriptions:', data);
+    
+    // Ensure each item has both name and description
+    return data.map(item => ({
+      name: item.name,
+      description: item.description || 'No description available'
+    }));
+  } catch (error) {
+    console.error('Error fetching names:', error);
+    throw error;
+  }
+}; 
