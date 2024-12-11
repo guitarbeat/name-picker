@@ -1,0 +1,174 @@
+.ranking-adjustment {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.ranking-adjustment h2 {
+  color: #2d3748;
+  text-align: center;
+  margin-bottom: 10px;
+  font-family: 'Rockwell', serif;
+  font-size: 2em;
+}
+
+.instructions {
+  text-align: center;
+  color: #718096;
+  margin-bottom: 20px;
+}
+
+.rankings-grid {
+  background: #f7fafc;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.rankings-header {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px;
+  padding: 10px 20px;
+  background: #edf2f7;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.rankings-list {
+  display: grid;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.ranking-card {
+  display: grid;
+  grid-template-columns: 80px 1fr 50px;
+  align-items: center;
+  padding: 15px 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.ranking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: #6b46c1;
+}
+
+.ranking-card.dragging {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  background: #f8f9fa;
+  transform: scale(1.02);
+  border-color: #6b46c1;
+}
+
+.rank-badge {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #6b46c1;
+  color: white;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.card-content {
+  padding: 0 15px;
+}
+
+.card-content h3 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.rating {
+  color: #718096;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.drag-handle {
+  color: #a0aec0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+.drag-icon {
+  font-size: 1.4em;
+  font-weight: bold;
+  letter-spacing: -2px;
+}
+
+.adjustment-controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+.save-button,
+.cancel-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+  font-size: 1.1em;
+}
+
+.save-button {
+  background: #6b46c1;
+  color: white;
+  border: none;
+}
+
+.save-button:hover {
+  background: #553c9a;
+  transform: translateY(-1px);
+}
+
+.cancel-button {
+  background: white;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.cancel-button:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.save-status-indicator {
+  height: 20px;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.save-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  font-size: 0.9em;
+  transition: opacity 0.3s ease;
+}
+
+.save-status.error {
+  background-color: #ffebee;
+  color: #c62828;
+} 

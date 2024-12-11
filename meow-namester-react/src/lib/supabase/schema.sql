@@ -1,0 +1,135 @@
+-- Drop existing constraints and tables
+do $$ 
+begin
+    if exists (
+        select constraint_name 
+        from information_schema.table_constraints 
+        where table_name = 'cat_names' 
+    ) then
+        drop table if exists cat_names cascade;
+    end if;
+    
+    if exists (
+        select constraint_name 
+        from information_schema.table_constraints 
+        where table_name = 'name_options' 
+    ) then
+        drop table if exists name_options cascade;
+    end if;
+
+    if exists (
+        select constraint_name 
+        from information_schema.table_constraints 
+        where table_name = 'tournament_progress' 
+    ) then
+        drop table if exists tournament_progress cascade;
+    end if;
+end $$;
+
+-- Create the cat_names table
+CREATE TABLE public.cat_names (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL,
+    elo_rating INTEGER DEFAULT 1500,
+    wins INTEGER DEFAULT 0,
+    losses INTEGER DEFAULT 0,
+    user_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Create index on user_name for faster lookups
+CREATE INDEX cat_names_user_name_idx ON public.cat_names(user_name);
+
+-- Add unique constraint for name and user_name combination
+ALTER TABLE public.cat_names 
+    ADD CONSTRAINT cat_names_name_user_name_key 
+    UNIQUE (name, user_name);
+
+-- Enable Row Level Security
+ALTER TABLE public.cat_names ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for public read access
+CREATE POLICY "Public can read cat names" ON public.cat_names
+    FOR SELECT
+    USING (true);
+
+-- Create policy for public insert/update access
+CREATE POLICY "Public can modify cat names" ON public.cat_names
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- Create the name_options table
+CREATE TABLE public.name_options (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.name_options ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for public read access
+CREATE POLICY "Public can read name options" ON public.name_options
+    FOR SELECT
+    USING (true);
+
+-- Create policy for public insert/update access
+CREATE POLICY "Public can modify name options" ON public.name_options
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- Create the tournament_progress table
+CREATE TABLE public.tournament_progress (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_name TEXT NOT NULL UNIQUE,
+    round_number INTEGER NOT NULL,
+    current_match INTEGER NOT NULL,
+    total_matches INTEGER NOT NULL,
+    names TEXT[] NOT NULL,
+    sorter_state JSONB NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.tournament_progress ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for public read access
+CREATE POLICY "Users can read their own progress" ON public.tournament_progress
+    FOR SELECT
+    USING (true);
+
+-- Create policy for public insert/update access
+CREATE POLICY "Users can modify their own progress" ON public.tournament_progress
+    FOR ALL
+    USING (true)
+    WITH CHECK (true);
+
+-- Insert default cat names
+INSERT INTO public.name_options (name) VALUES
+    ('Chroma'),
+    ('Cosmo'),
+    ('Ekko'),
+    ('Galileo'),
+    ('Ife'),
+    ('Ifemi'),
+    ('Ivory'),
+    ('Moon'),
+    ('Mumuye'),
+    ('Nova'),
+    ('Orion'),
+    ('Ozzy'),
+    ('Psyche'),
+    ('Sol'),
+    ('Syzygy'),
+    ('Umbra'),
+    ('Wumi'),
+    ('Zuni'),
+    ('Nappy'),
+    ('Shawty'),
+    ('Toast'),
+    ('Orbit')
+ON CONFLICT (name) DO NOTHING; 
