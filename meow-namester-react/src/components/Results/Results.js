@@ -16,94 +16,142 @@
  * @returns {JSX.Element} Results view with rankings and restart option
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResultsTable from './ResultsTable';
 import RankingAdjustment from '../RankingAdjustment/RankingAdjustment';
 import './Results.css';
 
 function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTournamentNames }) {
-  const [currentRankings, setCurrentRankings] = useState(
-    Object.entries(ratings || {})
+  const [currentRankings, setCurrentRankings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  useEffect(() => {
+    // Process and sort rankings on mount
+    const processedRankings = Object.entries(ratings || {})
       .map(([name, rating]) => ({
         name,
-        rating: Math.round(typeof rating === 'number' ? rating : 1500)
+        rating: Math.round(typeof rating === 'number' ? rating : 1500),
+        change: 0 // Track rating changes
       }))
-      .sort((a, b) => b.rating - a.rating)
-  );
+      .sort((a, b) => b.rating - a.rating);
 
-  // Convert ratings to object format if it's an array
-  const ratingsObject = Array.isArray(ratings) 
-    ? ratings.reduce((acc, item) => {
-        const name = item.name || (item.name_options && item.name_options.name);
-        const rating = typeof item.rating === 'object' 
-          ? item.rating.rating 
-          : (item.rating || item.elo_rating || 1500);
-        if (name) {
-          acc[name] = rating;
-        }
-        return acc;
-      }, {})
-    : Object.fromEntries(
-        Object.entries(ratings || {}).map(([name, value]) => [
-          name,
-          typeof value === 'object' ? value.rating : value
-        ])
-      );
+    setCurrentRankings(processedRankings);
+    setIsLoading(false);
+  }, [ratings]);
 
-  // Filter ratings to only show current tournament results
-  const currentRatings = currentTournamentNames 
-    ? Object.fromEntries(
-        Object.entries(ratingsObject || {}).filter(([name]) => 
-          currentTournamentNames.includes(name)
-        )
-      )
-    : ratingsObject;
-
-  // Update rankings immediately when adjustments are made
   const handleSaveAdjustments = async (adjustedRankings) => {
-    setCurrentRankings(adjustedRankings);
-    
-    // Convert the array to the expected ratings object format while preserving name_id
-    const newRatings = adjustedRankings.map(({ name, rating }) => {
-      const existingRating = ratings[name];
-      return {
-        name_id: existingRating?.name_id,
-        name: name,
-        rating: Math.round(rating),
-        wins: existingRating?.wins || 0,
-        losses: existingRating?.losses || 0
-      };
-    });
-    
-    if (onUpdateRatings) {
+    try {
+      setIsLoading(true);
+      
+      // Calculate rating changes
+      const updatedRankings = adjustedRankings.map(ranking => {
+        const oldRanking = currentRankings.find(r => r.name === ranking.name);
+        return {
+          ...ranking,
+          change: oldRanking ? ranking.rating - oldRanking.rating : 0
+        };
+      });
+
+      // Convert to expected format for API
+      const newRatings = updatedRankings.map(({ name, rating }) => {
+        const existingRating = ratings[name];
+        return {
+          name_id: existingRating?.name_id,
+          name: name,
+          rating: Math.round(rating),
+          wins: existingRating?.wins || 0,
+          losses: existingRating?.losses || 0
+        };
+      });
+
       await onUpdateRatings(newRatings);
+      setCurrentRankings(updatedRankings);
+      
+      // Show success toast
+      setToastMessage('Rankings updated successfully!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (error) {
+      console.error('Failed to update rankings:', error);
+      setToastMessage('Failed to update rankings. Please try again.');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="results-loading">
+        <div className="loading-spinner" />
+        <p>Processing rankings...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="results-container">
-      <h2>Name Rankings</h2>
-      <p className="results-info">
-        Adjust your name rankings here, {userName}! Drag and drop to reorder names.
-      </p>
-
-      <RankingAdjustment
-        rankings={currentRankings}
-        onSave={handleSaveAdjustments}
-        onCancel={() => {}} // Empty function since we're not using cancel anymore
-      />
-
-      <div className="results-actions">
-        <button 
-          onClick={onStartNew} 
-          className="primary-button"
-        >
-          Start New Tournament
-        </button>
-        <p className="results-tip">
-          Starting a new tournament will let you rate more names while keeping your current rankings.
+      <header className="results-header">
+        <h2>Name Rankings</h2>
+        <p className="results-welcome">
+          Welcome back, <span className="user-name">{userName}</span>! 
+          Here are your latest name rankings.
         </p>
+      </header>
+
+      <div className="results-content">
+        <div className="rankings-stats">
+          <div className="stat-card">
+            <h3>Total Names</h3>
+            <div className="stat-value">{currentRankings.length}</div>
+          </div>
+          <div className="stat-card">
+            <h3>Top Rating</h3>
+            <div className="stat-value">
+              {currentRankings[0]?.rating || 0}
+            </div>
+          </div>
+          <div className="stat-card">
+            <h3>Average Rating</h3>
+            <div className="stat-value">
+              {Math.round(
+                currentRankings.reduce((sum, r) => sum + r.rating, 0) / 
+                currentRankings.length
+              )}
+            </div>
+          </div>
+        </div>
+
+        <RankingAdjustment
+          rankings={currentRankings}
+          onSave={handleSaveAdjustments}
+          onCancel={() => {}} // Empty function since we're not using cancel anymore
+        />
+
+        <div className="results-actions">
+          <button 
+            onClick={onStartNew} 
+            className="primary-button start-new-button"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+              <path d="M12 4v16m8-8H4" />
+            </svg>
+            Start New Tournament
+          </button>
+          <p className="results-tip">
+            Starting a new tournament will let you rate more names while keeping your current rankings.
+          </p>
+        </div>
       </div>
+
+      {showToast && (
+        <div className={`toast ${toastMessage.includes('Failed') ? 'error' : 'success'}`}>
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

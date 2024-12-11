@@ -2,140 +2,79 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase/supabaseClient';
 import './TournamentSetup.css';
 
-function TournamentSetup({ onStart, existingRatings = [] }) {
+function TournamentSetup({ onStart }) {
   const [availableNames, setAvailableNames] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
-  const [customNames, setCustomNames] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
+    const fetchNames = async () => {
+      try {
+        const { data } = await supabase
+          .from('name_options')
+          .select('id, name, description')
+          .order('name');
+
+        setAvailableNames(data || []);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching names:', err);
+        setIsLoading(false);
+      }
+    };
+
     fetchNames();
   }, []);
 
-  const fetchNames = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('name_options')
-        .select('name')
-        .order('name');
-
-      if (error) throw error;
-
-      const names = data.map(item => item.name);
-      setAvailableNames(names);
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error fetching names:', err);
-      setError('Failed to load names. Please try again later.');
-      setIsLoading(false);
-    }
-  };
-
-  const toggleName = (name) => {
+  const toggleName = (nameObj) => {
     setSelectedNames(prev => 
-      prev.includes(name)
-        ? prev.filter(n => n !== name)
-        : [...prev, name]
+      prev.some(n => n.id === nameObj.id)
+        ? prev.filter(n => n.id !== nameObj.id)
+        : [...prev, nameObj]
     );
   };
 
-  const handleRandomSelect = () => {
-    const shuffled = [...availableNames].sort(() => Math.random() - 0.5);
-    setSelectedNames(shuffled.slice(0, 8));
-  };
-
-  const handleSelectAll = () => {
-    setSelectedNames(availableNames);
-  };
-
-  const handleCustomNamesSubmit = (e) => {
-    e.preventDefault();
-    const newNames = customNames
-      .split('\n')
-      .map(name => name.trim())
-      .filter(name => name.length > 0);
-    
-    setSelectedNames(prev => [...new Set([...prev, ...newNames])]);
-    setCustomNames('');
-  };
-
-  const handleStart = () => {
-    if (selectedNames.length < 2) {
-      alert('Please select at least 2 names to start the tournament.');
-      return;
-    }
-    onStart(selectedNames);
-  };
-
-  if (isLoading) return <div className="loading">Loading names...</div>;
-  if (error) return <div className="error">{error}</div>;
+  if (isLoading) return <div className="container">Loading...</div>;
 
   return (
-    <div className="tournament-setup">
-      <h2>Name Selection</h2>
-      
-      <div className="selection-controls">
-        <button onClick={handleRandomSelect} className="control-button">
-          Random 8 Names
-        </button>
-        <button onClick={handleSelectAll} className="control-button">
-          Select All Names
-        </button>
-        <button 
-          onClick={() => setSelectedNames([])} 
-          className="control-button clear"
-        >
-          Clear Selection
-        </button>
-      </div>
+    <div className="tournament-setup container">
+      <h2 className="heading">Name Selection</h2>
 
       <div className="name-count">
         Selected: {selectedNames.length} names
-        {selectedNames.length > 0 && selectedNames.length < 2 && (
-          <span className="warning"> (Select at least 2 names)</span>
-        )}
+        {selectedNames.length === 1 && <span className="warning"> (Select at least one more)</span>}
       </div>
 
-      <div className="names-grid">
-        {availableNames.map(name => (
+      <div className="cards-container">
+        {availableNames.map(nameObj => (
           <div
-            key={name}
-            onClick={() => toggleName(name)}
-            className={`name-card ${selectedNames.includes(name) ? 'selected' : ''}`}
+            key={nameObj.id}
+            onClick={() => toggleName(nameObj)}
+            className={`name-card ${selectedNames.some(n => n.id === nameObj.id) ? 'selected' : ''}`}
           >
-            <span className="name-text">{name}</span>
-            {selectedNames.includes(name) && (
+            <h3 className="name-text">{nameObj.name}</h3>
+            <p className="name-description">{nameObj.description}</p>
+            {selectedNames.some(n => n.id === nameObj.id) && (
               <span className="check-mark">✓</span>
             )}
           </div>
         ))}
       </div>
 
-      <div className="custom-names-section">
-        <h3>Add Custom Names</h3>
-        <form onSubmit={handleCustomNamesSubmit}>
-          <textarea
-            value={customNames}
-            onChange={(e) => setCustomNames(e.target.value)}
-            placeholder="Enter custom names (one per line)"
-            rows={4}
-          />
-          <button type="submit" className="add-custom-button">
-            Add Custom Names
+      {selectedNames.length >= 2 && (
+        <div className="start-section">
+          <button
+            onClick={() => onStart(selectedNames.map(n => ({
+              name: n.name,
+              description: n.description
+            })))}
+            className="start-button"
+            disabled={selectedNames.length < 2}
+          >
+            Start Tournament with {selectedNames.length} Names
           </button>
-        </form>
-      </div>
-
-      <div className="start-section">
-        <button
-          onClick={handleStart}
-          className="start-button"
-          disabled={selectedNames.length < 2}
-        >
-          Start Tournament with {selectedNames.length} Names
-        </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,6 @@ function Profile({ userName, onStartNewTournament }) {
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin (Aaron)
     setIsAdmin(userName.toLowerCase() === 'aaron');
   }, [userName]);
 
@@ -39,7 +38,6 @@ function Profile({ userName, onStartNewTournament }) {
 
       if (fetchError) throw fetchError;
 
-      // Group ratings by user
       const ratingsByUser = data.reduce((acc, item) => {
         const userName = item.user_name;
         if (!acc[userName]) {
@@ -64,25 +62,23 @@ function Profile({ userName, onStartNewTournament }) {
   };
 
   if (loading || loadingAllUsers) return (
-    <div className="profile-loading">
+    <div className="profile container">
       <div className="loading-spinner"></div>
-      <p>Loading profile data...</p>
+      <p className="subtitle">Loading profile data...</p>
     </div>
   );
   
   if (error) return (
-    <div className="profile-error">
+    <div className="profile container">
       <span className="error-icon">⚠️</span>
-      <p>Error loading profile: {error.message}</p>
+      <p className="subtitle">Error loading profile: {error.message}</p>
     </div>
   );
 
-  // Get the current ratings to display (either selected user's or current user's)
   const currentRatings = isAdmin && selectedUser !== userName 
     ? allUsersRatings[selectedUser] || []
     : ratings;
 
-  // Calculate statistics for current view
   const totalNames = currentRatings.length;
   const averageRating = totalNames > 0 
     ? Math.round(currentRatings.reduce((sum, r) => sum + (r.rating || 1500), 0) / totalNames) 
@@ -94,7 +90,7 @@ function Profile({ userName, onStartNewTournament }) {
     .slice(0, 5);
 
   return (
-    <div className="profile-container">
+    <div className="profile">
       <header className="profile-header">
         <div className="profile-title">
           <h2>
@@ -120,7 +116,7 @@ function Profile({ userName, onStartNewTournament }) {
               </select>
               <button 
                 onClick={fetchAllUsersRatings} 
-                className="refresh-button"
+                className="action-button secondary-button"
               >
                 🔄 Refresh Data
               </button>
@@ -132,15 +128,15 @@ function Profile({ userName, onStartNewTournament }) {
         </div>
         <button 
           onClick={onStartNewTournament}
-          className="new-tournament-button"
+          className="action-button primary-button"
         >
           <span className="button-icon">🏆</span>
           Start New Tournament
         </button>
       </header>
 
-      <div className="profile-stats">
-        <div className="stat-card overview-card">
+      <div className="stats-grid">
+        <div className="stat-card">
           <h3>
             <span className="card-icon">📊</span>
             Overview
@@ -161,7 +157,7 @@ function Profile({ userName, onStartNewTournament }) {
           </div>
         </div>
 
-        <div className="stat-card leaderboard-card">
+        <div className="stat-card">
           <h3>
             <span className="card-icon">🏅</span>
             Top 5 Names
@@ -186,35 +182,32 @@ function Profile({ userName, onStartNewTournament }) {
               ))}
             </ol>
           ) : (
-            <p className="no-data-message">No names rated yet</p>
+            <p className="subtitle">No names rated yet</p>
           )}
         </div>
       </div>
 
-      <div className="all-names-section">
-        <h3>
+      <div className="ratings-section">
+        <h3 className="ratings-title">
           <span className="section-icon">📝</span>
           All Rated Names
         </h3>
-        <div className="names-grid">
+        <div className="ratings-grid">
           {currentRatings.map(name => (
-            <div key={name.id} className="name-card">
-              <h4>{name.name}</h4>
-              <div className="name-stats">
-                <div className="stat-row">
-                  <span className="stat-icon">⭐</span>
-                  <span className="stat-label">Rating:</span>
-                  <span className="stat-value">{Math.round(name.rating || 1500)}</span>
+            <div key={name.id} className="rating-card">
+              <h4 className="name">{name.name}</h4>
+              <div className="stats">
+                <div className="stat">
+                  <span className="stat-number">{Math.round(name.rating || 1500)}</span>
+                  <span className="stat-text">Rating</span>
                 </div>
-                <div className="stat-row">
-                  <span className="stat-icon">🏆</span>
-                  <span className="stat-label">Wins:</span>
-                  <span className="stat-value">{name.wins || 0}</span>
+                <div className="stat">
+                  <span className="stat-number">{name.wins || 0}</span>
+                  <span className="stat-text">Wins</span>
                 </div>
-                <div className="stat-row">
-                  <span className="stat-icon">💔</span>
-                  <span className="stat-label">Losses:</span>
-                  <span className="stat-value">{name.losses || 0}</span>
+                <div className="stat">
+                  <span className="stat-number">{name.losses || 0}</span>
+                  <span className="stat-text">Losses</span>
                 </div>
               </div>
             </div>

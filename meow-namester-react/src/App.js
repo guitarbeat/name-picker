@@ -52,6 +52,14 @@ function App() {
     loadNames();
   }, []);
 
+  // Reset tournament state when changing views
+  useEffect(() => {
+    if (view !== 'tournament') {
+      setTournamentNames(null);
+      setTournamentComplete(false);
+    }
+  }, [view]);
+
   const handleTournamentComplete = async (finalRatings) => {
     try {
       if (!userName) {
@@ -156,82 +164,59 @@ function App() {
     setTournamentNames(names);
   };
 
-  const handleUpdateRatings = (adjustedRatings) => {
-    // Convert array to object format and merge with existing ratings
-    const updatedRatings = { ...ratings };
-    adjustedRatings.forEach(({ name, rating, wins, losses }) => {
-      const existingRating = typeof updatedRatings[name] === 'object'
-        ? updatedRatings[name]
-        : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };
+  // Simplified ratings update logic
+  const handleUpdateRatings = async (adjustedRatings) => {
+    try {
+      // Convert array format to consistent object format
+      const updatedRatings = adjustedRatings.reduce((acc, { name, rating, wins = 0, losses = 0 }) => {
+        acc[name] = {
+          rating: Math.round(rating),
+          wins: wins,
+          losses: losses
+        };
+        return acc;
+      }, {});
 
-      updatedRatings[name] = {
-        name_id: existingRating.name_id,
-        rating: Math.round(rating),
-        wins: wins || existingRating.wins || 0,
-        losses: losses || existingRating.losses || 0
-      };
-    });
+      // Get name_ids in a single query
+      const { data: nameOptions, error: nameError } = await supabase
+        .from('name_options')
+        .select('id, name')
+        .in('name', Object.keys(updatedRatings));
 
-    setRatings(updatedRatings);
+      if (nameError) throw nameError;
 
-    // Return a promise for the update operation
-    return new Promise(async (resolve, reject) => {
-      try {
-        // First, get name_ids from name_options table
-        const { data: nameOptions, error: nameError } = await supabase
-          .from('name_options')
-          .select('id, name')
-          .in('name', Object.keys(updatedRatings));
+      // Create records for database update
+      const recordsToUpsert = nameOptions
+        .map(({ id, name }) => ({
+          user_name: userName,
+          name_id: id,
+          rating: updatedRatings[name].rating,
+          wins: updatedRatings[name].wins,
+          losses: updatedRatings[name].losses,
+          updated_at: new Date().toISOString()
+        }));
 
-        if (nameError) throw nameError;
-        if (!nameOptions?.length) {
-          console.warn('No matching name options found');
-          throw new Error('No matching name options found');
-        }
-
-        // Create a map of name to name_id
-        const nameToIdMap = nameOptions.reduce((acc, { id, name }) => {
-          acc[name] = id;
-          return acc;
-        }, {});
-
-        // Prepare records with proper name_ids
-        const recordsToUpsert = Object.entries(updatedRatings)
-          .map(([name, data]) => {
-            const name_id = nameToIdMap[name];
-            if (!name_id) {
-              console.warn(`No name_id found for ${name}`);
-              return null;
-            }
-            return {
-              user_name: userName, // Use userName instead of session.user.id
-              name_id: name_id,
-              rating: data.rating,
-              wins: data.wins || 0,
-              losses: data.losses || 0,
-              updated_at: new Date().toISOString()
-            };
-          })
-          .filter(Boolean);
-
-        if (!recordsToUpsert.length) {
-          throw new Error('No valid records to update');
-        }
-
-        const { error: upsertError } = await supabase
-          .from('cat_name_ratings')
-          .upsert(recordsToUpsert, {
-            onConflict: 'user_name,name_id',
-            returning: 'minimal'
-          });
-
-        if (upsertError) throw upsertError;
-        resolve();
-      } catch (error) {
-        console.error('Error updating ratings:', error);
-        reject(error);
+      if (recordsToUpsert.length === 0) {
+        throw new Error('No valid records to update');
       }
-    });
+
+      // Update database
+      const { error: upsertError } = await supabase
+        .from('cat_name_ratings')
+        .upsert(recordsToUpsert, {
+          onConflict: 'user_name,name_id',
+          returning: 'minimal'
+        });
+
+      if (upsertError) throw upsertError;
+
+      // Update local state
+      setRatings(updatedRatings);
+      return true;
+    } catch (error) {
+      console.error('Error updating ratings:', error);
+      throw error;
+    }
   };
 
   const handleLogout = async () => {
@@ -278,7 +263,7 @@ function App() {
 
     return (
       <Tournament 
-        names={names}
+        names={tournamentNames}
         existingRatings={ratings}
         onComplete={handleTournamentComplete}
         userName={userName}

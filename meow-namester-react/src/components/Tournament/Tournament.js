@@ -44,13 +44,15 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
   }, [names]);
 
   useEffect(() => {
-    startNewTournament();
-  }, []);
+    if (!names || names.length === 0) {
+      console.log('No names provided for tournament');
+      return;
+    }
 
-  const startNewTournament = () => {
-    if (names.length === 0) return;
-
-    const newSorter = new PreferenceSorter(names);
+    console.log('Starting new tournament with names:', names);
+    // Create a new sorter with just the name strings for compatibility
+    const nameStrings = names.map(n => n.name);
+    const newSorter = new PreferenceSorter(nameStrings);
     setSorter(newSorter);
     
     const n = names.length;
@@ -60,49 +62,84 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
     setRoundNumber(1);
 
     runTournament(newSorter);
-  };
+  }, [names]);
 
   const runTournament = async (tournamentSorter) => {
     try {
-      const sortedResults = await tournamentSorter.sort(async (left, right) => {
+      // Save initial state for recovery
+      const initialState = {
+        names,
+        existingRatings,
+        currentMatchNumber: 1,
+        roundNumber: 1
+      };
+      localStorage.setItem('tournamentState', JSON.stringify(initialState));
+
+      const sortedResults = await tournamentSorter.sort(async (leftName, rightName) => {
+        // Find the full name objects for the current match
+        const left = names.find(n => n.name === leftName);
+        const right = names.find(n => n.name === rightName);
         setCurrentMatch({ left, right });
         return new Promise((resolve) => {
           setResolveVote(() => resolve);
         });
       });
 
-      // Create ratings array with preserved order
+      // Calculate ratings with dynamic blend factor based on matches played
       const ratingsArray = sortedResults.map((name, index) => {
-        // Get existing rating or default
-        const currentRating = typeof existingRatings[name] === 'object'
-          ? existingRatings[name].rating
-          : (existingRatings[name] || 1500);
-        
-        // Calculate new rating based on position (lower index = better rank)
+        // Get existing rating data
+        const existingData = typeof existingRatings[name] === 'object'
+          ? existingRatings[name]
+          : { rating: existingRatings[name] || 1500, matches: 0 };
+
         const totalNames = sortedResults.length;
         const position = index;
-        const ratingSpread = 500; // Total rating spread from top to bottom
-        const positionValue = ((totalNames - position - 1) / (totalNames - 1)) * ratingSpread;
         
-        // Blend existing rating with new position-based rating
-        const blendFactor = 0.7; // 70% new rating, 30% existing rating
+        // Dynamic rating spread based on tournament size
+        const ratingSpread = Math.min(1000, totalNames * 25);
+        
+        // Calculate position-based rating
+        const positionValue = ((totalNames - position - 1) / (totalNames - 1)) * ratingSpread;
+        const newPositionRating = 1500 + positionValue;
+
+        // Calculate blend factor based on number of matches played
+        // More matches = more weight on new rating
+        const matchesPlayed = currentMatchNumber;
+        const maxMatches = totalMatches;
+        const blendFactor = Math.min(0.8, (matchesPlayed / maxMatches) * 0.9);
+
+        // Weighted average of existing and new ratings
         const newRating = Math.round(
-          (blendFactor * (1500 + positionValue)) +
-          ((1 - blendFactor) * currentRating)
+          (blendFactor * newPositionRating) +
+          ((1 - blendFactor) * existingData.rating)
         );
 
-        // Ensure rating stays within bounds
-        const finalRating = Math.max(1000, Math.min(2000, newRating));
-        
+        // Ensure rating stays within reasonable bounds
+        const minRating = 1000;
+        const maxRating = 2000;
+        const finalRating = Math.max(minRating, Math.min(maxRating, newRating));
+
         return {
           name,
-          rating: finalRating
+          rating: finalRating,
+          confidence: (matchesPlayed / maxMatches) // Add confidence score
         };
       });
 
+      // Clear saved state on successful completion
+      localStorage.removeItem('tournamentState');
+      
       onComplete(ratingsArray);
     } catch (error) {
       console.error('Tournament error:', error);
+      // Attempt to recover from saved state
+      const savedState = localStorage.getItem('tournamentState');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        setCurrentMatchNumber(state.currentMatchNumber);
+        setRoundNumber(state.roundNumber);
+        // Could implement more recovery logic here
+      }
     }
   };
 
@@ -112,32 +149,47 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
     setSelectedOption(result);
     setIsTransitioning(true);
     
+    // Enhanced vote value calculation
     let voteValue;
     switch (result) {
       case 'left':
-        voteValue = -1;  // Prefer left name (negative means first name preferred)
+        voteValue = -1;
         break;
       case 'right':
-        voteValue = 1;   // Prefer right name (positive means second name preferred)
+        voteValue = 1;
         break;
       case 'both':
-        voteValue = -0.1;  // Very slight preference for first name
+        // Randomize slight preference for variety
+        voteValue = Math.random() * 0.2 - 0.1;
         break;
       case 'none':
-        voteValue = 0;    // True neutral
+        // True neutral with slight random variation
+        voteValue = Math.random() * 0.1 - 0.05;
         break;
       default:
         voteValue = 0;
     }
     
+    // Save progress
+    localStorage.setItem('lastVote', JSON.stringify({
+      matchNumber: currentMatchNumber,
+      result: voteValue,
+      timestamp: Date.now()
+    }));
+
     resolveVote(voteValue);
     setCurrentMatchNumber(prev => prev + 1);
+    
+    // Update round number if needed
+    if (currentMatchNumber % Math.ceil(names.length / 2) === 0) {
+      setRoundNumber(prev => prev + 1);
+    }
     
     setTimeout(() => {
       setIsTransitioning(false);
       setSelectedOption(null);
     }, 500);
-  }, [resolveVote, isTransitioning]);
+  }, [resolveVote, isTransitioning, currentMatchNumber, names.length]);
 
   useEffect(() => {
     const handleKeyPress = (event) => {
