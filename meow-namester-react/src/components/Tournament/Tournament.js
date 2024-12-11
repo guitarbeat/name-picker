@@ -37,6 +37,7 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
   const [elo] = useState(() => new EloRating());
   const [resolveVote, setResolveVote] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
+  const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
     startNewTournament();
@@ -162,78 +163,100 @@ function Tournament({ onComplete, existingRatings = {}, names = [], userName }) 
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleVote, isTransitioning]);
 
+  const handleEndTournament = () => {
+    // Save current state of rankings
+    const finalRankings = currentRankings.map((item, index) => ({
+      ...item,
+      rank: index + 1
+    }));
+    
+    setIsComplete(true);
+    onTournamentComplete(finalRankings);
+  };
+
   if (!currentMatch) return <div>Loading tournament...</div>;
 
   const progress = Math.round((currentMatchNumber / totalMatches) * 100);
 
   return (
-    <div className="tournament">
-      <div className="progress-info">
-        <div className="round-info">
-          <span className="round-number">Round {roundNumber}</span>
-          <span className="match-count">Match {currentMatchNumber} of {totalMatches}</span>
+    <div className="tournament-container">
+      <div className="tournament">
+        <div className="progress-info">
+          <div className="round-info">
+            <span className="round-number">Round {roundNumber}</span>
+            <span className="match-count">Match {currentMatchNumber} of {totalMatches}</span>
+          </div>
+          <div className="percentage-info">{progress}% Complete</div>
         </div>
-        <div className="percentage-info">{progress}% Complete</div>
-      </div>
 
-      <div className="matchup">
-        <div className="names-row">
-          <div className="name-container left">
-            <div 
-              className={`name-card ${selectedOption === 'left' ? 'selected' : ''}`}
-              onClick={() => !isTransitioning && handleVote('left')}
-              role="button"
-              tabIndex={0}
-              title="Press ← arrow key"
-            >
-              <h3>{currentMatch.left}</h3>
+        <div className="matchup">
+          <div className="names-row">
+            <div className="name-container left">
+              <div 
+                className={`name-card ${selectedOption === 'left' ? 'selected' : ''}`}
+                onClick={() => !isTransitioning && handleVote('left')}
+                role="button"
+                tabIndex={0}
+                title="Press ← arrow key"
+              >
+                <h3>{currentMatch.left}</h3>
+              </div>
+            </div>
+
+            <div className="vs-section">
+              <div className="vs-text">vs</div>
+            </div>
+
+            <div className="name-container right">
+              <div 
+                className={`name-card ${selectedOption === 'right' ? 'selected' : ''}`}
+                onClick={() => !isTransitioning && handleVote('right')}
+                role="button"
+                tabIndex={0}
+                title="Press → arrow key"
+              >
+                <h3>{currentMatch.right}</h3>
+              </div>
             </div>
           </div>
 
-          <div className="vs-section">
-            <div className="vs-text">vs</div>
-          </div>
-
-          <div className="name-container right">
-            <div 
-              className={`name-card ${selectedOption === 'right' ? 'selected' : ''}`}
-              onClick={() => !isTransitioning && handleVote('right')}
-              role="button"
-              tabIndex={0}
-              title="Press → arrow key"
+          <div className="center-options">
+            <button
+              className={`extra-options-button ${selectedOption === 'both' ? 'selected' : ''}`}
+              onClick={() => !isTransitioning && handleVote('both')}
+              disabled={isTransitioning}
+              title="Press 'B' key"
             >
-              <h3>{currentMatch.right}</h3>
-            </div>
+              Like Both
+            </button>
+            <button
+              className={`extra-options-button ${selectedOption === 'none' ? 'selected' : ''}`}
+              onClick={() => !isTransitioning && handleVote('none')}
+              disabled={isTransitioning}
+              title="Press 'N' key"
+            >
+              No Opinion
+            </button>
           </div>
         </div>
 
-        <div className="center-options">
-          <button
-            className={`extra-options-button ${selectedOption === 'both' ? 'selected' : ''}`}
-            onClick={() => !isTransitioning && handleVote('both')}
-            disabled={isTransitioning}
-            title="Press 'B' key"
-          >
-            Like Both
-          </button>
-          <button
-            className={`extra-options-button ${selectedOption === 'none' ? 'selected' : ''}`}
-            onClick={() => !isTransitioning && handleVote('none')}
-            disabled={isTransitioning}
-            title="Press 'N' key"
-          >
-            No Opinion
-          </button>
+        <div className="tournament-instructions">
+          <p>Click on a name to choose it, or select an option below</p>
+        </div>
+
+        <div className="keyboard-hints">
+          <p>Keyboard shortcuts: ← Left, → Right, B (Both), N (No Opinion)</p>
         </div>
       </div>
 
-      <div className="tournament-instructions">
-        <p>Click on a name to choose it, or select an option below</p>
-      </div>
-
-      <div className="keyboard-hints">
-        <p>Keyboard shortcuts: ← Left, → Right, B (Both), N (No Opinion)</p>
-      </div>
+      {!isComplete && (
+        <button 
+          className="end-tournament-btn"
+          onClick={handleEndTournament}
+        >
+          End Tournament Early
+        </button>
+      )}
     </div>
   );
 }
