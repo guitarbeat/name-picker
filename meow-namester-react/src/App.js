@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
+import { Results } from './components/Results';
 import useLocalStorage from './hooks/useLocalStorage';
 import { PreferenceSorter } from './utils/sortingAlgorithm';
 import EloRating from './utils/EloRating';
@@ -296,20 +297,10 @@ function App() {
               )}
         
               {showResults && (
-                <div className="results-section">
-                  <h2>Results</h2>
-                  <ul className="results-list">
-                    {sortedResults.map((result, index) => (
-                      <li key={index} className="result-item">
-                        <span className="result-name">{result}</span>
-                        <span className="result-rating">
-                          Rating: {Math.round(ratings[result] || elo.defaultRating)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <button onClick={handleRedo}>Redo Bracket</button>
-                </div>
+                <Results 
+                  ratings={ratings} 
+                  onRestart={handleRedo}
+                />
               )}
             </>
           )}

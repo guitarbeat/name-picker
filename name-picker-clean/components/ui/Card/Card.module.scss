@@ -1,0 +1,37 @@
+@import '@styles/theme/colors';
+@import '@styles/theme/shadows';
+@import '@styles/theme/animations';
+
+.card {
+  background-color: rgba(var(--color-card-rgb), 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transition: var(--transition-fast);
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: var(--space-4);
+}
+
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.winner {
+  border-color: var(--color-winner-border);
+  background-color: var(--color-winner);
+}
+
+.loser {
+  border-color: var(--color-loser-border);
+  background-color: var(--color-loser);
+} 

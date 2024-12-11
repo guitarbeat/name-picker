@@ -1,0 +1,193 @@
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  font-family: 'Josefin Slab', serif;
+}
+
+.winner-card {
+  text-align: center;
+  padding: 3rem;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 215, 0, 0.1));
+  border: 2px solid #ffd700;
+}
+
+.winner-card h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: linear-gradient(to right, #ffd700, #ffb700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.winner-name {
+  font-size: 3rem;
+  font-weight: 900;
+  margin: 1.5rem 0;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: 
+    radial-gradient(circle at 20% 20%, #ffd700 1px, transparent 1px),
+    radial-gradient(circle at 80% 30%, #4a90e2 1px, transparent 1px),
+    radial-gradient(circle at 40% 70%, #ffb700 1px, transparent 1px),
+    radial-gradient(circle at 70% 60%, #357abd 1px, transparent 1px);
+  background-size: 
+    100px 100px,
+    120px 120px,
+    80px 80px,
+    110px 110px;
+  animation: confetti 10s linear infinite;
+  opacity: 0.3;
+}
+
+@keyframes confetti {
+  0% { background-position: 0 0, 0 0, 0 0, 0 0; }
+  100% { background-position: 100px 100px, 120px 120px, 80px 80px, 110px 110px; }
+}
+
+.standings h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-family: 'Josefin Slab', serif;
+}
+
+.standings-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.standing-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.standing-card:hover {
+  transform: translateY(-2px);
+}
+
+.standing-card.winner {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), transparent);
+  border-color: #ffd700;
+}
+
+.rank {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #4a90e2;
+  min-width: 2.5rem;
+}
+
+.name-and-points {
+  flex: 1;
+}
+
+.name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.points {
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.bracket-section {
+  margin-top: 2rem;
+}
+
+.bracket-section h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-family: 'Josefin Slab', serif;
+}
+
+.stats {
+  margin-top: 2rem;
+}
+
+.stats h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-family: 'Josefin Slab', serif;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat {
+  background: #f5f5f5;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat .label {
+  font-size: 0.875rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.stat .value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.redo-button {
+  background-color: #E6B5E6;
+  border: none;
+  border-radius: 25px;
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-family: 'Josefin Slab', serif;
+  margin-bottom: 2rem;
+}
+
+.redo-button:hover {
+  background-color: #D1A0D1;
+}
+
+.footer {
+  font-size: 1rem;
+  color: #666;
+  margin-top: 2rem;
+}

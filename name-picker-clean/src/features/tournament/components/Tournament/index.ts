@@ -1,1 +1,0 @@
-export { Tournament } from './Tournament'; 
