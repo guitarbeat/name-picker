@@ -2,29 +2,6 @@
  * @module useSupabaseStorage
  * @description A custom React hook that provides persistent storage using Supabase.
  * Manages real-time synchronization of data between the client and Supabase backend.
- * Handles CRUD operations for cat names, ratings, and user data.
- * 
- * @example
- * // Basic usage in a component
- * const [ratings, setRatings, { loading, error }] = useSupabaseStorage('cat_names', [], 'JohnDoe');
- * 
- * // Update ratings
- * await setRatings([
- *   { name: 'Whiskers', elo_rating: 1500, wins: 2, losses: 1 },
- *   { name: 'Mittens', elo_rating: 1600, wins: 3, losses: 0 }
- * ]);
- * 
- * // Clear user data
- * const { clearUserData } = useSupabaseStorage('cat_names', [], 'JohnDoe')[2];
- * await clearUserData();
- * 
- * @param {string} tableName - Name of the Supabase table to interact with
- * @param {Array} initialValue - Initial value to use before data is loaded
- * @param {string} userName - Username to filter data by
- * @returns {[Array, Function, Object]} Tuple containing:
- *   - Current stored value
- *   - Function to update the value
- *   - Object with loading state, error state, and utility functions
  */
 
 import { useState, useEffect } from 'react';
@@ -47,10 +24,9 @@ function useSupabaseStorage(tableName, initialValue = [], userName = '') {
           event: '*', 
           schema: 'public', 
           table: tableName,
-          filter: `user_name=eq.${userName}`
+          filter: userName ? `user_name=eq.${userName}` : undefined
         }, 
-        (payload) => {
-          console.log('Change received!', payload);
+        () => {
           fetchData();
         }
       )
@@ -61,24 +37,29 @@ function useSupabaseStorage(tableName, initialValue = [], userName = '') {
     };
   }, [tableName, userName]);
 
-  /**
-   * Fetches the latest data from Supabase
-   * @private
-   */
   async function fetchData() {
     try {
       setLoading(true);
       const { data, error: fetchError } = await supabase
-        .from(tableName)
-        .select('name, elo_rating, wins, losses, created_at')
-        .eq('user_name', userName)
-        .order('elo_rating', { ascending: false });
+        .from('cat_name_ratings')
+        .select(`
+          rating,
+          wins,
+          losses,
+          name_id,
+          name_options (
+            id,
+            name
+          )
+        `)
+        .eq('user_name', userName);
 
       if (fetchError) throw fetchError;
 
       setStoredValue(data?.map(item => ({
-        name: item.name,
-        rating: item.elo_rating,
+        id: item.name_id,
+        name: item.name_options.name,
+        rating: item.rating,
         wins: item.wins,
         losses: item.losses
       })) || initialValue);
@@ -90,79 +71,78 @@ function useSupabaseStorage(tableName, initialValue = [], userName = '') {
     }
   }
 
-  /**
-   * Updates data in Supabase
-   * @param {Array|Object} newValue - New data to store
-   * @throws {Error} If there's an error updating the data
-   */
   async function setValue(newValue) {
     if (!userName) return;
     
     try {
-      setLoading(true);
-      
-      if (Array.isArray(newValue)) {
-        // Handle array updates (e.g., ranked cat names)
-        const { error: upsertError } = await supabase
-          .from(tableName)
-          .upsert(
-            newValue.map(item => ({
-              name: item.name || item,
-              elo_rating: item.rating || 1500,
-              wins: item.wins || 0,
-              losses: item.losses || 0,
-              user_name: userName,
-              updated_at: new Date().toISOString()
-            }))
-          );
+      // First, ensure all names exist in name_options
+      const names = Array.isArray(newValue) 
+        ? newValue.map(v => v.name)
+        : [newValue.name];
 
-        if (upsertError) throw upsertError;
-      } else {
-        // Handle single record updates
-        const { error: upsertError } = await supabase
-          .from(tableName)
-          .upsert({
-            name: newValue.name || newValue,
-            elo_rating: newValue.rating || 1500,
-            wins: newValue.wins || 0,
-            losses: newValue.losses || 0,
-            user_name: userName,
-            updated_at: new Date().toISOString()
-          });
+      const { data: nameOptions, error: nameError } = await supabase
+        .from('name_options')
+        .select('id, name')
+        .in('name', names);
 
-        if (upsertError) throw upsertError;
+      if (nameError) throw nameError;
+
+      // Create a map of name to name_id
+      const nameToIdMap = nameOptions.reduce((acc, { id, name }) => {
+        acc[name] = id;
+        return acc;
+      }, {});
+
+      // Prepare records for upsert
+      const records = (Array.isArray(newValue) ? newValue : [newValue])
+        .map(item => ({
+          user_name: userName,
+          name_id: nameToIdMap[item.name],
+          rating: Math.round(item.rating || 1500),
+          wins: item.wins || 0,
+          losses: item.losses || 0,
+          updated_at: new Date().toISOString()
+        }))
+        .filter(record => record.name_id);
+
+      if (records.length === 0) {
+        throw new Error('No valid records to update');
       }
 
-      await fetchData(); // Refresh data after update
+      const { error: upsertError } = await supabase
+        .from('cat_name_ratings')
+        .upsert(records, {
+          onConflict: 'user_name,name_id',
+          returning: 'minimal'
+        });
+
+      if (upsertError) throw upsertError;
+
+      // Fetch updated data
+      await fetchData();
     } catch (err) {
-      console.error('Error setting value:', err);
+      console.error('Error updating data:', err);
       setError(err);
-    } finally {
-      setLoading(false);
+      throw err;
     }
   }
 
-  /**
-   * Clears all data for the current user from the specified table
-   * @throws {Error} If there's an error clearing the data
-   */
   async function clearUserData() {
     if (!userName) return;
-    
+
     try {
-      setLoading(true);
       const { error: deleteError } = await supabase
-        .from(tableName)
+        .from('cat_name_ratings')
         .delete()
         .eq('user_name', userName);
 
       if (deleteError) throw deleteError;
+
       setStoredValue(initialValue);
     } catch (err) {
-      console.error('Error clearing data:', err);
+      console.error('Error clearing user data:', err);
       setError(err);
-    } finally {
-      setLoading(false);
+      throw err;
     }
   }
 
