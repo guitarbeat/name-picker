@@ -39,12 +39,12 @@ function useNameOptions() {
       setLoading(true);
       const { data, error: fetchError } = await supabase
         .from('name_options')
-        .select('name')
+        .select('name, description')
         .order('created_at', { ascending: true });
 
       if (fetchError) throw fetchError;
 
-      setNameOptions(data.map(option => option.name));
+      setNameOptions(data);
     } catch (err) {
       console.error('Error fetching name options:', err);
       setError(err);
@@ -53,19 +53,23 @@ function useNameOptions() {
     }
   }
 
-  async function addNameOption(newName) {
+  async function addNameOption(newName, description = '') {
     if (!newName?.trim()) return;
     
     try {
       setLoading(true);
       const { error: insertError } = await supabase
         .from('name_options')
-        .insert({ name: newName.trim() });
+        .insert({ 
+          name: newName.trim(),
+          description: description.trim()
+        });
 
       if (insertError) throw insertError;
     } catch (err) {
       console.error('Error adding name option:', err);
       setError(err);
+      throw err;
     } finally {
       setLoading(false);
     }

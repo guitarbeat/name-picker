@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase } from '../../supabase/supabaseClient';
+import { NameSuggestion } from '..';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
@@ -90,7 +91,7 @@ function Profile({ userName, onStartNewTournament }) {
     .slice(0, 5);
 
   return (
-    <div className="profile">
+    <div className="profile-container">
       <header className="profile-header">
         <div className="profile-title">
           <h2>
@@ -213,6 +214,10 @@ function Profile({ userName, onStartNewTournament }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="profile-section">
+        <NameSuggestion />
       </div>
     </div>
   );

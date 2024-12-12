@@ -11,4 +11,5 @@ export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export { default as Results } from './Results/Results';
 export { default as Login } from './Login/Login';
 export { default as Profile } from './Profile/Profile';
-export { default as TournamentSetup } from './TournamentSetup/TournamentSetup'; 
+export { default as TournamentSetup } from './TournamentSetup/TournamentSetup';
+export { default as NameSuggestion } from './NameSuggestion/NameSuggestion'; 

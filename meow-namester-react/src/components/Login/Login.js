@@ -8,7 +8,7 @@ function Login({ onLogin }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Please enter your name');
+      setError('Please enter your (human) name');
       return;
     }
     try {
@@ -32,7 +32,7 @@ function Login({ onLogin }) {
       <div className="login-container">
         <div className="login-content">
           <h1>Thanks for helping me name my cat!</h1>
-          <p>Enter your name to start rating cat names</p>
+          <p>Enter your (human) name to start rating cat names</p>
           
           <form onSubmit={handleSubmit} className="login-form">
             <input

@@ -255,4 +255,27 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.count-and-select {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.select-all-button {
+  background: #805ad5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.select-all-button:hover {
+  background: #6b46c1;
+  transform: translateY(-1px);
 } 

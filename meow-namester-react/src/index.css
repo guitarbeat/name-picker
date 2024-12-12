@@ -318,8 +318,10 @@ body {
 .relative { position: relative; }
 .absolute { position: absolute; }
 .fixed { position: fixed; }
-.sticky { position: sticky; }
-
+.sticky { 
+  position: -webkit-sticky; /* Add vendor prefix for iOS 7-12 support */
+  position: sticky; 
+}
 .overflow-hidden { overflow: hidden; }
 .overflow-auto { overflow: auto; }
 

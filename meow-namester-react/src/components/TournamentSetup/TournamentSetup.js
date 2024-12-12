@@ -34,6 +34,16 @@ function TournamentSetup({ onStart }) {
     );
   };
 
+  const handleSelectAll = () => {
+    if (selectedNames.length === availableNames.length) {
+      // If all are selected, deselect all
+      setSelectedNames([]);
+    } else {
+      // Otherwise, select all
+      setSelectedNames([...availableNames]);
+    }
+  };
+
   if (isLoading) return <div className="container">Loading...</div>;
 
   return (
@@ -41,7 +51,15 @@ function TournamentSetup({ onStart }) {
       <h2 className="heading">Name Selection</h2>
 
       <div className="name-count">
-        Selected: {selectedNames.length} names
+        <div className="count-and-select">
+          <span>Selected: {selectedNames.length} names</span>
+          <button 
+            onClick={handleSelectAll}
+            className="select-all-button"
+          >
+            {selectedNames.length === availableNames.length ? 'Deselect All' : 'Select All'}
+          </button>
+        </div>
         {selectedNames.length === 1 && <span className="warning"> (Select at least one more)</span>}
       </div>
 
