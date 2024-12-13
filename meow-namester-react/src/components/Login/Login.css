@@ -42,6 +42,10 @@
 }
 
 .login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   position: relative;
   z-index: var(--z-10);
   background: rgba(255, 255, 255, 0.97);
@@ -237,4 +241,20 @@
   .login-container p {
     margin-bottom: var(--space-4);
   }
+}
+
+.kittens-image {
+  width: 200px;
+  height: auto;
+  opacity: 0.9;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  pointer-events: auto;
+  margin-bottom: 20px;
+}
+
+.kittens-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
 } 
