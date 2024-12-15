@@ -11,6 +11,7 @@ export class PreferenceSorter {
         this.currentRankings = [...items];
         this.ranks = [];
         this.rec = new Array(items.length).fill(0);
+        this.preferenceCache = new Map(); // Add preference cache
     }
 
     // When comparing items, we'll use the name property for the map key
@@ -20,16 +21,25 @@ export class PreferenceSorter {
     }
 
     getPreference(item1, item2) {
+        const cacheKey = `${item1.name}-${item2.name}`;
+        if (this.preferenceCache.has(cacheKey)) {
+            return this.preferenceCache.get(cacheKey);
+        }
+
         const key = `${item1.name}-${item2.name}`;
         const reverseKey = `${item2.name}-${item1.name}`;
+        let result;
         
         if (this.preferences.has(key)) {
-            return this.preferences.get(key);
+            result = this.preferences.get(key);
+        } else if (this.preferences.has(reverseKey)) {
+            result = -this.preferences.get(reverseKey);
+        } else {
+            result = 0;
         }
-        if (this.preferences.has(reverseKey)) {
-            return -this.preferences.get(reverseKey);
-        }
-        return 0;
+
+        this.preferenceCache.set(cacheKey, result);
+        return result;
     }
 
     getCurrentRankings() {

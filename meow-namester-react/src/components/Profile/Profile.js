@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase } from '../../supabase/supabaseClient';
-import { NameSuggestion } from '..';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
@@ -215,12 +214,8 @@ function Profile({ userName, onStartNewTournament }) {
           ))}
         </div>
       </div>
-
-      <div className="profile-section">
-        <NameSuggestion />
-      </div>
     </div>
   );
 }
 
-export default Profile; 
+export default Profile;

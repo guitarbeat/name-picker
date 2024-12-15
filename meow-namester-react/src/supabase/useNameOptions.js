@@ -60,12 +60,20 @@ function useNameOptions() {
       setLoading(true);
       const { error: insertError } = await supabase
         .from('name_options')
-        .insert({ 
+        .insert([{ 
           name: newName.trim(),
           description: description.trim()
-        });
+        }])
+        .select();  // Add select() to ensure proper error handling
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        throw insertError;
+      }
+      
+      // Fetch updated data after successful insert
+      await fetchNameOptions();
+      
     } catch (err) {
       console.error('Error adding name option:', err);
       setError(err);
@@ -101,4 +109,4 @@ function useNameOptions() {
   };
 }
 
-export default useNameOptions; 
+export default useNameOptions;

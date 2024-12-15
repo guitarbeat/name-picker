@@ -45,6 +45,36 @@
   box-shadow: var(--shadow-sm);
 }
 
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--surface-color);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--primary-300), var(--primary-500));
+  transition: width 0.3s ease;
+}
+
+.tournament-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.stat-item {
+  background: var(--surface-color);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
 .tournament-controls {
   display: flex;
   flex-direction: column;
@@ -328,7 +358,7 @@
   }
 
   .name-description {
-    font-size: 1rem;
+    font-size: 0.5rem;
     -webkit-line-clamp: 2;
     line-clamp: 2;
   }
@@ -348,4 +378,4 @@
     align-items: center;
     gap: 0.5rem;
   }
-} 
+}

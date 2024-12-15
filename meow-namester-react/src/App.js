@@ -21,7 +21,8 @@ import {
   ErrorBoundary,
   Login,
   Profile,
-  TournamentSetup
+  TournamentSetup,
+  NameSuggestion  // Add this import
 } from './components';
 import useUserSession from './hooks/useUserSession';
 import useSupabaseStorage from './supabase/useSupabaseStorage';
@@ -239,6 +240,10 @@ function App() {
       );
     }
 
+    if (view === 'suggest') {  // Add this section
+      return <NameSuggestion />;
+    }
+
     if (tournamentComplete) {
       return (
         <Results 
@@ -295,6 +300,12 @@ function App() {
               className={view === 'profile' ? 'active' : ''}
             >
               My Profile
+            </button>
+            <button 
+              onClick={() => setView('suggest')}
+              className={view === 'suggest' ? 'active' : ''}
+            >
+              Suggest Names
             </button>
           </div>
           <span className="user-welcome">Welcome, {userName}!</span>

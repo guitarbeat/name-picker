@@ -19,21 +19,13 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
-  auth: {
-    persistSession: true
-  }
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Add this function to get names with descriptions
 export const getNamesWithDescriptions = async () => {
@@ -45,10 +37,7 @@ export const getNamesWithDescriptions = async () => {
       
     if (error) throw error;
     
-    // Log the data to see what we're getting
-    console.log('Fetched names with descriptions:', data);
-    
-    // Ensure each item has both name and description
+    // Convert to consistent format
     return data.map(item => ({
       name: item.name,
       description: item.description || 'No description available'
@@ -57,4 +46,24 @@ export const getNamesWithDescriptions = async () => {
     console.error('Error fetching names:', error);
     throw error;
   }
-}; 
+};
+
+// Add this function to track rating history
+export const addRatingHistory = async (userName, nameId, oldRating, newRating) => {
+  try {
+    const { error } = await supabase
+      .from('rating_history')
+      .insert({
+        user_name: userName,
+        name_id: nameId,
+        old_rating: oldRating,
+        new_rating: newRating,
+        timestamp: new Date().toISOString()
+      });
+      
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error saving rating history:', error);
+    throw error;
+  }
+};
