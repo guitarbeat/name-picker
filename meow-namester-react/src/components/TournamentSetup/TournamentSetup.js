@@ -6,6 +6,7 @@ function TournamentSetup({ onStart }) {
   const [availableNames, setAvailableNames] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [enlargedImage, setEnlargedImage] = useState(null);
 
   useEffect(() => {
     const fetchNames = async () => {
@@ -49,11 +50,34 @@ function TournamentSetup({ onStart }) {
       <div className="welcome-section">
         <h2>Meet the cat who needs a name:</h2>
         <div className="cat-gallery">
-          <img src="/images/IMG_4844.jpg" alt="My cat 1" className="cat-photo" />
-          <img src="/images/IMG_4845.jpg" alt="My cat 2" className="cat-photo" />
-          <img src="/images/IMG_4846.jpg" alt="My cat 3" className="cat-photo" />
-          <img src="/images/IMG_4847.jpg" alt="My cat 4" className="cat-photo" />
+          <img 
+            src="/images/IMG_4844.jpg" 
+            alt="My cat 1" 
+            className={`cat-photo ${enlargedImage === 'IMG_4844.jpg' ? 'enlarged' : ''}`}
+            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4844.jpg' ? null : 'IMG_4844.jpg')}
+          />
+          <img 
+            src="/images/IMG_4845.jpg" 
+            alt="My cat 2" 
+            className={`cat-photo ${enlargedImage === 'IMG_4845.jpg' ? 'enlarged' : ''}`}
+            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4845.jpg' ? null : 'IMG_4845.jpg')}
+          />
+          <img 
+            src="/images/IMG_4846.jpg" 
+            alt="My cat 3" 
+            className={`cat-photo ${enlargedImage === 'IMG_4846.jpg' ? 'enlarged' : ''}`}
+            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4846.jpg' ? null : 'IMG_4846.jpg')}
+          />
+          <img 
+            src="/images/IMG_4847.jpg" 
+            alt="My cat 4" 
+            className={`cat-photo ${enlargedImage === 'IMG_4847.jpg' ? 'enlarged' : ''}`}
+            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4847.jpg' ? null : 'IMG_4847.jpg')}
+          />
         </div>
+        {enlargedImage && (
+          <div className="overlay active" onClick={() => setEnlargedImage(null)} />
+        )}
       </div>
 
       <div className="name-selection">
