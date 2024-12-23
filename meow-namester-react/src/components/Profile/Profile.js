@@ -4,11 +4,12 @@ import { supabase } from '../../supabase/supabaseClient';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
-  const [ratings, , { loading, error }] = useSupabaseStorage('cat_name_ratings', [], userName);
+  const [ratings, setRatings, { loading, error }] = useSupabaseStorage('cat_name_ratings', [], userName);
   const [isAdmin, setIsAdmin] = useState(false);
   const [allUsersRatings, setAllUsersRatings] = useState([]);
   const [selectedUser, setSelectedUser] = useState(userName);
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
+  const [hiddenNames, setHiddenNames] = useState(new Set());
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -17,6 +18,7 @@ function Profile({ userName, onStartNewTournament }) {
   useEffect(() => {
     if (isAdmin) {
       fetchAllUsersRatings();
+      fetchHiddenNames();
     }
   }, [isAdmin]);
 
@@ -58,6 +60,50 @@ function Profile({ userName, onStartNewTournament }) {
       console.error('Error fetching all users ratings:', err);
     } finally {
       setLoadingAllUsers(false);
+    }
+  };
+
+  const fetchHiddenNames = async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('hidden_names')
+        .select('name_id');
+      
+      if (fetchError) throw fetchError;
+      
+      setHiddenNames(new Set(data.map(item => item.name_id)));
+    } catch (err) {
+      console.error('Error fetching hidden names:', err);
+    }
+  };
+
+  const handleToggleNameVisibility = async (nameId) => {
+    try {
+      if (hiddenNames.has(nameId)) {
+        // Unhide name
+        await supabase
+          .from('hidden_names')
+          .delete()
+          .eq('name_id', nameId);
+        
+        const newHiddenNames = new Set(hiddenNames);
+        newHiddenNames.delete(nameId);
+        setHiddenNames(newHiddenNames);
+      } else {
+        // Hide name
+        await supabase
+          .from('hidden_names')
+          .insert([{ name_id: nameId }]);
+        
+        const newHiddenNames = new Set(hiddenNames);
+        newHiddenNames.add(nameId);
+        setHiddenNames(newHiddenNames);
+      }
+      
+      // Refresh the data
+      fetchAllUsersRatings();
+    } catch (err) {
+      console.error('Error toggling name visibility:', err);
     }
   };
 
@@ -195,7 +241,18 @@ function Profile({ userName, onStartNewTournament }) {
         <div className="ratings-grid">
           {currentRatings.map(name => (
             <div key={name.id} className="rating-card">
-              <h4 className="name">{name.name}</h4>
+              <div className="rating-card-header">
+                <h4 className="name">{name.name}</h4>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleToggleNameVisibility(name.id)}
+                    className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
+                    title={hiddenNames.has(name.id) ? 'Unhide Name' : 'Hide Name'}
+                  >
+                    {hiddenNames.has(name.id) ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                )}
+              </div>
               <div className="stats">
                 <div className="stat">
                   <span className="stat-number">{Math.round(name.rating || 1500)}</span>
@@ -208,6 +265,18 @@ function Profile({ userName, onStartNewTournament }) {
                 <div className="stat">
                   <span className="stat-number">{name.losses || 0}</span>
                   <span className="stat-text">Losses</span>
+                </div>
+              </div>
+              <div className="match-stats">
+                <div className="match-stat">
+                  <span className="match-label">Win Rate:</span>
+                  <span className="match-value">
+                    {((name.wins || 0) / Math.max(1, (name.wins || 0) + (name.losses || 0)) * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="match-stat">
+                  <span className="match-label">Total Matches:</span>
+                  <span className="match-value">{(name.wins || 0) + (name.losses || 0)}</span>
                 </div>
               </div>
             </div>
