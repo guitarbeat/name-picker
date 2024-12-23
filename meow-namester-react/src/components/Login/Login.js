@@ -19,31 +19,23 @@ function Login({ onLogin }) {
   };
 
   return (
-    
     <div className="login-wrapper">
-
       <div className="background-container">
-        
         <img 
           src="/images/cat.gif" 
           alt="Animated cat" 
           className="background-gif"
         />
-        
-
-        
         <div className="overlay"></div>
-  
       </div>
 
       <div className="login-container">
-      <img 
+        <img 
           src="/images/kittens.png" 
           alt="Cute kittens" 
           className="kittens-image"
         />
         <div className="login-content">
-          
           <h1>Thanks for helping me name my cat!</h1>
           <p>Enter your (human) name to start rating cat names</p>
           
