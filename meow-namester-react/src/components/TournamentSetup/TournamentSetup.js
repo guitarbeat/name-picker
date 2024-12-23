@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabase/supabaseClient';
+import { supabase, getNamesWithDescriptions } from '../../supabase/supabaseClient';
 import './TournamentSetup.css';
 
 function TournamentSetup({ onStart }) {
@@ -11,11 +11,8 @@ function TournamentSetup({ onStart }) {
   useEffect(() => {
     const fetchNames = async () => {
       try {
-        const { data } = await supabase
-          .from('name_options')
-          .select('id, name, description')
-          .order('name');
-
+        const data = await getNamesWithDescriptions();
+        console.log('Fetched names:', data);
         setAvailableNames(data || []);
         setIsLoading(false);
       } catch (err) {
@@ -28,11 +25,14 @@ function TournamentSetup({ onStart }) {
   }, []);
 
   const toggleName = (nameObj) => {
-    setSelectedNames(prev => 
-      prev.some(n => n.id === nameObj.id)
+    console.log('Toggling name:', nameObj);
+    setSelectedNames(prev => {
+      const newNames = prev.some(n => n.id === nameObj.id)
         ? prev.filter(n => n.id !== nameObj.id)
-        : [...prev, nameObj]
-    );
+        : [...prev, nameObj];
+      console.log('Updated selected names:', newNames);
+      return newNames;
+    });
   };
 
   const handleSelectAll = () => {
@@ -41,9 +41,12 @@ function TournamentSetup({ onStart }) {
     } else {
       setSelectedNames([...availableNames]);
     }
+    console.log('After select all, selected names:', selectedNames);
   };
 
   if (isLoading) return <div className="container">Loading...</div>;
+
+  console.log('Rendering with available names:', availableNames);
 
   return (
     <div className="tournament-setup container">
@@ -104,7 +107,7 @@ function TournamentSetup({ onStart }) {
               className={`name-card ${selectedNames.some(n => n.id === nameObj.id) ? 'selected' : ''}`}
             >
               <h3 className="name-text">{nameObj.name}</h3>
-              <p className="name-description">{nameObj.description}</p>
+              <p className="name-description">{nameObj.description || 'No description available'}</p>
               {selectedNames.some(n => n.id === nameObj.id) && (
                 <span className="check-mark">✓</span>
               )}
@@ -115,10 +118,13 @@ function TournamentSetup({ onStart }) {
         {selectedNames.length >= 2 && (
           <div className="start-section">
             <button
-              onClick={() => onStart(selectedNames.map(n => ({
-                name: n.name,
-                description: n.description
-              })))}
+              onClick={() => {
+                console.log('Starting tournament with names:', selectedNames);
+                onStart(selectedNames.map(n => ({
+                  name: n.name,
+                  description: n.description || 'No description available'
+                })));
+              }}
               className="start-button"
               disabled={selectedNames.length < 2}
             >

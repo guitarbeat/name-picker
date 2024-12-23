@@ -100,7 +100,7 @@ function Profile({ userName, onStartNewTournament }) {
         setHiddenNames(newHiddenNames);
       }
       
-      // Refresh the data
+      // Refresh both the ratings and the names list
       fetchAllUsersRatings();
     } catch (err) {
       console.error('Error toggling name visibility:', err);
@@ -240,16 +240,19 @@ function Profile({ userName, onStartNewTournament }) {
         </h3>
         <div className="ratings-grid">
           {currentRatings.map(name => (
-            <div key={name.id} className="rating-card">
+            <div 
+              key={name.id} 
+              className={`rating-card ${hiddenNames.has(name.id) ? 'is-hidden' : ''}`}
+            >
               <div className="rating-card-header">
                 <h4 className="name">{name.name}</h4>
                 {isAdmin && (
                   <button
                     onClick={() => handleToggleNameVisibility(name.id)}
                     className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
-                    title={hiddenNames.has(name.id) ? 'Unhide Name' : 'Hide Name'}
+                    title={hiddenNames.has(name.id) ? 'Click to show this name in tournaments' : 'Click to hide this name from tournaments'}
                   >
-                    {hiddenNames.has(name.id) ? '👁️' : '👁️‍🗨️'}
+                    {hiddenNames.has(name.id) ? '🚫' : '👁️'}
                   </button>
                 )}
               </div>
@@ -267,18 +270,11 @@ function Profile({ userName, onStartNewTournament }) {
                   <span className="stat-text">Losses</span>
                 </div>
               </div>
-              <div className="match-stats">
-                <div className="match-stat">
-                  <span className="match-label">Win Rate:</span>
-                  <span className="match-value">
-                    {((name.wins || 0) / Math.max(1, (name.wins || 0) + (name.losses || 0)) * 100).toFixed(1)}%
-                  </span>
+              {hiddenNames.has(name.id) && (
+                <div className="hidden-status">
+                  <p className="hidden-text">This name is hidden from tournaments</p>
                 </div>
-                <div className="match-stat">
-                  <span className="match-label">Total Matches:</span>
-                  <span className="match-value">{(name.wins || 0) + (name.losses || 0)}</span>
-                </div>
-              </div>
+              )}
             </div>
           ))}
         </div>

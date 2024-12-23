@@ -30,18 +30,42 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Add this function to get names with descriptions
 export const getNamesWithDescriptions = async () => {
   try {
-    const { data, error } = await supabase
+    console.log('Fetching names from database...'); // Debug log
+    
+    // First get hidden name IDs
+    const { data: hiddenData, error: hiddenError } = await supabase
+      .from('hidden_names')
+      .select('name_id');
+    
+    if (hiddenError) {
+      console.error('Error fetching hidden names:', hiddenError);
+      throw hiddenError;
+    }
+
+    const hiddenIds = hiddenData?.map(item => item.name_id) || [];
+    console.log('Hidden IDs:', hiddenIds);
+
+    // Build query
+    let query = supabase
       .from('name_options')
-      .select('name, description')
-      .order('name');
-      
+      .select(`
+        id,
+        name,
+        description
+      `);
+    
+    // Only apply the not.in filter if we have hidden IDs
+    if (hiddenIds.length > 0) {
+      query = query.not('id', 'in', `(${hiddenIds.join(',')})`);
+    }
+
+    // Execute query with ordering
+    const { data, error } = await query.order('name');
+
     if (error) throw error;
     
-    // Convert to consistent format
-    return data.map(item => ({
-      name: item.name,
-      description: item.description || 'No description available'
-    }));
+    console.log('Received data from database:', data); // Debug log
+    return data || [];
   } catch (error) {
     console.error('Error fetching names:', error);
     throw error;
