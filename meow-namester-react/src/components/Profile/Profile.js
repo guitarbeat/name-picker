@@ -13,6 +13,9 @@ function Profile({ userName, onStartNewTournament }) {
   const [viewMode, setViewMode] = useState('individual'); // 'individual' or 'aggregated'
   const [aggregatedStats, setAggregatedStats] = useState({});
   const [sortConfig, setSortConfig] = useState({ key: 'avgRating', direction: 'desc' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleteStatus, setDeleteStatus] = useState({ loading: false, error: null });
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -195,6 +198,46 @@ function Profile({ userName, onStartNewTournament }) {
     }).format(date);
   };
 
+  const handleDeleteUser = async (userNameToDelete) => {
+    if (!isAdmin) return;
+    
+    try {
+      setDeleteStatus({ loading: true, error: null });
+      
+      // Delete user's ratings
+      const { error: ratingsError } = await supabase
+        .from('cat_name_ratings')
+        .delete()
+        .eq('user_name', userNameToDelete);
+      
+      if (ratingsError) throw ratingsError;
+
+      // Delete user's tournament progress
+      const { error: progressError } = await supabase
+        .from('tournament_progress')
+        .delete()
+        .eq('user_name', userNameToDelete);
+      
+      if (progressError) throw progressError;
+
+      // Refresh data
+      await fetchAllUsersRatings();
+      
+      // Reset state
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
+      setDeleteStatus({ loading: false, error: null });
+
+      // If the deleted user was selected, reset to admin's view
+      if (selectedUser === userNameToDelete) {
+        setSelectedUser(userName);
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setDeleteStatus({ loading: false, error: err.message });
+    }
+  };
+
   if (loading || loadingAllUsers) return (
     <div className="profile container">
       <div className="loading-spinner"></div>
@@ -249,22 +292,81 @@ function Profile({ userName, onStartNewTournament }) {
               </div>
               {viewMode === 'individual' && (
                 <>
-                  <p className="profile-subtitle">Viewing data for: {selectedUser}</p>
-                  <select 
-                    value={selectedUser}
-                    onChange={(e) => setSelectedUser(e.target.value)}
-                    className="user-select"
-                  >
-                    <option value={userName}>Your Profile</option>
+                  <div className="user-switcher">
+                    <button
+                      className={`user-avatar ${selectedUser === userName ? 'active' : ''}`}
+                      onClick={() => setSelectedUser(userName)}
+                      title="Your Profile"
+                    >
+                      👤 You
+                    </button>
                     {Object.keys(allUsersRatings)
                       .filter(user => user !== userName)
                       .sort()
                       .map(user => (
-                        <option key={user} value={user}>{user}</option>
+                        <button
+                          key={user}
+                          className={`user-avatar ${selectedUser === user ? 'active' : ''}`}
+                          onClick={() => setSelectedUser(user)}
+                          title={`View ${user}'s profile`}
+                        >
+                          👤 {user}
+                        </button>
                       ))
                     }
-                  </select>
+                  </div>
+                  <div className="user-controls">
+                    {selectedUser !== userName && (
+                      <button
+                        onClick={() => {
+                          setUserToDelete(selectedUser);
+                          setShowDeleteConfirm(true);
+                        }}
+                        className="action-button danger-button"
+                        title="Delete this user's data"
+                      >
+                        🗑️ Delete User Data
+                      </button>
+                    )}
+                  </div>
                 </>
+              )}
+              {/* Delete Confirmation Modal */}
+              {showDeleteConfirm && (
+                <div className="modal-overlay">
+                  <div className="modal-content">
+                    <h3>⚠️ Delete User Data</h3>
+                    <p>Are you sure you want to delete all data for user <strong>{userToDelete}</strong>?</p>
+                    <p className="warning-text">This action cannot be undone!</p>
+                    
+                    {deleteStatus.error && (
+                      <div className="error-message">
+                        Error: {deleteStatus.error}
+                      </div>
+                    )}
+                    
+                    <div className="modal-actions">
+                      <button
+                        onClick={() => handleDeleteUser(userToDelete)}
+                        className="action-button danger-button"
+                        disabled={deleteStatus.loading}
+                      >
+                        {deleteStatus.loading ? 'Deleting...' : 'Yes, Delete User Data'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setUserToDelete(null);
+                          setDeleteStatus({ loading: false, error: null });
+                        }}
+                        className="action-button secondary-button"
+                        disabled={deleteStatus.loading}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
               <button 
                 onClick={fetchAllUsersRatings} 
