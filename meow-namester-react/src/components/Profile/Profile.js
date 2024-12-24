@@ -10,6 +10,9 @@ function Profile({ userName, onStartNewTournament }) {
   const [selectedUser, setSelectedUser] = useState(userName);
   const [loadingAllUsers, setLoadingAllUsers] = useState(false);
   const [hiddenNames, setHiddenNames] = useState(new Set());
+  const [viewMode, setViewMode] = useState('individual'); // 'individual' or 'aggregated'
+  const [aggregatedStats, setAggregatedStats] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: 'avgRating', direction: 'desc' });
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -32,14 +35,17 @@ function Profile({ userName, onStartNewTournament }) {
           wins,
           losses,
           user_name,
+          updated_at,
           name_options (
             id,
-            name
+            name,
+            description
           )
         `);
 
       if (fetchError) throw fetchError;
 
+      // Process individual user ratings
       const ratingsByUser = data.reduce((acc, item) => {
         const userName = item.user_name;
         if (!acc[userName]) {
@@ -48,14 +54,56 @@ function Profile({ userName, onStartNewTournament }) {
         acc[userName].push({
           id: item.name_options.id,
           name: item.name_options.name,
+          description: item.name_options.description,
           rating: item.rating,
           wins: item.wins,
-          losses: item.losses
+          losses: item.losses,
+          updated_at: item.updated_at
         });
         return acc;
       }, {});
 
+      // Calculate aggregated statistics
+      const aggregated = data.reduce((acc, item) => {
+        const nameId = item.name_options.id;
+        const name = item.name_options.name;
+        
+        if (!acc[nameId]) {
+          acc[nameId] = {
+            id: nameId,
+            name: name,
+            description: item.name_options.description,
+            totalRatings: 0,
+            totalWins: 0,
+            totalLosses: 0,
+            ratings: [],
+            users: new Set(),
+          };
+        }
+        
+        acc[nameId].totalRatings++;
+        acc[nameId].totalWins += item.wins || 0;
+        acc[nameId].totalLosses += item.losses || 0;
+        acc[nameId].ratings.push(item.rating);
+        acc[nameId].users.add(item.user_name);
+        
+        return acc;
+      }, {});
+
+      // Calculate averages and other stats
+      Object.values(aggregated).forEach(stat => {
+        stat.avgRating = Math.round(
+          stat.ratings.reduce((sum, r) => sum + r, 0) / stat.ratings.length
+        );
+        stat.minRating = Math.min(...stat.ratings);
+        stat.maxRating = Math.max(...stat.ratings);
+        stat.uniqueUsers = stat.users.size;
+        delete stat.ratings; // Clean up the raw ratings array
+        delete stat.users; // Clean up the users set
+      });
+
       setAllUsersRatings(ratingsByUser);
+      setAggregatedStats(aggregated);
     } catch (err) {
       console.error('Error fetching all users ratings:', err);
     } finally {
@@ -107,6 +155,46 @@ function Profile({ userName, onStartNewTournament }) {
     }
   };
 
+  const handleSort = (key) => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  const getSortedAggregatedStats = () => {
+    const stats = Object.values(aggregatedStats);
+    const sortedStats = stats.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      const modifier = sortConfig.direction === 'asc' ? 1 : -1;
+      
+      if (typeof aValue === 'number') {
+        return (aValue - bValue) * modifier;
+      }
+      return aValue.localeCompare(bValue) * modifier;
+    });
+
+    // Separate hidden and active names
+    return {
+      active: sortedStats.filter(stat => !hiddenNames.has(stat.id)),
+      hidden: sortedStats.filter(stat => hiddenNames.has(stat.id))
+    };
+  };
+
+  // Add a helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   if (loading || loadingAllUsers) return (
     <div className="profile container">
       <div className="loading-spinner"></div>
@@ -145,21 +233,39 @@ function Profile({ userName, onStartNewTournament }) {
           </h2>
           {isAdmin && (
             <div className="admin-controls">
-              <p className="profile-subtitle">Viewing data for: {selectedUser}</p>
-              <select 
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="user-select"
-              >
-                <option value={userName}>Your Profile</option>
-                {Object.keys(allUsersRatings)
-                  .filter(user => user !== userName)
-                  .sort()
-                  .map(user => (
-                    <option key={user} value={user}>{user}</option>
-                  ))
-                }
-              </select>
+              <div className="view-controls">
+                <button 
+                  className={`view-button ${viewMode === 'individual' ? 'active' : ''}`}
+                  onClick={() => setViewMode('individual')}
+                >
+                  Individual View
+                </button>
+                <button 
+                  className={`view-button ${viewMode === 'aggregated' ? 'active' : ''}`}
+                  onClick={() => setViewMode('aggregated')}
+                >
+                  Aggregated View
+                </button>
+              </div>
+              {viewMode === 'individual' && (
+                <>
+                  <p className="profile-subtitle">Viewing data for: {selectedUser}</p>
+                  <select 
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    className="user-select"
+                  >
+                    <option value={userName}>Your Profile</option>
+                    {Object.keys(allUsersRatings)
+                      .filter(user => user !== userName)
+                      .sort()
+                      .map(user => (
+                        <option key={user} value={user}>{user}</option>
+                      ))
+                    }
+                  </select>
+                </>
+              )}
               <button 
                 onClick={fetchAllUsersRatings} 
                 className="action-button secondary-button"
@@ -181,104 +287,328 @@ function Profile({ userName, onStartNewTournament }) {
         </button>
       </header>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>
-            <span className="card-icon">📊</span>
-            Overview
-          </h3>
-          <div className="stat-grid">
-            <div className="stat-item">
-              <span className="stat-label">Names Rated</span>
-              <span className="stat-value">{totalNames}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Total Matches</span>
-              <span className="stat-value">{totalMatches}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Average Rating</span>
-              <span className="stat-value">{averageRating}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <h3>
-            <span className="card-icon">🏅</span>
-            Top 5 Names
-          </h3>
-          {topNames.length > 0 ? (
-            <ol className="top-names-list">
-              {topNames.map((name, index) => (
-                <li key={name.id} className="top-name-item">
-                  <div className="rank-badge">{index + 1}</div>
-                  <div className="name-details">
-                    <span className="name-text">{name.name}</span>
-                    <div className="name-stats">
-                      <span className="rating-badge">
-                        {Math.round(name.rating || 1500)}
-                      </span>
-                      <span className="record-text">
-                        W: {name.wins || 0} L: {name.losses || 0}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="subtitle">No names rated yet</p>
-          )}
-        </div>
-      </div>
-
-      <div className="ratings-section">
-        <h3 className="ratings-title">
-          <span className="section-icon">📝</span>
-          All Rated Names
-        </h3>
-        <div className="ratings-grid">
-          {currentRatings.map(name => (
-            <div 
-              key={name.id} 
-              className={`rating-card ${hiddenNames.has(name.id) ? 'is-hidden' : ''}`}
-            >
-              <div className="rating-card-header">
-                <h4 className="name">{name.name}</h4>
-                {isAdmin && (
-                  <button
-                    onClick={() => handleToggleNameVisibility(name.id)}
-                    className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
-                    title={hiddenNames.has(name.id) ? 'Click to show this name in tournaments' : 'Click to hide this name from tournaments'}
-                  >
-                    {hiddenNames.has(name.id) ? '🚫' : '👁️'}
-                  </button>
-                )}
-              </div>
-              <div className="stats">
-                <div className="stat">
-                  <span className="stat-number">{Math.round(name.rating || 1500)}</span>
-                  <span className="stat-text">Rating</span>
+      {viewMode === 'individual' ? (
+        <>
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h3>
+                <span className="card-icon">📊</span>
+                Overview
+              </h3>
+              <div className="stat-grid">
+                <div className="stat-item">
+                  <span className="stat-label">Names Rated</span>
+                  <span className="stat-value">{totalNames}</span>
                 </div>
-                <div className="stat">
-                  <span className="stat-number">{name.wins || 0}</span>
-                  <span className="stat-text">Wins</span>
+                <div className="stat-item">
+                  <span className="stat-label">Total Matches</span>
+                  <span className="stat-value">{totalMatches}</span>
                 </div>
-                <div className="stat">
-                  <span className="stat-number">{name.losses || 0}</span>
-                  <span className="stat-text">Losses</span>
+                <div className="stat-item">
+                  <span className="stat-label">Average Rating</span>
+                  <span className="stat-value">{averageRating}</span>
                 </div>
               </div>
-              {hiddenNames.has(name.id) && (
-                <div className="hidden-status">
-                  <p className="hidden-text">This name is hidden from tournaments</p>
-                </div>
+            </div>
+
+            <div className="stat-card">
+              <h3>
+                <span className="card-icon">🏅</span>
+                Top 5 Names
+              </h3>
+              {topNames.length > 0 ? (
+                <ol className="top-names-list">
+                  {topNames.map((name, index) => (
+                    <li key={name.id} className="top-name-item">
+                      <div className="rank-badge">{index + 1}</div>
+                      <div className="name-details">
+                        <span className="name-text">{name.name}</span>
+                        <div className="name-stats">
+                          <span className="rating-badge">
+                            {Math.round(name.rating || 1500)}
+                          </span>
+                          <span className="record-text">
+                            W: {name.wins || 0} L: {name.losses || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="subtitle">No names rated yet</p>
               )}
             </div>
-          ))}
+          </div>
+
+          <div className="ratings-sections">
+            <section className="active-names-section">
+              <h3 className="section-title">
+                <span className="section-icon">🎯</span>
+                Active Names
+              </h3>
+              <div className="ratings-grid">
+                {currentRatings
+                  .filter(name => !hiddenNames.has(name.id))
+                  .map(name => (
+                    <div key={name.id} className="rating-card">
+                      <div className="rating-card-header">
+                        <h4 className="name">{name.name}</h4>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleToggleNameVisibility(name.id)}
+                            className="visibility-toggle"
+                            title="Click to hide this name from tournaments"
+                          >
+                            👁️
+                          </button>
+                        )}
+                      </div>
+                      <div className="stats">
+                        <div className="stat">
+                          <span className="stat-number">{Math.round(name.rating || 1500)}</span>
+                          <span className="stat-text">Rating</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-number">{name.wins || 0}</span>
+                          <span className="stat-text">Wins</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-number">{name.losses || 0}</span>
+                          <span className="stat-text">Losses</span>
+                        </div>
+                      </div>
+                      <div className="timestamps">
+                        <div className="timestamp">
+                          <span className="timestamp-label">Last Updated:</span>
+                          <span className="timestamp-value">{formatDate(name.updated_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </section>
+
+            {currentRatings.some(name => hiddenNames.has(name.id)) && (
+              <section className="hidden-names-section">
+                <h3 className="section-title">
+                  <span className="section-icon">🚫</span>
+                  Hidden Names
+                </h3>
+                <div className="ratings-grid">
+                  {currentRatings
+                    .filter(name => hiddenNames.has(name.id))
+                    .map(name => (
+                      <div key={name.id} className="rating-card is-hidden">
+                        <div className="rating-card-header">
+                          <h4 className="name">{name.name}</h4>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleToggleNameVisibility(name.id)}
+                              className="visibility-toggle hidden"
+                              title="Click to show this name in tournaments"
+                            >
+                              🚫
+                            </button>
+                          )}
+                        </div>
+                        <div className="stats">
+                          <div className="stat">
+                            <span className="stat-number">{Math.round(name.rating || 1500)}</span>
+                            <span className="stat-text">Rating</span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-number">{name.wins || 0}</span>
+                            <span className="stat-text">Wins</span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-number">{name.losses || 0}</span>
+                            <span className="stat-text">Losses</span>
+                          </div>
+                        </div>
+                        <div className="timestamps">
+                          <div className="timestamp">
+                            <span className="timestamp-label">Last Updated:</span>
+                            <span className="timestamp-value">{formatDate(name.updated_at)}</span>
+                          </div>
+                        </div>
+                        <div className="hidden-status">
+                          <p className="hidden-text">This name is hidden from tournaments</p>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </section>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="aggregated-view">
+          <div className="aggregated-stats-header">
+            <h3>Aggregated Name Statistics</h3>
+            <div className="sort-controls">
+              <span>Sort by:</span>
+              <button 
+                onClick={() => handleSort('avgRating')}
+                className={sortConfig.key === 'avgRating' ? 'active' : ''}
+              >
+                Average Rating {sortConfig.key === 'avgRating' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+              </button>
+              <button 
+                onClick={() => handleSort('totalRatings')}
+                className={sortConfig.key === 'totalRatings' ? 'active' : ''}
+              >
+                Times Rated {sortConfig.key === 'totalRatings' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+              </button>
+              <button 
+                onClick={() => handleSort('name')}
+                className={sortConfig.key === 'name' ? 'active' : ''}
+              >
+                Name {sortConfig.key === 'name' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
+              </button>
+            </div>
+          </div>
+          
+          <div className="aggregated-sections">
+            <section className="active-names-section">
+              <h3 className="section-title">
+                <span className="section-icon">🎯</span>
+                Active Names
+              </h3>
+              <div className="aggregated-stats-grid">
+                {getSortedAggregatedStats().active.map(stat => (
+                  <div key={stat.id} className="aggregated-stat-card">
+                    <div className="stat-card-header">
+                      <h4 className="name">{stat.name}</h4>
+                      {stat.description && (
+                        <div className="name-description" title={stat.description}>
+                          ℹ️
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleToggleNameVisibility(stat.id)}
+                          className="visibility-toggle"
+                          title="Click to hide this name from tournaments"
+                        >
+                          👁️
+                        </button>
+                      )}
+                    </div>
+                    <div className="aggregated-stats">
+                      <div className="stat-row">
+                        <div className="stat">
+                          <span className="stat-label">Avg Rating</span>
+                          <span className="stat-value">{stat.avgRating}</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-label">Times Rated</span>
+                          <span className="stat-value">{stat.totalRatings}</span>
+                        </div>
+                      </div>
+                      <div className="stat-row">
+                        <div className="stat">
+                          <span className="stat-label">Rating Range</span>
+                          <span className="stat-value">{stat.minRating} - {stat.maxRating}</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-label">Unique Users</span>
+                          <span className="stat-value">{stat.uniqueUsers}</span>
+                        </div>
+                      </div>
+                      <div className="stat-row">
+                        <div className="stat">
+                          <span className="stat-label">Total W/L</span>
+                          <span className="stat-value">
+                            {stat.totalWins}/{stat.totalLosses}
+                          </span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-label">Win Rate</span>
+                          <span className="stat-value">
+                            {Math.round((stat.totalWins / (stat.totalWins + stat.totalLosses || 1)) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {getSortedAggregatedStats().hidden.length > 0 && (
+              <section className="hidden-names-section">
+                <h3 className="section-title">
+                  <span className="section-icon">🚫</span>
+                  Hidden Names
+                </h3>
+                <div className="aggregated-stats-grid">
+                  {getSortedAggregatedStats().hidden.map(stat => (
+                    <div key={stat.id} className="aggregated-stat-card is-hidden">
+                      <div className="stat-card-header">
+                        <h4 className="name">{stat.name}</h4>
+                        {stat.description && (
+                          <div className="name-description" title={stat.description}>
+                            ℹ️
+                          </div>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleToggleNameVisibility(stat.id)}
+                            className="visibility-toggle hidden"
+                            title="Click to show this name in tournaments"
+                          >
+                            🚫
+                          </button>
+                        )}
+                      </div>
+                      <div className="aggregated-stats">
+                        <div className="stat-row">
+                          <div className="stat">
+                            <span className="stat-label">Avg Rating</span>
+                            <span className="stat-value">{stat.avgRating}</span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-label">Times Rated</span>
+                            <span className="stat-value">{stat.totalRatings}</span>
+                          </div>
+                        </div>
+                        <div className="stat-row">
+                          <div className="stat">
+                            <span className="stat-label">Rating Range</span>
+                            <span className="stat-value">{stat.minRating} - {stat.maxRating}</span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-label">Unique Users</span>
+                            <span className="stat-value">{stat.uniqueUsers}</span>
+                          </div>
+                        </div>
+                        <div className="stat-row">
+                          <div className="stat">
+                            <span className="stat-label">Total W/L</span>
+                            <span className="stat-value">
+                              {stat.totalWins}/{stat.totalLosses}
+                            </span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-label">Win Rate</span>
+                            <span className="stat-value">
+                              {Math.round((stat.totalWins / (stat.totalWins + stat.totalLosses || 1)) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="hidden-status">
+                        <p className="hidden-text">This name is hidden from tournaments</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
