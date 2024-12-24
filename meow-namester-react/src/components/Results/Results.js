@@ -108,21 +108,6 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
             <h3>Total Names</h3>
             <div className="stat-value">{currentRankings.length}</div>
           </div>
-          <div className="stat-card">
-            <h3>Top Rating</h3>
-            <div className="stat-value">
-              {currentRankings[0]?.rating || 0}
-            </div>
-          </div>
-          <div className="stat-card">
-            <h3>Average Rating</h3>
-            <div className="stat-value">
-              {Math.round(
-                currentRankings.reduce((sum, r) => sum + r.rating, 0) / 
-                currentRankings.length
-              )}
-            </div>
-          </div>
         </div>
 
         <RankingAdjustment

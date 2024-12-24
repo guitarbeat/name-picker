@@ -51,7 +51,6 @@ function ResultsTable({ ratings = {}, orderedNames }) {
         <div key={name} className="rating-item">
           <span className="rank">{index + 1}</span>
           <span className="name">{name}</span>
-          <span className="rating">Rating: {Math.round(rating)}</span>
         </div>
       ))}
     </div>

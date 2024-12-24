@@ -127,10 +127,6 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
                         <div className="rank-badge">{index + 1}</div>
                         <div className="card-content">
                           <h3 className="name">{item.name}</h3>
-                          <div className="rating">
-                            <span className="rating-label">Rating:</span>
-                            <span className="rating-value">{item.rating}</span>
-                          </div>
                         </div>
                         <div className="drag-handle">
                           <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
