@@ -51,29 +51,29 @@ function TournamentSetup({ onStart }) {
   return (
     <div className="tournament-setup container">
       <div className="welcome-section">
-        <h2>Meet the cat who needs a name:</h2>
+        <h2>Meet Your Future Feline Friend! 🐱</h2>
         <div className="cat-gallery">
           <img 
             src="/images/IMG_4844.jpg" 
-            alt="My cat 1" 
+            alt="Adorable cat photo 1" 
             className={`cat-photo ${enlargedImage === 'IMG_4844.jpg' ? 'enlarged' : ''}`}
             onClick={() => setEnlargedImage(enlargedImage === 'IMG_4844.jpg' ? null : 'IMG_4844.jpg')}
           />
           <img 
             src="/images/IMG_4845.jpg" 
-            alt="My cat 2" 
+            alt="Adorable cat photo 2" 
             className={`cat-photo ${enlargedImage === 'IMG_4845.jpg' ? 'enlarged' : ''}`}
             onClick={() => setEnlargedImage(enlargedImage === 'IMG_4845.jpg' ? null : 'IMG_4845.jpg')}
           />
           <img 
             src="/images/IMG_4846.jpg" 
-            alt="My cat 3" 
+            alt="Adorable cat photo 3" 
             className={`cat-photo ${enlargedImage === 'IMG_4846.jpg' ? 'enlarged' : ''}`}
             onClick={() => setEnlargedImage(enlargedImage === 'IMG_4846.jpg' ? null : 'IMG_4846.jpg')}
           />
           <img 
             src="/images/IMG_4847.jpg" 
-            alt="My cat 4" 
+            alt="Adorable cat photo 4" 
             className={`cat-photo ${enlargedImage === 'IMG_4847.jpg' ? 'enlarged' : ''}`}
             onClick={() => setEnlargedImage(enlargedImage === 'IMG_4847.jpg' ? null : 'IMG_4847.jpg')}
           />
@@ -84,19 +84,19 @@ function TournamentSetup({ onStart }) {
       </div>
 
       <div className="name-selection">
-        <h2 className="heading">Pick some names to rate</h2>
+        <h2 className="heading">Choose Your Purrfect Contenders</h2>
 
         <div className="name-count">
           <div className="count-and-select">
-            <span>Selected: {selectedNames.length} names</span>
+            <span>{selectedNames.length} Names in the Running</span>
             <button 
               onClick={handleSelectAll}
               className="select-all-button"
             >
-              {selectedNames.length === availableNames.length ? 'Deselect All' : 'Select All'}
+              {selectedNames.length === availableNames.length ? 'Start Fresh' : 'Include All Names'}
             </button>
           </div>
-          {selectedNames.length === 1 && <span className="warning"> (Select at least one more)</span>}
+          {selectedNames.length === 1 && <span className="warning">Pick one more name to start the showdown!</span>}
         </div>
 
         <div className="cards-container">
@@ -107,7 +107,7 @@ function TournamentSetup({ onStart }) {
               className={`name-card ${selectedNames.some(n => n.id === nameObj.id) ? 'selected' : ''}`}
             >
               <h3 className="name-text">{nameObj.name}</h3>
-              <p className="name-description">{nameObj.description || 'No description available'}</p>
+              <p className="name-description">{nameObj.description || 'A mysterious yet charming option'}</p>
               {selectedNames.some(n => n.id === nameObj.id) && (
                 <span className="check-mark">✓</span>
               )}
@@ -122,13 +122,13 @@ function TournamentSetup({ onStart }) {
                 console.log('Starting tournament with names:', selectedNames);
                 onStart(selectedNames.map(n => ({
                   name: n.name,
-                  description: n.description || 'No description available'
+                  description: n.description || 'A mysterious yet charming option'
                 })));
               }}
               className="start-button"
               disabled={selectedNames.length < 2}
             >
-              Start Tournament with {selectedNames.length} Names
+              Let the Name Games Begin! ({selectedNames.length} Contestants)
             </button>
           </div>
         )}

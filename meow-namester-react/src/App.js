@@ -286,7 +286,7 @@ function App() {
           }}
         ></div>
         <img src={`${process.env.PUBLIC_URL}/images/cat.gif`} alt="Cat animation" className="header-image" />
-        <h1>Cat Name Picker</h1>
+        <h1>Meow Namester</h1>
         <div className="user-controls">
           <div className="nav-menu">
             <button 
