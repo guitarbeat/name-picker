@@ -1,174 +1,110 @@
 .ranking-adjustment {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--space-4);
 }
 
 .ranking-adjustment h2 {
-  color: #2d3748;
+  color: var(--text-primary);
   text-align: center;
-  margin-bottom: 10px;
-  font-family: 'Rockwell', serif;
-  font-size: 2em;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
 }
 
 .instructions {
   text-align: center;
-  color: #718096;
-  margin-bottom: 20px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
 }
 
 .rankings-grid {
-  background: #f7fafc;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  composes: card-base;
+  padding: var(--space-4);
 }
 
 .rankings-header {
   display: grid;
   grid-template-columns: 80px 1fr 120px;
-  padding: 10px 20px;
-  background: #edf2f7;
-  border-radius: 8px;
-  margin-bottom: 15px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--gray-200);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
   font-weight: 600;
-  color: #4a5568;
+  color: var(--text-secondary);
 }
 
 .rankings-list {
   display: grid;
-  gap: 12px;
-  padding: 10px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
 }
 
 .ranking-card {
+  composes: card-base;
   display: grid;
   grid-template-columns: 80px 1fr 50px;
   align-items: center;
-  padding: 15px 20px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  padding: var(--space-3) var(--space-4);
   border: 2px solid transparent;
 }
 
-.ranking-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  border-color: #6b46c1;
-}
-
 .ranking-card.dragging {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-  background: #f8f9fa;
+  background: var(--card-hover);
   transform: scale(1.02);
-  border-color: #6b46c1;
+  border-color: var(--primary-color);
 }
 
 .rank-badge {
+  composes: badge-primary;
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #6b46c1;
-  color: white;
-  border-radius: 50%;
-  font-weight: bold;
-  font-size: 1.2em;
+  font-size: var(--text-lg);
 }
 
 .card-content {
-  padding: 0 15px;
+  composes: card-content-base;
+  padding: 0 var(--space-3);
 }
 
 .card-content h3 {
-  margin: 0;
-  color: #2d3748;
-  font-size: 1.2em;
-  font-weight: 600;
+  composes: card-title;
 }
 
 .rating {
-  color: #718096;
-  font-size: 0.9em;
-  margin-top: 4px;
+  composes: rating-base;
+  margin-top: var(--space-1);
 }
 
 .drag-handle {
-  color: #a0aec0;
-  cursor: grab;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px;
+  composes: drag-handle-base;
 }
 
 .drag-icon {
-  font-size: 1.4em;
-  font-weight: bold;
+  font-size: var(--text-xl);
+  font-weight: 600;
   letter-spacing: -2px;
 }
 
 .adjustment-controls {
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin-top: 25px;
-}
-
-.save-button,
-.cancel-button {
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 140px;
-  font-size: 1.1em;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
 .save-button {
-  background: #6b46c1;
-  color: white;
-  border: none;
-}
-
-.save-button:hover {
-  background: #553c9a;
-  transform: translateY(-1px);
+  composes: control-primary;
 }
 
 .cancel-button {
-  background: white;
-  color: #4a5568;
-  border: 1px solid #e2e8f0;
-}
-
-.cancel-button:hover {
-  background: #f7fafc;
-  border-color: #cbd5e0;
-  transform: translateY(-1px);
-}
-
-.save-status-indicator {
-  height: 20px;
-  margin: 8px 0;
-  text-align: center;
+  composes: control-secondary;
 }
 
 .save-status {
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  font-size: 0.9em;
-  transition: opacity 0.3s ease;
+  composes: status-info status-floating;
 }
 
 .save-status.error {
-  background-color: #ffebee;
-  color: #c62828;
+  composes: status-error status-floating;
 } 

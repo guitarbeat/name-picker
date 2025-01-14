@@ -1,8 +1,135 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, getNamesWithDescriptions } from '../../supabase/supabaseClient';
+import { LoadingSpinner, NameCard, ErrorBoundary } from '../';
 import './TournamentSetup.css';
 
-function TournamentSetup({ onStart }) {
+const CAT_IMAGES = [
+  'IMG_4844.jpg',
+  'IMG_4845.jpg',
+  'IMG_4846.jpg',
+  'IMG_4847.jpg'
+];
+
+const DEFAULT_DESCRIPTION = "A name as unique as your future companion";
+
+const WelcomeSection = ({ enlargedImage, setEnlargedImage }) => (
+  <div className="welcome-section">
+    <h2>What do you think I should name my cat! 🐈‍⬛ ✨</h2>
+    <p className="welcome-text">
+      Welcome to the ultimate cat name showdown! Pick your favorite names and let them battle it out in a fun tournament.
+      Each name has been carefully chosen with love and personality in mind.
+    </p>
+    
+    <CatGallery 
+      enlargedImage={enlargedImage} 
+      setEnlargedImage={setEnlargedImage} 
+    />
+    
+    {enlargedImage && (
+      <div 
+        className="overlay active" 
+        onClick={() => setEnlargedImage(null)}
+        role="button"
+        tabIndex={0}
+        aria-label="Close enlarged image"
+      />
+    )}
+  </div>
+);
+
+const CatGallery = ({ enlargedImage, setEnlargedImage }) => (
+  <div className="cat-gallery">
+    {CAT_IMAGES.map((image, index) => (
+      <img 
+        key={image}
+        src={`/images/${image}`}
+        alt={`Adorable cat photo ${index + 1}`}
+        className={`cat-photo ${enlargedImage === image ? 'enlarged' : ''}`}
+        onClick={() => setEnlargedImage(enlargedImage === image ? null : image)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            setEnlargedImage(enlargedImage === image ? null : image);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      />
+    ))}
+  </div>
+);
+
+const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
+  <div className="name-count">
+    <div className="count-and-select">
+      <span className="count-text">
+        {selectedCount === 0 
+          ? "No names selected yet - let's get started!" 
+          : `${selectedCount} Purr-fect Names Selected`}
+      </span>
+      <button 
+        onClick={onSelectAll}
+        className="select-all-button"
+        aria-label={selectedCount === totalCount ? 'Clear all selections' : 'Select all names'}
+      >
+        {selectedCount === totalCount 
+          ? '✨ Start Fresh' 
+          : '🎲 Include All Names'}
+      </button>
+    </div>
+    {selectedCount === 1 && (
+      <span className="helper-text" role="alert">
+        Just one more name and we can start the tournament! 🎯
+      </span>
+    )}
+  </div>
+);
+
+const NameSelection = ({ selectedNames, availableNames, onToggleName }) => (
+  <div className="name-selection">
+    <h2 className="heading">Choose Your Contestants</h2>
+    <p className="selection-guide">
+      Click on the names you'd like to include in the tournament. 
+      Hover over each card to learn more about the name's meaning and charm!
+    </p>
+
+    <div className="cards-container">
+      {availableNames.map(nameObj => (
+        <NameCard
+          key={nameObj.id}
+          name={nameObj.name}
+          description={nameObj.description || DEFAULT_DESCRIPTION}
+          isSelected={selectedNames.some(n => n.id === nameObj.id)}
+          onClick={() => onToggleName(nameObj)}
+          size="small"
+          shortcutHint={`Press Enter to ${selectedNames.some(n => n.id === nameObj.id) ? 'deselect' : 'select'} ${nameObj.name}`}
+        />
+      ))}
+    </div>
+  </div>
+);
+
+const StartButton = ({ selectedNames, onStart }) => (
+  <div className="start-section">
+    <button
+      onClick={() => {
+        onStart(selectedNames.map(n => ({
+          name: n.name,
+          description: n.description || DEFAULT_DESCRIPTION
+        })));
+      }}
+      className="start-button"
+      disabled={selectedNames.length < 2}
+      aria-label={`Start tournament with ${selectedNames.length} names`}
+    >
+      <span className="button-text">Start the Name Tournament!</span>
+      <span className="button-subtext">
+        {selectedNames.length} Names Ready to Compete 🏆
+      </span>
+    </button>
+  </div>
+);
+
+function useTournamentSetup(onStart) {
   const [availableNames, setAvailableNames] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -12,11 +139,10 @@ function TournamentSetup({ onStart }) {
     const fetchNames = async () => {
       try {
         const data = await getNamesWithDescriptions();
-        console.log('Fetched names:', data);
         setAvailableNames(data || []);
-        setIsLoading(false);
       } catch (err) {
         console.error('Error fetching names:', err);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -25,115 +151,77 @@ function TournamentSetup({ onStart }) {
   }, []);
 
   const toggleName = (nameObj) => {
-    console.log('Toggling name:', nameObj);
-    setSelectedNames(prev => {
-      const newNames = prev.some(n => n.id === nameObj.id)
+    setSelectedNames(prev => 
+      prev.some(n => n.id === nameObj.id)
         ? prev.filter(n => n.id !== nameObj.id)
-        : [...prev, nameObj];
-      console.log('Updated selected names:', newNames);
-      return newNames;
-    });
+        : [...prev, nameObj]
+    );
   };
 
   const handleSelectAll = () => {
-    if (selectedNames.length === availableNames.length) {
-      setSelectedNames([]);
-    } else {
-      setSelectedNames([...availableNames]);
-    }
-    console.log('After select all, selected names:', selectedNames);
+    setSelectedNames(
+      selectedNames.length === availableNames.length ? [] : [...availableNames]
+    );
   };
 
-  if (isLoading) return <div className="container">Loading...</div>;
+  return {
+    availableNames,
+    selectedNames,
+    isLoading,
+    enlargedImage,
+    setEnlargedImage,
+    toggleName,
+    handleSelectAll
+  };
+}
 
-  console.log('Rendering with available names:', availableNames);
+function TournamentSetupContent({ onStart }) {
+  const {
+    availableNames,
+    selectedNames,
+    isLoading,
+    enlargedImage,
+    setEnlargedImage,
+    toggleName,
+    handleSelectAll
+  } = useTournamentSetup(onStart);
+
+  if (isLoading) return <LoadingSpinner />;
 
   return (
     <div className="tournament-setup container">
-      <div className="welcome-section">
-        <h2>Meet Your Future Feline Friend! 🐱</h2>
-        <div className="cat-gallery">
-          <img 
-            src="/images/IMG_4844.jpg" 
-            alt="Adorable cat photo 1" 
-            className={`cat-photo ${enlargedImage === 'IMG_4844.jpg' ? 'enlarged' : ''}`}
-            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4844.jpg' ? null : 'IMG_4844.jpg')}
-          />
-          <img 
-            src="/images/IMG_4845.jpg" 
-            alt="Adorable cat photo 2" 
-            className={`cat-photo ${enlargedImage === 'IMG_4845.jpg' ? 'enlarged' : ''}`}
-            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4845.jpg' ? null : 'IMG_4845.jpg')}
-          />
-          <img 
-            src="/images/IMG_4846.jpg" 
-            alt="Adorable cat photo 3" 
-            className={`cat-photo ${enlargedImage === 'IMG_4846.jpg' ? 'enlarged' : ''}`}
-            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4846.jpg' ? null : 'IMG_4846.jpg')}
-          />
-          <img 
-            src="/images/IMG_4847.jpg" 
-            alt="Adorable cat photo 4" 
-            className={`cat-photo ${enlargedImage === 'IMG_4847.jpg' ? 'enlarged' : ''}`}
-            onClick={() => setEnlargedImage(enlargedImage === 'IMG_4847.jpg' ? null : 'IMG_4847.jpg')}
-          />
-        </div>
-        {enlargedImage && (
-          <div className="overlay active" onClick={() => setEnlargedImage(null)} />
-        )}
-      </div>
+      <WelcomeSection 
+        enlargedImage={enlargedImage} 
+        setEnlargedImage={setEnlargedImage} 
+      />
 
-      <div className="name-selection">
-        <h2 className="heading">Choose Your Purrfect Contenders</h2>
+      <NameSelection 
+        selectedNames={selectedNames}
+        availableNames={availableNames}
+        onToggleName={toggleName}
+      />
 
-        <div className="name-count">
-          <div className="count-and-select">
-            <span>{selectedNames.length} Names in the Running</span>
-            <button 
-              onClick={handleSelectAll}
-              className="select-all-button"
-            >
-              {selectedNames.length === availableNames.length ? 'Start Fresh' : 'Include All Names'}
-            </button>
-          </div>
-          {selectedNames.length === 1 && <span className="warning">Pick one more name to start the showdown!</span>}
-        </div>
+      <NameCounter 
+        selectedCount={selectedNames.length}
+        totalCount={availableNames.length}
+        onSelectAll={handleSelectAll}
+      />
 
-        <div className="cards-container">
-          {availableNames.map(nameObj => (
-            <div
-              key={nameObj.id}
-              onClick={() => toggleName(nameObj)}
-              className={`name-card ${selectedNames.some(n => n.id === nameObj.id) ? 'selected' : ''}`}
-            >
-              <h3 className="name-text">{nameObj.name}</h3>
-              <p className="name-description">{nameObj.description || 'A mysterious yet charming option'}</p>
-              {selectedNames.some(n => n.id === nameObj.id) && (
-                <span className="check-mark">✓</span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {selectedNames.length >= 2 && (
-          <div className="start-section">
-            <button
-              onClick={() => {
-                console.log('Starting tournament with names:', selectedNames);
-                onStart(selectedNames.map(n => ({
-                  name: n.name,
-                  description: n.description || 'A mysterious yet charming option'
-                })));
-              }}
-              className="start-button"
-              disabled={selectedNames.length < 2}
-            >
-              Let the Name Games Begin! ({selectedNames.length} Contestants)
-            </button>
-          </div>
-        )}
-      </div>
+      {selectedNames.length >= 2 && (
+        <StartButton 
+          selectedNames={selectedNames}
+          onStart={onStart}
+        />
+      )}
     </div>
+  );
+}
+
+function TournamentSetup(props) {
+  return (
+    <ErrorBoundary>
+      <TournamentSetupContent {...props} />
+    </ErrorBoundary>
   );
 }
 

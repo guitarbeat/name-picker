@@ -16,6 +16,7 @@ function Profile({ userName, onStartNewTournament }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, error: null });
+  const [showCopyToast, setShowCopyToast] = useState(false);
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -238,6 +239,27 @@ function Profile({ userName, onStartNewTournament }) {
     }
   };
 
+  const copyResultsToClipboard = () => {
+    const sortedNames = [...currentRatings]
+      .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+      .map(name => name.name)
+      .join('\n');
+
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+
+    const textToCopy = `Title: ${formattedDate} Cat Names 🐈‍⬛\nDescription: Cat Name Tournament Results\n\n${sortedNames}`;
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setShowCopyToast(true);
+      setTimeout(() => setShowCopyToast(false), 3000);
+    });
+  };
+
   if (loading || loadingAllUsers) return (
     <div className="profile container">
       <div className="loading-spinner"></div>
@@ -290,6 +312,24 @@ function Profile({ userName, onStartNewTournament }) {
                   Aggregated View
                 </button>
               </div>
+              <button 
+                onClick={copyResultsToClipboard}
+                className="action-button secondary-button"
+                title="Copy ranked names to clipboard"
+              >
+                📋 Copy Results
+              </button>
+              <button 
+                onClick={fetchAllUsersRatings} 
+                className="action-button secondary-button"
+              >
+                🔄 Refresh Data
+              </button>
+              {showCopyToast && (
+                <div className="toast success">
+                  Results copied to clipboard!
+                </div>
+              )}
               {viewMode === 'individual' && (
                 <>
                   <div className="user-switcher">
@@ -368,12 +408,6 @@ function Profile({ userName, onStartNewTournament }) {
                   </div>
                 </div>
               )}
-              <button 
-                onClick={fetchAllUsersRatings} 
-                className="action-button secondary-button"
-              >
-                🔄 Refresh Data
-              </button>
             </div>
           )}
           {!isAdmin && (

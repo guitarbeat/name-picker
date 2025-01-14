@@ -1,20 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './Login.css';
 
 function Login({ onLogin }) {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [catFact, setCatFact] = useState('');
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    // Fetch a random cat fact for fun
+    fetch('https://catfact.ninja/fact')
+      .then(res => res.json())
+      .then(data => setCatFact(data.fact))
+      .catch(() => setCatFact('Cats are purr-fect name critics! 😺'));
+  }, []);
+
+  const validateName = (name) => {
+    if (name.length < 2) return 'Name must be at least 2 characters long';
+    if (name.length > 30) return 'Name must be less than 30 characters';
+    if (!/^[a-zA-Z\s-']+$/.test(name)) return 'Please use only letters, spaces, hyphens, and apostrophes';
+    return '';
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter your (human) name');
+    const validationError = validateName(name.trim());
+    if (validationError) {
+      setError(validationError);
       return;
     }
+
+    setIsLoading(true);
+    setError('');
+
     try {
-      onLogin(name);
+      await onLogin(name.trim());
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNameChange = (e) => {
+    const newName = e.target.value;
+    setName(newName);
+    if (error) {
+      const validationError = validateName(newName.trim());
+      setError(validationError);
     }
   };
 
@@ -34,27 +67,43 @@ function Login({ onLogin }) {
           src="/images/kittens.png" 
           alt="Cute kittens" 
           className="kittens-image"
+          loading="eager"
         />
         <div className="login-content">
           <h1>Thanks for helping me name my cat!</h1>
-          <p>Enter your (human) name to start rating cat names</p>
+          <p className="cat-fact">{catFact || 'Loading a fun cat fact...'}</p>
           
           <form onSubmit={handleSubmit} className="login-form">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-              className="login-input"
-              autoFocus
-            />
-            {error && <p className="error-message">{error}</p>}
+            <div className="input-wrapper">
+              <input
+                type="text"
+                value={name}
+                onChange={handleNameChange}
+                placeholder="Enter your name"
+                className={`login-input ${error ? 'error' : ''}`}
+                autoFocus
+                disabled={isLoading}
+                aria-label="Your name"
+                maxLength={30}
+              />
+              {error && <p className="error-message" role="alert">{error}</p>}
+            </div>
             <button 
               type="submit" 
-              className="start-button"
-              disabled={!name.trim()}
+              className={`start-button ${isLoading ? 'loading' : ''}`}
+              disabled={!name.trim() || isLoading}
             >
-              Start Rating Names
+              {isLoading ? (
+                <span className="button-content">
+                  <span className="spinner"></span>
+                  Loading...
+                </span>
+              ) : (
+                <span className="button-content">
+                  Start Rating Names
+                  <span className="button-emoji">🐱</span>
+                </span>
+              )}
             </button>
           </form>
         </div>

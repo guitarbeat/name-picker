@@ -2,50 +2,68 @@
  * @module Results
  * @description Main results component that displays the final rankings of cat names.
  * Shows the tournament results with ratings and provides option to restart.
- * 
- * @example
- * <Results 
- *   ratings={{ "Whiskers": 1450, "Mittens": 1380 }}
- *   onRestart={() => handleRestart()}
- * />
- * 
- * @component
- * @param {Object} props
- * @param {Object} props.ratings - Object mapping cat names to their Elo ratings
- * @param {Function} props.onRestart - Callback function to restart the tournament
- * @returns {JSX.Element} Results view with rankings and restart option
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import ResultsTable from './ResultsTable';
 import RankingAdjustment from '../RankingAdjustment/RankingAdjustment';
 import './Results.css';
 
+// Memoized stats card component for better performance
+const StatsCard = memo(({ title, value }) => (
+  <div className="stat-card" role="status" aria-label={`${title}: ${value}`}>
+    <h3>{title}</h3>
+    <div className="stat-value">{value}</div>
+  </div>
+));
+
+// Toast component extracted for reusability
+const Toast = memo(({ message, type, onClose }) => (
+  <div 
+    role="alert"
+    className={`toast ${type}`}
+    onClick={onClose}
+  >
+    {message}
+  </div>
+));
+
 function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTournamentNames }) {
   const [currentRankings, setCurrentRankings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  useEffect(() => {
-    // Process and sort rankings on mount
-    const processedRankings = Object.entries(ratings || {})
+  // Memoized rankings processor
+  const processRankings = useCallback((ratingsData) => {
+    return Object.entries(ratingsData || {})
       .map(([name, rating]) => ({
         name,
         rating: Math.round(typeof rating === 'number' ? rating : 1500),
-        change: 0 // Track rating changes
+        change: 0
       }))
       .sort((a, b) => b.rating - a.rating);
+  }, []);
 
-    setCurrentRankings(processedRankings);
-    setIsLoading(false);
-  }, [ratings]);
+  useEffect(() => {
+    try {
+      const processedRankings = processRankings(ratings);
+      setCurrentRankings(processedRankings);
+    } catch (error) {
+      console.error('Error processing rankings:', error);
+      setToast({
+        show: true,
+        message: 'Error processing rankings data',
+        type: 'error'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [ratings, processRankings]);
 
-  const handleSaveAdjustments = async (adjustedRankings) => {
+  const handleSaveAdjustments = useCallback(async (adjustedRankings) => {
     try {
       setIsLoading(true);
       
-      // Calculate rating changes
       const updatedRankings = adjustedRankings.map(ranking => {
         const oldRanking = currentRankings.find(r => r.name === ranking.name);
         return {
@@ -54,7 +72,6 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
         };
       });
 
-      // Convert to expected format for API
       const newRatings = updatedRankings.map(({ name, rating }) => {
         const existingRating = ratings[name];
         return {
@@ -69,24 +86,38 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
       await onUpdateRatings(newRatings);
       setCurrentRankings(updatedRankings);
       
-      // Show success toast
-      setToastMessage('Rankings updated successfully!');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      setToast({
+        show: true,
+        message: 'Rankings updated successfully!',
+        type: 'success'
+      });
     } catch (error) {
       console.error('Failed to update rankings:', error);
-      setToastMessage('Failed to update rankings. Please try again.');
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      setToast({
+        show: true,
+        message: 'Failed to update rankings. Please try again.',
+        type: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentRankings, ratings, onUpdateRatings]);
+
+  const closeToast = useCallback(() => {
+    setToast(prev => ({ ...prev, show: false }));
+  }, []);
+
+  useEffect(() => {
+    if (toast.show) {
+      const timer = setTimeout(closeToast, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast.show, closeToast]);
 
   if (isLoading) {
     return (
-      <div className="results-loading">
-        <div className="loading-spinner" />
+      <div className="results-loading" role="status" aria-label="Loading rankings">
+        <div className="loading-spinner" aria-hidden="true" />
         <p>Processing rankings...</p>
       </div>
     );
@@ -104,10 +135,10 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
 
       <div className="results-content">
         <div className="rankings-stats">
-          <div className="stat-card">
-            <h3>Total Names</h3>
-            <div className="stat-value">{currentRankings.length}</div>
-          </div>
+          <StatsCard 
+            title="Total Names" 
+            value={currentRankings.length} 
+          />
         </div>
 
         <RankingAdjustment
@@ -120,25 +151,36 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
           <button 
             onClick={onStartNew} 
             className="primary-button start-new-button"
+            aria-label="Start new tournament"
           >
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+            <svg 
+              viewBox="0 0 24 24" 
+              width="20" 
+              height="20" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              fill="none"
+              aria-hidden="true"
+            >
               <path d="M12 4v16m8-8H4" />
             </svg>
             Start New Tournament
           </button>
-          <p className="results-tip">
+          <p className="results-tip" role="note">
             Starting a new tournament will let you rate more names while keeping your current rankings.
           </p>
         </div>
       </div>
 
-      {showToast && (
-        <div className={`toast ${toastMessage.includes('Failed') ? 'error' : 'success'}`}>
-          {toastMessage}
-        </div>
+      {toast.show && (
+        <Toast 
+          message={toast.message}
+          type={toast.type}
+          onClose={closeToast}
+        />
       )}
     </div>
   );
 }
 
-export default Results;
+export default memo(Results);

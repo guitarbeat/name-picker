@@ -1,22 +1,11 @@
 /**
  * @module ErrorBoundary
  * @description A React error boundary component that catches JavaScript errors
- * in child component tree and displays a fallback UI. Prevents the entire app
- * from crashing when an error occurs.
- * 
- * @example
- * <ErrorBoundary>
- *   <YourComponent />
- * </ErrorBoundary>
- * 
- * @component
- * @extends {React.Component}
- * @param {Object} props
- * @param {React.ReactNode} props.children - Child components to be wrapped
- * @returns {JSX.Element} Either the children or error UI
+ * in child component tree and displays a fallback UI.
  */
 
 import React from 'react';
+import './ErrorBoundary.css';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

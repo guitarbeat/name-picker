@@ -4,12 +4,12 @@
  * Provides a clean interface for importing components throughout the app.
  */
 
-export { default as Bracket } from './Bracket/Bracket';
 export { default as Tournament } from './Tournament/Tournament';
-export { default as ErrorBoundary } from './ErrorBoundary/ErrorBoundary';
-export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
+export { default as TournamentSetup } from './TournamentSetup/TournamentSetup';
 export { default as Results } from './Results/Results';
+export { default as ErrorBoundary } from './ErrorBoundary/ErrorBoundary';
 export { default as Login } from './Login/Login';
 export { default as Profile } from './Profile/Profile';
-export { default as TournamentSetup } from './TournamentSetup/TournamentSetup';
-export { default as NameSuggestion } from './NameSuggestion/NameSuggestion'; 
+export { default as NameSuggestion } from './NameSuggestion/NameSuggestion';
+export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
+export { default as NameCard } from './NameCard/NameCard'; 
