@@ -1,0 +1,1 @@
+#!/bin/bash; find src -name "*.css" -exec cp {} {}.bak \;; for file in src/components/**/*.css; do sed -i.tmp -e "/^:root {/,/^}/d" -e "/.container {/,/^}/d" -e "/.grid {/,/^}/d" -e "/.flex {/,/^}/d" -e "/.card {/,/^}/d" -e "/.button {/,/^}/d" -e "/.badge {/,/^}/d" -e "/.heading-[1-3] {/,/^}/d" "$file" && rm -f "$file.tmp"; done; npm run css:optimize-all

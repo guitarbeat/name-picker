@@ -1,26 +1,30 @@
 .name-card {
   composes: card-base;
-  position: relative;
-  min-height: 120px;
-  padding: var(--space-6);
   cursor: pointer;
-  transform-origin: center;
-  overflow: visible;
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-height: 120px;
+  overflow: visible;
+  padding: var(--space-6);
+  position: relative;
+  transform-origin: center;
 }
 
-.name-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(to right, var(--primary-color), var(--primary-dark));
+.name-card:before {
+  background: linear-gradient(
+    to right,
+    var(--primary-color),
+    var(--primary-dark)
+  );
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  content: "";
+  height: 3px;
+  left: 0;
   opacity: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
   transition: var(--transition-all);
 }
 
@@ -28,59 +32,57 @@
   min-height: 200px;
 }
 
-.name-card:hover::before {
+.name-card:hover:before {
   opacity: 1;
 }
 
 .name-text {
   composes: card-title;
-  font-size: var(--text-2xl);
   font-family: var(--font-serif);
+  font-size: var(--text-2xl);
 }
 
 .name-description {
   composes: card-description;
-  position: absolute;
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   left: var(--space-6);
-  right: var(--space-6);
   margin: 0;
   opacity: 0;
+  padding: var(--space-4);
+  pointer-events: none;
+  position: absolute;
+  right: var(--space-6);
   transform: translateY(10px);
   transition: var(--transition-all);
   visibility: hidden;
-  pointer-events: none;
-  background: var(--card-background);
-  padding: var(--space-4);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--card-border);
 }
 
 .name-card:hover .name-description {
   opacity: 1;
+  pointer-events: auto;
   transform: translateY(0);
   visibility: visible;
-  pointer-events: auto;
 }
 
 .check-mark {
   composes: badge-primary;
-  position: absolute;
-  top: var(--space-4);
-  right: var(--space-4);
-  width: 24px;
   height: 24px;
   opacity: 0;
+  position: absolute;
+  right: var(--space-4);
+  top: var(--space-4);
   transform: scale(0.8);
   transition: var(--transition-all);
+  width: 24px;
 }
 
 .name-card.selected .check-mark {
   opacity: 1;
   transform: scale(1);
 }
-
-/* Small variant */
 .name-card.small {
   min-height: 100px;
   padding: var(--space-4);
@@ -100,7 +102,6 @@
   right: var(--space-4);
 }
 
-/* Dark mode specific adjustments */
 @media (prefers-color-scheme: dark) {
   .name-description {
     background: var(--card-background);
@@ -109,15 +110,14 @@
   }
 }
 
-/* Accessibility - Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
-  .name-card::before,
-  .name-description,
-  .check-mark {
+  .check-mark,
+  .name-card:before,
+  .name-description {
     transition: none;
   }
 
   .name-description {
     transform: none;
   }
-} 
+}
