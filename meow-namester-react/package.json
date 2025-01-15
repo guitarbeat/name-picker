@@ -9,7 +9,7 @@
     "eject": "react-scripts eject",
     "css:optimize": "postcss src/index.css --map --replace",
     "css:optimize-all": "find src -name '*.css' -exec postcss {} --map --replace \\;",
-    "css:find-dupes": "node find-css-dupes.js",
+    "css:purify": "purgecss --css src/**/*.css --content src/**/*.{js,jsx} --output src/",
     "lint:css": "stylelint \"src/**/*.css\" --fix"
   },
   "keywords": [],
@@ -52,6 +52,7 @@
     "postcss-custom-properties": "^14.0.4",
     "postcss-merge-rules": "^7.0.4",
     "postcss-preset-env": "^10.1.3",
+    "postcss-selector-parser": "^6.0.15",
     "postcss-sort-media-queries": "^5.2.0",
     "prettier": "^3.4.2",
     "stylelint": "^16.13.2",
