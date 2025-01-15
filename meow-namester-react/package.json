@@ -7,9 +7,10 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "css:optimize": "cp src/index.css src/index.css.backup && postcss src/index.css --map --output src/index.optimized.css && prettier --write src/index.optimized.css",
-    "css:optimize-all": "find src -name '*.css' -exec sh -c 'cp \"{}\" \"{}.backup\" && postcss \"{}\" --map --output \"{}.temp\" && prettier --write --parser css \"{}.temp\" && mv \"{}.temp\" \"{}\"' \\;",
-    "css:find-dupes": "node find-css-dupes.js"
+    "css:optimize": "postcss src/index.css --map --replace",
+    "css:optimize-all": "find src -name '*.css' -exec postcss {} --map --replace \\;",
+    "css:find-dupes": "node find-css-dupes.js",
+    "lint:css": "stylelint \"src/**/*.css\" --fix"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +22,7 @@
     "ajv": "^8.17.1",
     "ajv-keywords": "^5.1.0",
     "node-fetch": "^3.3.2",
+    "purify-css": "^1.2.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1"
@@ -51,6 +53,10 @@
     "postcss-merge-rules": "^7.0.4",
     "postcss-preset-env": "^10.1.3",
     "postcss-sort-media-queries": "^5.2.0",
-    "prettier": "^3.4.2"
+    "prettier": "^3.4.2",
+    "stylelint": "^16.13.2",
+    "stylelint-config-recess-order": "^5.1.1",
+    "stylelint-config-standard": "^37.0.0",
+    "stylelint-declaration-block-no-ignored-properties": "^2.8.0"
   }
 }

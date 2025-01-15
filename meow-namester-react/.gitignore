@@ -1,1 +1,12 @@
 .vercel
+node_modules
+.DS_Store
+.stylelintrc.json
+.prettierrc.json
+.eslintrc.json
+.editorconfig
+.gitignore
+.npmrc
+.npmignore
+.env
+.env.local

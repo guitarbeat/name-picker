@@ -18,7 +18,9 @@ module.exports = {
     require('autoprefixer'),
     require('cssnano')({
       preset: ['default', {
-        cssDeclarationSorter: true,
+        cssDeclarationSorter: {
+          order: 'smacss'
+        },
         discardComments: { removeAll: true },
         discardDuplicates: true,
         discardEmpty: true,
