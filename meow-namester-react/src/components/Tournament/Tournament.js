@@ -12,11 +12,23 @@ import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import NameCard from '../NameCard/NameCard';
 import './Tournament.css';
 
-const TournamentControls = ({ onEndEarly, isTransitioning }) => {
+const TournamentControls = ({ onEndEarly, isTransitioning, onUndo, canUndo }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   return (
     <div className="tournament-controls" role="group" aria-label="Tournament controls">
+      <button 
+        className="undo-button"
+        onClick={onUndo}
+        disabled={isTransitioning || !canUndo}
+        aria-label="Undo last vote"
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+          <path d="M3 10h10a5 5 0 0 1 5 5v2M3 10l5-5M3 10l5 5"/>
+        </svg>
+        Undo
+      </button>
+
       <button 
         className="end-early-button"
         onClick={() => setShowConfirmation(true)}
@@ -59,7 +71,9 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     currentMatchNumber,
     totalMatches,
     progress,
-    handleVote
+    handleVote,
+    handleUndo,
+    canUndo
   } = useTournament({ names, existingRatings, onComplete });
 
   const handleVoteWithAnimation = useCallback((result) => {
@@ -79,6 +93,7 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     onRight: () => !isTransitioning && handleVoteWithAnimation('right'),
     onBoth: () => !isTransitioning && handleVoteWithAnimation('both'),
     onNone: () => !isTransitioning && handleVoteWithAnimation('none'),
+    onUndo: () => !isTransitioning && canUndo && handleUndo(),
     isDisabled: isTransitioning
   });
 
@@ -96,7 +111,12 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
         <div className="percentage-info" aria-label={`${progress}% Complete`}>{progress}% Complete</div>
       </div>
 
-      <TournamentControls onEndEarly={onComplete} isTransitioning={isTransitioning} />
+      <TournamentControls 
+        onEndEarly={onComplete} 
+        isTransitioning={isTransitioning}
+        onUndo={handleUndo}
+        canUndo={canUndo}
+      />
 
       <div className="matchup" role="region" aria-label="Current matchup">
         <div className="names-row">
@@ -156,7 +176,7 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
       </div>
 
       <div className="keyboard-hints" role="note">
-        <p>Keyboard shortcuts: ← Left, → Right, B (Both), N (No Opinion)</p>
+        <p>Keyboard shortcuts: ← Left, → Right, B (Both), N (No Opinion), U (Undo)</p>
       </div>
     </div>
   );

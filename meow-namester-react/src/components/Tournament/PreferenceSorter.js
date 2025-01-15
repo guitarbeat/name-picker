@@ -12,6 +12,7 @@ export class PreferenceSorter {
         this.ranks = [];
         this.rec = new Array(items.length).fill(0);
         this.preferenceCache = new Map();
+        this.preferenceHistory = [];
     }
 
     getName(item) {
@@ -21,6 +22,16 @@ export class PreferenceSorter {
     addPreference(item1, item2, value) {
         const key = `${this.getName(item1)}-${this.getName(item2)}`;
         this.preferences.set(key, value);
+        this.preferenceHistory.push({ key, value });
+    }
+
+    undoLastPreference() {
+        if (this.preferenceHistory.length === 0) return;
+        
+        const lastPreference = this.preferenceHistory.pop();
+        this.preferences.delete(lastPreference.key);
+        this.preferenceCache.clear();
+        this.ranks = [];
     }
 
     getPreference(item1, item2) {

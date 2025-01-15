@@ -10,33 +10,40 @@ export function useKeyboardControls({
   onRight,
   onBoth,
   onNone,
+  onUndo,
   isDisabled = false
 }) {
   useEffect(() => {
-    const handleKeyPress = (event) => {
+    const handleKeyDown = (event) => {
       if (isDisabled) return;
       
-      switch(event.key) {
-        case 'ArrowLeft':
+      switch(event.key.toLowerCase()) {
+        case 'arrowleft':
+          event.preventDefault();
           onLeft?.();
           break;
-        case 'ArrowRight':
+        case 'arrowright':
+          event.preventDefault();
           onRight?.();
           break;
         case 'b':
-        case 'B':
+          event.preventDefault();
           onBoth?.();
           break;
         case 'n':
-        case 'N':
+          event.preventDefault();
           onNone?.();
+          break;
+        case 'u':
+          event.preventDefault();
+          onUndo?.();
           break;
         default:
           break;
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [onLeft, onRight, onBoth, onNone, isDisabled]);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onLeft, onRight, onBoth, onNone, onUndo, isDisabled]);
 } 

@@ -11,6 +11,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
   const [sorter, setSorter] = useState(null);
   const [elo] = useState(() => new EloRating());
   const [resolveVote, setResolveVote] = useState(null);
+  const [voteHistory, setVoteHistory] = useState([]);
+  const [canUndo, setCanUndo] = useState(false);
 
   useEffect(() => {
     if (!names || names.length === 0) {
@@ -28,6 +30,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     setTotalMatches(estimatedMatches);
     setCurrentMatchNumber(1);
     setRoundNumber(1);
+    setVoteHistory([]);
+    setCanUndo(false);
 
     runTournament(newSorter);
   }, [names]);
@@ -38,7 +42,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         names,
         existingRatings,
         currentMatchNumber: 1,
-        roundNumber: 1
+        roundNumber: 1,
+        voteHistory: []
       };
       localStorage.setItem('tournamentState', JSON.stringify(initialState));
 
@@ -88,6 +93,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         const state = JSON.parse(savedState);
         setCurrentMatchNumber(state.currentMatchNumber);
         setRoundNumber(state.roundNumber);
+        setVoteHistory(state.voteHistory || []);
       }
     }
   };
@@ -115,11 +121,17 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         voteValue = 0;
     }
     
-    localStorage.setItem('lastVote', JSON.stringify({
+    const voteData = {
       matchNumber: currentMatchNumber,
       result: voteValue,
-      timestamp: Date.now()
-    }));
+      timestamp: Date.now(),
+      match: currentMatch
+    };
+
+    setVoteHistory(prev => [...prev, voteData]);
+    setCanUndo(true);
+    
+    localStorage.setItem('lastVote', JSON.stringify(voteData));
 
     resolveVote(voteValue);
     setCurrentMatchNumber(prev => prev + 1);
@@ -131,7 +143,32 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     setTimeout(() => {
       setIsTransitioning(false);
     }, 500);
-  }, [resolveVote, isTransitioning, currentMatchNumber, names.length]);
+  }, [resolveVote, isTransitioning, currentMatchNumber, names.length, currentMatch]);
+
+  const handleUndo = useCallback(() => {
+    if (isTransitioning || !canUndo || voteHistory.length === 0) return;
+
+    setIsTransitioning(true);
+
+    const lastVote = voteHistory[voteHistory.length - 1];
+    setCurrentMatch(lastVote.match);
+    setCurrentMatchNumber(lastVote.matchNumber);
+    setVoteHistory(prev => prev.slice(0, -1));
+    
+    if (sorter) {
+      sorter.undoLastPreference();
+    }
+
+    if (currentMatchNumber % Math.ceil(names.length / 2) === 1) {
+      setRoundNumber(prev => prev - 1);
+    }
+
+    setCanUndo(voteHistory.length > 1);
+    
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500);
+  }, [isTransitioning, canUndo, voteHistory, names.length, sorter]);
 
   const progress = Math.round((currentMatchNumber / totalMatches) * 100);
 
@@ -142,6 +179,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     currentMatchNumber,
     totalMatches,
     progress,
-    handleVote
+    handleVote,
+    handleUndo,
+    canUndo
   };
 } 
