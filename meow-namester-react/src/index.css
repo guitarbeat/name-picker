@@ -37,7 +37,7 @@
   --text-secondary: var(--gray-600);
   --text-tertiary: var(--gray-500);
   --border-color: var(--gray-200);
-  --card-background: var(--background-color)
+  --card-background: var(--background-color);
   --card-border: var(--gray-200);
   --card-hover: var(--gray-50);
   --shadow-color: rgb(0 0 0 / 0.1);
@@ -124,15 +124,13 @@
   .name-card {
     background: var(--card-background);
     border-color: var(--card-border);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
-                0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -2px rgba(0, 0, 0, 0.2);
   }
 
   .name-card:hover {
     background: var(--card-hover);
     border-color: var(--primary-400);
-    box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.4),
-                0 4px 6px -4px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 12px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
   }
 
   .name-card.selected {
@@ -885,7 +883,7 @@ body {
 .fixed { position: fixed; }
 .sticky { 
   position: -webkit-sticky; /* Add vendor prefix for iOS 7-12 support */
-  position: sticky; 
+  position: sticky;
 }
 .overflow-hidden { overflow: hidden; }
 .overflow-auto { overflow: auto; }
