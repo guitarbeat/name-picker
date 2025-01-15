@@ -98,6 +98,19 @@
   --z-30: 30;
   --z-40: 40;
   --z-50: 50;
+
+  /* Component-specific tokens */
+  --progress-background: var(--primary-100);
+  --progress-border: var(--primary-200);
+  
+  --percentage-background: var(--surface-color);
+  --percentage-text: var(--primary-600);
+  
+  --vs-background: var(--primary-200);
+  --vs-text: var(--primary-600);
+  
+  --header-background: var(--surface-color);
+  --header-border: var(--border-color);
 }
 
 /* Dark theme */
@@ -118,6 +131,19 @@
     --card-hover: #2C3B52;  /* Distinct hover state */
     --shadow-color: rgb(0 0 0 / 0.5);
     --shadow-color-strong: rgb(0 0 0 / 0.7);
+
+    /* Component-specific tokens */
+    --progress-background: rgba(96, 165, 250, 0.15);
+    --progress-border: rgba(96, 165, 250, 0.2);
+    
+    --percentage-background: var(--card-background);
+    --percentage-text: var(--primary-400);
+    
+    --vs-background: rgba(96, 165, 250, 0.15);
+    --vs-text: var(--primary-400);
+    
+    --header-background: var(--surface-color);
+    --header-border: var(--card-border);
   }
 
   /* Dark theme specific overrides */
@@ -1060,12 +1086,12 @@ body {
 
 /* Progress section */
 .progress-info {
-  background: var(--primary-100);
+  background: var(--progress-background);
   border-radius: var(--radius-2xl);
   padding: var(--space-6);
   margin-bottom: var(--space-8);
   text-align: center;
-  border: 1px solid var(--primary-200);
+  border: 1px solid var(--progress-border);
 }
 
 .round-info {
@@ -1090,17 +1116,18 @@ body {
 .percentage-info {
   display: inline-block;
   padding: var(--space-2) var(--space-4);
-  background: white;
+  background: var(--percentage-background);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
-  color: var(--primary-600);
+  color: var(--percentage-text);
   font-weight: 500;
   box-shadow: var(--shadow-sm);
 }
 
 /* Matchup section */
 .matchup {
-  background: var(--gray-100);
+  background: var(--card-background);  /* BETTER: Semantic token */
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-2xl);
   padding: var(--space-8);
   box-shadow: var(--shadow-lg);
@@ -1122,13 +1149,13 @@ body {
   width: 60px;
   height: 60px;
   border-radius: var(--radius-full);
-  background: var(--primary-200);
+  background: var(--vs-background);
 }
 
 .vs-text {
   font-size: var(--text-lg);
   font-weight: 600;
-  color: var(--primary-600);
+  color: var(--vs-text);
   text-transform: uppercase;
 }
 
@@ -1173,8 +1200,8 @@ header {
   position: relative;
   padding: var(--space-8) var(--space-4);
   text-align: center;
-  background: var(--surface-color);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--header-background);
+  border-bottom: 1px solid var(--header-border);
   margin-bottom: var(--space-8);
   overflow: hidden;
 }
@@ -1218,8 +1245,8 @@ h1 {
 /* Dark theme header overrides */
 @media (prefers-color-scheme: dark) {
   header {
-    background: var(--surface-color);
-    border-bottom: 1px solid var(--card-border);
+    background: var(--header-background);
+    border-bottom: 1px solid var(--header-border);
   }
 
   .header-background {
@@ -1230,7 +1257,7 @@ h1 {
   .header-image {
     border-color: var(--primary-400);
     box-shadow: 
-      0 0 0 2px var(--surface-color),
+      0 0 0 2px var(--header-background),
       0 0 0 4px var(--primary-400),
       var(--shadow-lg);
   }

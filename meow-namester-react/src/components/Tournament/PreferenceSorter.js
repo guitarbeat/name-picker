@@ -14,19 +14,23 @@ export class PreferenceSorter {
         this.preferenceCache = new Map();
     }
 
+    getName(item) {
+        return typeof item === 'string' ? item : item.name;
+    }
+
     addPreference(item1, item2, value) {
-        const key = `${item1.name}-${item2.name}`;
+        const key = `${this.getName(item1)}-${this.getName(item2)}`;
         this.preferences.set(key, value);
     }
 
     getPreference(item1, item2) {
-        const cacheKey = `${item1.name}-${item2.name}`;
+        const cacheKey = `${this.getName(item1)}-${this.getName(item2)}`;
         if (this.preferenceCache.has(cacheKey)) {
             return this.preferenceCache.get(cacheKey);
         }
 
-        const key = `${item1.name}-${item2.name}`;
-        const reverseKey = `${item2.name}-${item1.name}`;
+        const key = `${this.getName(item1)}-${this.getName(item2)}`;
+        const reverseKey = `${this.getName(item2)}-${this.getName(item1)}`;
         let result;
         
         if (this.preferences.has(key)) {
