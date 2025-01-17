@@ -1,1 +1,224 @@
-.ranking-adjustment{margin:0 auto;max-width:800px;padding:var(--space-4)}.ranking-adjustment h2{color:var(--text-primary);font-family:var(--font-serif);font-size:var(--text-4xl);margin-bottom:var(--space-2);text-align:center}.instructions{color:var(--text-secondary);margin-bottom:var(--space-4);text-align:center}.rankings-grid{composes:card-base;padding:var(--space-4)}.rankings-header{background:var(--gray-200);border-radius:var(--radius-lg);color:var(--text-secondary);display:grid;font-weight:600;grid-template-columns:80px 1fr 120px;margin-bottom:var(--space-3);padding:var(--space-2) var(--space-4)}.rankings-list{display:grid;gap:var(--space-3);padding:var(--space-2) 0}.ranking-card{composes:card-base;align-items:center;border:2px solid #0000;display:grid;grid-template-columns:80px 1fr 50px;padding:var(--space-3) var(--space-4)}.ranking-card.dragging{background:var(--card-hover);border-color:var(--primary-color);transform:scale(1.02)}.rank-badge{composes:badge-primary;font-size:var(--text-lg);height:40px;width:40px}.card-content{composes:card-content-base;padding:0 var(--space-3)}.card-content h3{composes:card-title}.rating{composes:rating-base;margin-top:var(--space-1)}.drag-handle{composes:drag-handle-base}.drag-icon{font-size:var(--text-xl);font-weight:600;letter-spacing:-2px}.adjustment-controls{display:flex;gap:var(--space-3);justify-content:center;margin-top:var(--space-6)}.save-button{composes:control-primary}.cancel-button{composes:control-secondary}.save-status{composes:status-info status-floating}.save-status.error{composes:status-error status-floating}
+.ranking-adjustment {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.ranking-header {
+  position: relative;
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.ranking-header h2 {
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+}
+
+.instructions-card {
+  position: relative;
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.instructions-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    45deg,
+    var(--primary-color) 0%,
+    transparent 20%
+  );
+  border-radius: inherit;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.instruction-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  font-size: var(--text-2xl);
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border: 2px solid var(--primary-color);
+  border-radius: var(--radius-lg);
+}
+
+.instruction-text {
+  flex: 1;
+}
+
+.instruction-text h3 {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.instruction-text p {
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .instructions-card {
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    text-align: center;
+  }
+
+  .instruction-icon {
+    margin: 0 auto;
+  }
+
+  .ranking-card {
+    grid-template-columns: 60px 1fr auto;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .rank-badge {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-base);
+  }
+}
+
+.rankings-grid {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.rankings-header {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rankings-list {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.ranking-card {
+  display: grid;
+  grid-template-columns: 80px 1fr 50px;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  margin: var(--space-2);
+  transition: all 0.2s ease;
+}
+
+.ranking-card:hover {
+  background: var(--card-hover);
+  border-color: var(--primary-color);
+}
+
+.ranking-card.dragging {
+  background: var(--surface-color);
+  border-color: var(--primary-color);
+  box-shadow: 
+    0 0 0 2px var(--primary-light),
+    0 8px 16px -4px var(--shadow-color-strong);
+}
+
+.rank-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--primary-color);
+  background: var(--primary-light);
+  border: 2px solid var(--primary-color);
+  border-radius: 50%;
+}
+
+.card-content {
+  padding: 0 var(--space-3);
+}
+
+.card-content h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: var(--text-lg);
+}
+
+.rating {
+  composes: rating-base;
+  margin-top: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.drag-handle {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  cursor: grab;
+}
+
+.drag-handle:hover {
+  color: var(--primary-color);
+  opacity: 1;
+}
+
+.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+.adjustment-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.save-button {
+  composes: control-primary;
+}
+
+.cancel-button {
+  composes: control-secondary;
+}
+
+.save-status {
+  composes: status-info status-floating;
+  background: var(--card-background);
+  border: 1px solid var(--primary-color);
+  box-shadow: 
+    0 0 0 1px var(--primary-light),
+    0 4px 6px -1px var(--shadow-color);
+}
+
+.save-status.error {
+  composes: status-error status-floating;
+  border-color: var(--error-500);
+} 
