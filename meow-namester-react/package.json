@@ -55,6 +55,7 @@
     "postcss-selector-parser": "^6.0.15",
     "postcss-sort-media-queries": "^5.2.0",
     "prettier": "^3.4.2",
+    "purgecss": "^7.0.2",
     "stylelint": "^16.13.2",
     "stylelint-config-recess-order": "^5.1.1",
     "stylelint-config-standard": "^37.0.0",

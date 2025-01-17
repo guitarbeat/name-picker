@@ -1,0 +1,15 @@
+.container{width:100%;max-width:1400px;padding:0 var(--space-4);margin:0 auto}.hidden{display:none}
+
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+
+@keyframes slideUp{0%{opacity:0;transform:translateY(20px)}100%{opacity:1;transform:translateY(0)}}
+
+@media (width >= 640px){.container{max-width:640px;padding:0 var(--space-6)}}
+
+@media (width >= 768px){.container{max-width:768px}}
+
+@media (width >= 1024px){.container{max-width:1024px}}
+
+@media (width >= 1280px){.container{max-width:1280px}}
+
+@media (width >= 1400px){.container{max-width:1400px}}

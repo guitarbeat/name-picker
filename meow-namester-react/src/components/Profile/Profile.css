@@ -108,18 +108,33 @@
   border: 1px solid var(--card-border);
   background: var(--card-background);
   color: var(--text-secondary);
+  font-weight: 500;
+  min-width: 120px;
+  transition: all 0.2s ease-in-out;
 }
 
 .view-button:hover {
   background: var(--card-hover);
   color: var(--primary-color);
   border-color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .view-button.active {
   background: var(--primary-color);
   color: white;
   border-color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  font-weight: 600;
+  position: relative;
+}
+
+.view-button.active:hover {
+  background: var(--primary-600);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .user-select {
@@ -501,66 +516,106 @@
 }
 
 .aggregated-stat-card {
-  background: var(--gray-100);
-  border-radius: 8px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  composes: card-base;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
 }
 
-.stat-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
+.aggregated-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
 }
 
-.stat-card-header h4 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 1.2rem;
+.aggregated-stat-card.is-hidden {
+  opacity: 0.85;
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
 }
 
-.name-description {
-  cursor: help;
-  font-size: 1.2rem;
-  opacity: 0.7;
-  transition: opacity 0.2s ease;
-  color: var(--text-secondary);
-}
-
-.name-description:hover {
-  opacity: 1;
+.aggregated-stat-card.is-hidden:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .aggregated-stats {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .stat-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
 .stat-row .stat {
-  background: var(--gray-200);
-  padding: 0.75rem;
-  border-radius: 4px;
+  background: var(--card-hover);
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
   text-align: center;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid var(--card-border);
+}
+
+.stat-row .stat:hover {
+  background: var(--card-background);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-color);
 }
 
 .stat-row .stat-label {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-1);
+  font-weight: 500;
 }
 
 .stat-row .stat-value {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .aggregated-stat-card {
+    background: var(--card-background);
+    border-color: var(--card-border);
+    box-shadow: 
+      0 0 0 1px var(--card-border),
+      var(--shadow-md);
+  }
+
+  .aggregated-stat-card:hover {
+    border-color: var(--primary-400);
+    box-shadow: 
+      0 0 0 1px var(--primary-400),
+      var(--shadow-lg);
+  }
+
+  .stat-row .stat {
+    background: var(--card-background);
+    border-color: var(--card-border);
+  }
+
+  .stat-row .stat:hover {
+    background: var(--card-hover);
+    border-color: var(--primary-400);
+    box-shadow: 
+      0 0 0 1px var(--primary-400),
+      var(--shadow-sm);
+  }
+
+  .aggregated-stat-card.is-hidden {
+    opacity: 0.75;
+    background: var(--card-background);
+    border-color: var(--card-border);
+  }
 }
 
 /* Loading and Error States */
@@ -755,7 +810,19 @@
 
   .view-button.active {
     background: var(--primary-400);
+    color: var(--surface-color);
+    border-color: var(--primary-500);
+    box-shadow: 
+      0 0 0 1px var(--primary-500),
+      var(--shadow-md);
+  }
+
+  .view-button.active:hover {
+    background: var(--primary-300);
     border-color: var(--primary-400);
+    box-shadow: 
+      0 0 0 1px var(--primary-400),
+      var(--shadow-lg);
   }
 
   .stat-card {
