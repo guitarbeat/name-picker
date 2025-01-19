@@ -88,19 +88,14 @@ function Profile({ userName, onStartNewTournament }) {
 
   const fetchHiddenNames = async () => {
     try {
-      console.log('Fetching hidden names...');
       const { data: hiddenData, error: hiddenError } = await supabase
         .from('hidden_names')
         .select('name_id');
 
-      if (hiddenError) {
-        console.error('Error fetching hidden names:', hiddenError);
-        throw hiddenError;
-      }
+      if (hiddenError) throw hiddenError;
 
-      console.log('Received hidden names:', hiddenData);
+      // Create Set of UUIDs
       const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
-      console.log('Setting hidden names to:', newHiddenNames);
       setHiddenNames(newHiddenNames);
     } catch (err) {
       console.error('Error in fetchHiddenNames:', err);
@@ -117,45 +112,44 @@ function Profile({ userName, onStartNewTournament }) {
       const isHidden = hiddenNames.has(nameId);
       const action = isHidden ? 'show' : 'hide';
       
-      if (!window.confirm(`Are you sure you want to ${action} the name "${name}"?\n\n${isHidden ? 'This will make it available in tournaments again.' : 'This will remove it from future tournaments.'}`)) {
+      if (!window.confirm(`Are you sure you want to ${action} the name "${name}"?`)) {
         return;
       }
 
       if (isHidden) {
-        // Unhide name
+        // Unhide name - using proper UUID comparison
         const { error: unhideError } = await supabase
           .from('hidden_names')
           .delete()
-          .eq('name_id', nameId);
+          .eq('name_id', nameId); // UUID comparison
         
         if (unhideError) throw unhideError;
         
-        // Update local state immediately
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.delete(nameId);
         setHiddenNames(newHiddenNames);
       } else {
-        // Hide name
+        // Hide name - using UUID for insertion
         const { error: hideError } = await supabase
           .from('hidden_names')
-          .insert([{ name_id: nameId }]);
+          .insert([{ 
+            id: crypto.randomUUID(), // Generate new UUID for hidden_names entry
+            name_id: nameId 
+          }]);
         
         if (hideError) throw hideError;
         
-        // Update local state immediately
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.add(nameId);
         setHiddenNames(newHiddenNames);
       }
-      
-      // Show success toast
+
       setToast({
         show: true,
         message: `Name ${isHidden ? 'shown' : 'hidden'} successfully`,
         type: 'success'
       });
-      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-      
+
       // Refresh data
       await Promise.all([
         fetchAllUsersRatings(),
@@ -168,7 +162,6 @@ function Profile({ userName, onStartNewTournament }) {
         message: `Error ${hiddenNames.has(nameId) ? 'showing' : 'hiding'} name: ${err.message}`,
         type: 'error'
       });
-      setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 3000);
     }
   };
 
@@ -283,78 +276,54 @@ function Profile({ userName, onStartNewTournament }) {
     try {
       setDeleteNameStatus({ loading: true, error: null });
       
-      console.log('Current hidden names:', hiddenNames);
-      console.log('Attempting to delete name:', { nameId, name });
+      // Call the deleteName function from supabaseClient
+      const { error: deleteError, success } = await deleteName(nameId);
       
-      // Double check the name is actually hidden
-      if (!hiddenNames.has(nameId)) {
-        // If not hidden, hide it first
-        const { error: hideError } = await supabase
-          .from('hidden_names')
-          .insert([{ name_id: nameId }]);
-        
-        if (hideError) throw hideError;
-        
-        // Update local state
-        const newHiddenNames = new Set(hiddenNames);
-        newHiddenNames.add(nameId);
-        setHiddenNames(newHiddenNames);
-
-        // Wait a moment for the hidden status to be reflected in the database
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      const { error, success } = await deleteName(nameId);
-      
-      if (error) throw error;
-      if (!success) throw new Error('Deletion failed without an error');
+      if (deleteError) throw deleteError;
+      if (!success) throw new Error('Delete operation failed');
 
       // Only update state if deletion was successful
       if (success) {
-        // Update local state immediately
+        // Update local state
         setAllUsersRatings(prev => {
           const updated = { ...prev };
-          // Remove the deleted name from all users' ratings
           Object.keys(updated).forEach(user => {
             updated[user] = updated[user].filter(rating => rating.id !== nameId);
           });
           return updated;
         });
 
+        // Remove from hidden names if it was hidden
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.delete(nameId);
         setHiddenNames(newHiddenNames);
+
+        // Show success message and cleanup
+        setShowDeleteNameConfirm(false);
+        setNameToDelete(null);
+        setDeleteNameStatus({ loading: false, error: null });
+        
+        setToast({
+          show: true,
+          message: `Successfully deleted "${name}"`,
+          type: 'success'
+        });
 
         // Refresh data
         await Promise.all([
           fetchAllUsersRatings(),
           fetchHiddenNames()
         ]);
-        
-        // Reset state
-        setShowDeleteNameConfirm(false);
-        setNameToDelete(null);
-        setDeleteNameStatus({ loading: false, error: null });
-        
-        // Show success toast
-        setToast({
-          show: true,
-          message: `Successfully deleted "${name}"`,
-          type: 'success'
-        });
-        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       }
     } catch (err) {
       console.error('Error deleting name:', err);
       setDeleteNameStatus({ loading: false, error: err.message });
       
-      // Show error toast
       setToast({
         show: true,
         message: `Error deleting name: ${err.message}`,
         type: 'error'
       });
-      setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 3000);
     }
   };
 

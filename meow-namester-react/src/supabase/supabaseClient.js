@@ -142,11 +142,14 @@ export const deleteName = async (nameId) => {
     // First check if the name exists in name_options
     const { data: nameData, error: nameError } = await supabase
       .from('name_options')
-      .select('*')
+      .select('name')
       .eq('id', nameId)
       .single();
     
-    if (nameError) {
+    if (nameError?.code === 'PGRST116') {
+      // This error code means no rows were returned
+      throw new Error('Name has already been deleted');
+    } else if (nameError) {
       console.error('Error checking name existence:', nameError);
       throw nameError;
     }
@@ -174,71 +177,12 @@ export const deleteName = async (nameId) => {
 
     console.log('Starting cascading delete process...');
 
-    // 1. Delete from tournament_progress (update arrays)
-    console.log('Updating tournament_progress...');
-    const { data: tournamentData, error: error1 } = await supabase
-      .from('tournament_progress')
-      .select('id, names');
+    // Use a transaction to ensure all deletes happen or none happen
+    const { error: error1 } = await supabase.rpc('delete_name_cascade', { target_name_id: nameId });
     
     if (error1) {
-      console.error('Error fetching tournament progress:', error1);
+      console.error('Error in delete transaction:', error1);
       throw error1;
-    }
-
-    const updatePromises = tournamentData
-      .filter(progress => progress.names && progress.names.includes(nameId))
-      .map(progress => {
-        const updatedNames = progress.names.filter(id => id !== nameId);
-        return supabase
-          .from('tournament_progress')
-          .update({ names: updatedNames })
-          .eq('id', progress.id);
-      });
-
-    if (updatePromises.length > 0) {
-      console.log(`Updating ${updatePromises.length} tournament progress records...`);
-      const results = await Promise.all(updatePromises);
-      const errors = results.filter(r => r.error);
-      if (errors.length > 0) {
-        console.error('Errors updating tournament progress:', errors);
-        throw errors[0].error;
-      }
-    }
-
-    // 2. Delete from cat_name_ratings
-    console.log('Deleting from cat_name_ratings...');
-    const { error: error2 } = await supabase
-      .from('cat_name_ratings')
-      .delete()
-      .eq('name_id', nameId);
-    
-    if (error2) {
-      console.error('Error deleting ratings:', error2);
-      throw error2;
-    }
-
-    // 3. Delete from hidden_names
-    console.log('Deleting from hidden_names...');
-    const { error: error3 } = await supabase
-      .from('hidden_names')
-      .delete()
-      .eq('name_id', nameId);
-    
-    if (error3) {
-      console.error('Error deleting from hidden_names:', error3);
-      throw error3;
-    }
-
-    // 4. Finally delete from name_options
-    console.log('Deleting from name_options...');
-    const { error: error4 } = await supabase
-      .from('name_options')
-      .delete()
-      .eq('id', nameId);
-    
-    if (error4) {
-      console.error('Error deleting from name_options:', error4);
-      throw error4;
     }
 
     console.log('Successfully completed deletion process');

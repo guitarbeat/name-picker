@@ -142,31 +142,39 @@ function useTournamentSetup(onStart) {
         setIsLoading(true);
         setError(null);
         
-        // This will automatically exclude hidden names
-        const data = await getNamesWithDescriptions();
+        // Get all names and hidden names in parallel for efficiency
+        const [namesData, { data: hiddenData, error: hiddenError }] = await Promise.all([
+          getNamesWithDescriptions(),
+          supabase.from('hidden_names').select('name_id')
+        ]);
         
-        // Additional check to ensure we're not showing any hidden names
-        const { data: hiddenData } = await supabase
-          .from('hidden_names')
-          .select('name_id');
+        if (hiddenError) throw hiddenError;
         
+        // Create Set of hidden IDs for O(1) lookup
         const hiddenIds = new Set(hiddenData?.map(item => item.name_id) || []);
         
-        // Filter out any hidden names that might have slipped through
-        const filteredData = data.filter(name => !hiddenIds.has(name.id));
+        // Filter out hidden names
+        const filteredNames = namesData.filter(name => !hiddenIds.has(name.id));
         
-        console.log('Available names after filtering:', filteredData);
-        setAvailableNames(filteredData || []);
+        // Sort names alphabetically for better UX
+        const sortedNames = filteredNames.sort((a, b) => a.name.localeCompare(b.name));
+        
+        console.log(`Loaded ${sortedNames.length} available names (${hiddenIds.size} hidden)`);
+        setAvailableNames(sortedNames);
+        
+        // If any currently selected names are now hidden, remove them
+        setSelectedNames(prev => prev.filter(name => !hiddenIds.has(name.id)));
+        
       } catch (err) {
         console.error('Error fetching names:', err);
-        setError(err.message);
+        setError(`Failed to load names: ${err.message}`);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchNames();
-  }, []);
+  }, []); // Empty dependency array since we only want to fetch once on mount
 
   const toggleName = (nameObj) => {
     setSelectedNames(prev => 

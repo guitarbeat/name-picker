@@ -1,30 +1,30 @@
 .bracket-container {
   width: 100%;
   overflow-x: auto;
-  padding: 0.5rem;
+  padding: 0.25rem;
   background: var(--surface-color);
   border-radius: var(--radius-lg);
 }
 
 .bracket {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   min-width: min-content;
-  padding: 0.5rem;
+  padding: 0.25rem;
   position: relative;
 }
 
 .bracket-round {
   display: flex;
   flex-direction: column;
-  min-width: 180px;
+  min-width: 150px;
   position: relative;
 }
 
 .round-header {
   text-align: center;
-  margin-bottom: 0.5rem;
-  padding: 0.25rem;
+  margin-bottom: 0.25rem;
+  padding: 0.15rem;
   background: var(--card-background);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
@@ -47,7 +47,7 @@
 .bracket-matches {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   position: relative;
   flex: 1;
 }
@@ -62,7 +62,7 @@
   background: var(--card-background);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
-  padding: 0.5rem;
+  padding: 0.25rem;
   box-shadow: var(--shadow-sm);
   position: relative;
   z-index: 2;
@@ -78,11 +78,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.35rem;
+  padding: 0.25rem;
   background: var(--surface-color);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
   transition: all 0.2s ease;
 }
 
@@ -162,15 +162,15 @@
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .bracket-round {
-    min-width: 160px;
+    min-width: 130px;
   }
 
   .match-content {
-    padding: 0.35rem;
+    padding: 0.25rem;
   }
 
   .bracket-player {
-    padding: 0.25rem;
+    padding: 0.15rem;
   }
 
   .player-name {
@@ -178,7 +178,7 @@
   }
 
   .winner-badge, .tie-badge {
-    padding: 0.1rem 0.2rem;
+    padding: 0.05rem 0.15rem;
   }
 }
 

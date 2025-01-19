@@ -96,7 +96,7 @@ CREATE TABLE public.tournament_progress (
     round_number INTEGER NOT NULL,
     current_match INTEGER NOT NULL,
     total_matches INTEGER NOT NULL,
-    names TEXT[] NOT NULL,
+    names UUID[] NOT NULL,
     sorter_state JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -171,4 +171,37 @@ CREATE POLICY "Only admin can modify hidden names" ON public.hidden_names
         SELECT auth.uid() 
         FROM auth.users 
         WHERE email = 'aaron@example.com'
-    )); 
+    ));
+
+-- Create function for cascading delete
+CREATE OR REPLACE FUNCTION public.delete_name_cascade(target_name_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Update tournament_progress arrays
+    UPDATE public.tournament_progress
+    SET names = array_remove(names::UUID[], target_name_id)
+    WHERE names::UUID[] @> ARRAY[target_name_id]::UUID[];
+
+    -- Delete from cat_name_ratings
+    DELETE FROM public.cat_name_ratings
+    WHERE name_id = target_name_id;
+
+    -- Delete from hidden_names
+    DELETE FROM public.hidden_names
+    WHERE name_id = target_name_id;
+
+    -- Finally delete from name_options
+    DELETE FROM public.name_options
+    WHERE id = target_name_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error in delete_name_cascade: %', SQLERRM;
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION public.delete_name_cascade TO authenticated; 
