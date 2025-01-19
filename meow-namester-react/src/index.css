@@ -396,49 +396,64 @@
   }
   
   @media (width <=768px) {
+    :root {
+      /* Adjust spacing for mobile */
+      --card-padding: var(--space-3);
+      --space-between-elements: var(--space-2);
+    }
+
     header {
-      padding: 1rem;
       padding: var(--space-4);
     }
+
     .header-image {
       width: 80px;
       height: 80px;
     }
+
     header h1 {
-      margin-bottom: 1rem;
       margin-bottom: var(--space-4);
-      font-size: 1.875rem;
       font-size: var(--text-3xl);
     }
+
     .user-controls {
       flex-direction: column;
-      gap: 1rem;
       gap: var(--space-4);
     }
+
     .nav-menu {
       justify-content: center;
       width: 100%;
     }
+
     .user-welcome {
-      font-size: 1rem;
       font-size: var(--text-base);
     }
-    .name-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      gap: var(--space-2);
-      padding: 0.75rem;
-      padding: var(--space-3);
+
+    /* Optimize card styles for touch */
+    .card-base {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .name-description {
-      position: relative;
-      margin-top: 0.5rem;
-      margin-top: var(--space-2);
-      border-radius: 0.75rem;
-      border-radius: var(--radius-lg);
-      opacity: 1;
-      transform: none;
+
+    .card-base:active {
+      transform: scale(0.98);
+    }
+
+    /* Remove hover shadows on mobile for better performance */
+    .name-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+  }
+  
+  @media (width <=480px) {
+    :root {
+      /* Further adjust spacing for small phones */
+      --card-padding: var(--space-2);
+    }
+
+    /* Optimize touch targets for very small screens */
+    .nav-menu button {
+      padding: var(--space-2) var(--space-3);
     }
   }
   
@@ -448,26 +463,26 @@
       --primary-color: #60a5fa; /* Brighter blue */
       --primary-light: rgba(96, 165, 250, 0.15);
       --primary-dark: #93c5fd;
-  
+
       /* Much darker backgrounds for better contrast */
       --surface-color: #0f172a;
       --background-color: #020617; /* Darker background */
       --card-background: #1e293b;
       --card-hover: #334155;
-  
+
       /* Brighter text for better readability */
       --text-primary: #f8fafc;
       --text-secondary: #e2e8f0;
       --text-tertiary: #cbd5e1;
-  
+
       /* More visible borders */
       --border-color: #334155;
       --card-border: #475569;
-  
+
       /* Stronger shadows for depth */
       --shadow-color: rgba(0, 0, 0, 0.3);
       --shadow-color-strong: rgba(0, 0, 0, 0.5);
-  
+
       /* Status colors with better visibility */
       --progress-background: rgba(96, 165, 250, 0.1);
       --progress-border: rgba(96, 165, 250, 0.2);
@@ -475,23 +490,36 @@
       --percentage-text: var(--primary-color);
       --vs-background: rgba(96, 165, 250, 0.1);
       --vs-text: var(--primary-color);
-  
+
       /* Header with more contrast */
       --header-background: var(--surface-color);
       --header-border: var(--card-border);
     }
-  
+
     /* Override specific dark mode styles */
-  
-    /* Ensure text remains visible */
     h1,
     h2,
     h3 {
       color: var(--text-primary);
     }
-  
+
     p {
       color: var(--text-secondary);
+    }
+
+    /* Keep the touch interaction improvements */
+    .card-base:active {
+      transform: scale(0.98);
+    }
+  }
+  
+  /* Reduce motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
   
