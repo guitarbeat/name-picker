@@ -4,16 +4,21 @@ import './CalendarButton.css';
 function CalendarButton({ rankings, userName }) {
   const handleClick = () => {
     const topNames = rankings.slice(0, 10).map(r => r.name).join(', ');
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+    const today = new Date();
+    // Format date as YYYYMMDD for all-day event
+    const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+    // For all-day events, end date should be next day
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
 
     const event = {
       text: `Top Cat Names for ${userName}`,
       details: `Top 10 names:\n${topNames}`,
-      dates: `${startTime.toISOString()}/${endTime.toISOString()}`
+      dates: `${dateStr}/${tomorrowStr}`
     };
 
-    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.text)}&details=${encodeURIComponent(event.details)}&dates=${event.dates.replace(/[-:]/g, '')}`;
+    const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.text)}&details=${encodeURIComponent(event.details)}&dates=${event.dates}`;
     
     window.open(calendarUrl, '_blank');
   };

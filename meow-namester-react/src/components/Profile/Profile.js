@@ -405,8 +405,13 @@ function Profile({ userName, onStartNewTournament }) {
 
                   const text = `🐈‍⬛ ${topName}`;
                   const details = `${formattedDate} Cat Name Rankings:\n\n${sortedNames}`;
-                  const dates = `${today.toISOString()}/${new Date(today.getTime() + 3600000).toISOString()}`;
-                  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates.replace(/[-:]/g, '')}`;
+                  // Format dates for all-day event
+                  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+                  const tomorrow = new Date(today);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
+                  const dates = `${dateStr}/${tomorrowStr}`;
+                  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates}`;
                   
                   window.open(calendarUrl, '_blank');
                 }}
