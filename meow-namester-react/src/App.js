@@ -82,12 +82,14 @@ function App() {
           ? updatedRatings[name]
           : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };
 
-        // If rating improved, count as a win, otherwise a loss
-        const isImprovement = rating > (existingRating.rating || 1500);
+        // Calculate rating difference and estimate matches played
+        const ratingDiff = rating - (existingRating.rating || 1500);
+        const matchesPlayed = Math.abs(Math.round(ratingDiff / 32)); // Using standard Elo K-factor
+
         updatedRatings[name] = {
           rating: Math.round(rating),
-          wins: (existingRating.wins || 0) + (isImprovement ? 1 : 0),
-          losses: (existingRating.losses || 0) + (isImprovement ? 0 : 1)
+          wins: (existingRating.wins || 0) + (ratingDiff > 0 ? matchesPlayed : 0),
+          losses: (existingRating.losses || 0) + (ratingDiff < 0 ? matchesPlayed : 0)
         };
       });
 

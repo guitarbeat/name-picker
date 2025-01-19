@@ -133,3 +133,76 @@ export const updateRating = async (userName, nameId, newRating, wins = 0, losses
     return { error };
   }
 };
+
+// Add this function to delete a name (only if it's hidden)
+export const deleteName = async (nameId) => {
+  try {
+    console.log('Attempting to delete name with ID:', nameId);
+    
+    // First check if the name is hidden
+    const { data: hiddenData, error: hiddenError } = await supabase
+      .from('hidden_names')
+      .select('name_id')
+      .eq('name_id', nameId);
+    
+    console.log('Hidden name check result:', { hiddenData, hiddenError });
+    
+    if (hiddenError) {
+      console.error('Error checking if name is hidden:', hiddenError);
+      throw hiddenError;
+    }
+    
+    // If name is not hidden, return error
+    if (!hiddenData || hiddenData.length === 0) {
+      console.error('Name not found in hidden_names table');
+      // Try to hide the name first
+      const { error: hideError } = await supabase
+        .from('hidden_names')
+        .insert([{ name_id: nameId }]);
+      
+      if (hideError) {
+        console.error('Error hiding name before deletion:', hideError);
+        throw new Error('Cannot delete name that is not hidden');
+      }
+    }
+
+    console.log('Name is hidden, proceeding with deletion');
+
+    // Delete in a transaction-like sequence
+    const deleteOperations = [
+      // Delete ratings first
+      supabase
+        .from('cat_name_ratings')
+        .delete()
+        .eq('name_id', nameId),
+
+      // Delete the name itself
+      supabase
+        .from('name_options')
+        .delete()
+        .eq('id', nameId),
+
+      // Finally delete from hidden_names
+      supabase
+        .from('hidden_names')
+        .delete()
+        .eq('name_id', nameId)
+    ];
+
+    // Execute all delete operations
+    const results = await Promise.all(deleteOperations);
+    
+    // Check for any errors
+    const errors = results.filter(result => result.error);
+    if (errors.length > 0) {
+      console.error('Errors during deletion:', errors);
+      throw errors[0].error;
+    }
+
+    console.log('Successfully deleted name and all related data');
+    return { error: null };
+  } catch (error) {
+    console.error('Error in deleteName function:', error);
+    return { error };
+  }
+};

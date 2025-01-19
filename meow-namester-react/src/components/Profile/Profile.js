@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
-import { supabase } from '../../supabase/supabaseClient';
+import { supabase, deleteName } from '../../supabase/supabaseClient';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
@@ -18,6 +18,9 @@ function Profile({ userName, onStartNewTournament }) {
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, error: null });
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [showDeleteNameConfirm, setShowDeleteNameConfirm] = useState(false);
+  const [nameToDelete, setNameToDelete] = useState(null);
+  const [deleteNameStatus, setDeleteNameStatus] = useState({ loading: false, error: null });
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -118,15 +121,27 @@ function Profile({ userName, onStartNewTournament }) {
 
   const fetchHiddenNames = async () => {
     try {
-      const { data, error: fetchError } = await supabase
+      console.log('Fetching hidden names...');
+      const { data: hiddenData, error: hiddenError } = await supabase
         .from('hidden_names')
         .select('name_id');
-      
-      if (fetchError) throw fetchError;
-      
-      setHiddenNames(new Set(data.map(item => item.name_id)));
+
+      if (hiddenError) {
+        console.error('Error fetching hidden names:', hiddenError);
+        throw hiddenError;
+      }
+
+      console.log('Received hidden names:', hiddenData);
+      const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
+      console.log('Setting hidden names to:', newHiddenNames);
+      setHiddenNames(newHiddenNames);
     } catch (err) {
-      console.error('Error fetching hidden names:', err);
+      console.error('Error in fetchHiddenNames:', err);
+      setToast({
+        show: true,
+        message: `Error fetching hidden names: ${err.message}`,
+        type: 'error'
+      });
     }
   };
 
@@ -141,29 +156,30 @@ function Profile({ userName, onStartNewTournament }) {
 
       if (isHidden) {
         // Unhide name
-        await supabase
+        const { error: unhideError } = await supabase
           .from('hidden_names')
           .delete()
           .eq('name_id', nameId);
+        
+        if (unhideError) throw unhideError;
         
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.delete(nameId);
         setHiddenNames(newHiddenNames);
       } else {
         // Hide name
-        await supabase
+        const { error: hideError } = await supabase
           .from('hidden_names')
-          .insert([{ 
-            name_id: nameId,
-            hidden_by: userName 
-          }]);
+          .insert([{ name_id: nameId }]);
+        
+        if (hideError) throw hideError;
         
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.add(nameId);
         setHiddenNames(newHiddenNames);
       }
       
-      // Show success toast with appropriate message
+      // Show success toast
       setToast({
         show: true,
         message: `Name ${isHidden ? 'shown' : 'hidden'} successfully`,
@@ -172,7 +188,8 @@ function Profile({ userName, onStartNewTournament }) {
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       
       // Refresh both the ratings and the names list
-      fetchAllUsersRatings();
+      await fetchAllUsersRatings();
+      await fetchHiddenNames();
     } catch (err) {
       console.error('Error toggling name visibility:', err);
       setToast({
@@ -287,6 +304,54 @@ function Profile({ userName, onStartNewTournament }) {
       });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     });
+  };
+
+  const handleDeleteName = async (nameId, name) => {
+    if (!isAdmin) return;
+    
+    try {
+      setDeleteNameStatus({ loading: true, error: null });
+      
+      console.log('Current hidden names:', hiddenNames);
+      console.log('Attempting to delete name:', { nameId, name });
+      
+      // Double check the name is actually hidden
+      if (!hiddenNames.has(nameId)) {
+        throw new Error('Cannot delete name that is not marked as hidden in UI state');
+      }
+      
+      const { error } = await deleteName(nameId);
+      
+      if (error) throw error;
+
+      // Refresh data
+      await fetchAllUsersRatings();
+      await fetchHiddenNames();
+      
+      // Reset state
+      setShowDeleteNameConfirm(false);
+      setNameToDelete(null);
+      setDeleteNameStatus({ loading: false, error: null });
+      
+      // Show success toast
+      setToast({
+        show: true,
+        message: `Successfully deleted "${name}"`,
+        type: 'success'
+      });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    } catch (err) {
+      console.error('Error deleting name:', err);
+      setDeleteNameStatus({ loading: false, error: err.message });
+      
+      // Show error toast
+      setToast({
+        show: true,
+        message: `Error deleting name: ${err.message}`,
+        type: 'error'
+      });
+      setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 3000);
+    }
   };
 
   if (loading || loadingAllUsers) return (
@@ -599,18 +664,30 @@ function Profile({ userName, onStartNewTournament }) {
                       <div key={name.id} className="rating-card is-hidden">
                         <div className="rating-card-header">
                           <h4 className="name">{name.name}</h4>
-                          <button
-                            onClick={() => handleToggleNameVisibility(name.id, name.name)}
-                            className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
-                            title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
-                          >
-                            <span className="visibility-icon">
-                              {hiddenNames.has(name.id) ? '🔒' : '🔓'}
-                            </span>
-                            <span className="visibility-text">
-                              {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
-                            </span>
-                          </button>
+                          <div className="card-actions">
+                            <button
+                              onClick={() => handleToggleNameVisibility(name.id, name.name)}
+                              className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
+                              title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
+                            >
+                              <span className="visibility-icon">
+                                {hiddenNames.has(name.id) ? '🔒' : '🔓'}
+                              </span>
+                              <span className="visibility-text">
+                                {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setNameToDelete(name);
+                                setShowDeleteNameConfirm(true);
+                              }}
+                              className="delete-button"
+                              title="Delete this name permanently"
+                            >
+                              <span className="delete-icon">🗑️</span>
+                            </button>
+                          </div>
                         </div>
                         <div className="stats">
                           <div className="stat">
@@ -812,6 +889,43 @@ function Profile({ userName, onStartNewTournament }) {
                 </div>
               </section>
             )}
+          </div>
+        </div>
+      )}
+      {/* Delete Name Confirmation Modal */}
+      {showDeleteNameConfirm && nameToDelete && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>⚠️ Delete Name</h3>
+            <p>Are you sure you want to permanently delete the name <strong>{nameToDelete.name}</strong>?</p>
+            <p className="warning-text">This action cannot be undone!</p>
+            
+            {deleteNameStatus.error && (
+              <div className="error-message">
+                Error: {deleteNameStatus.error}
+              </div>
+            )}
+            
+            <div className="modal-actions">
+              <button
+                onClick={() => handleDeleteName(nameToDelete.id, nameToDelete.name)}
+                className="action-button danger-button"
+                disabled={deleteNameStatus.loading}
+              >
+                {deleteNameStatus.loading ? 'Deleting...' : 'Yes, Delete Name'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteNameConfirm(false);
+                  setNameToDelete(null);
+                  setDeleteNameStatus({ loading: false, error: null });
+                }}
+                className="action-button secondary-button"
+                disabled={deleteNameStatus.loading}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
