@@ -13,6 +13,43 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
   const [resolveVote, setResolveVote] = useState(null);
   const [voteHistory, setVoteHistory] = useState([]);
   const [canUndo, setCanUndo] = useState(false);
+  const [currentRatings, setCurrentRatings] = useState(existingRatings);
+
+  const getCurrentRatings = useCallback(() => {
+    const ratingsArray = names.map(name => {
+      const existingData = typeof currentRatings[name.name] === 'object'
+        ? currentRatings[name.name]
+        : { rating: currentRatings[name.name] || 1500, matches: 0 };
+
+      const totalNames = names.length;
+      const position = voteHistory.filter(vote => 
+        (vote.match.left.name === name.name && vote.result < 0) ||
+        (vote.match.right.name === name.name && vote.result > 0)
+      ).length;
+
+      const ratingSpread = Math.min(1000, totalNames * 25);
+      const positionValue = ((totalNames - position - 1) / (totalNames - 1)) * ratingSpread;
+      const newPositionRating = 1500 + positionValue;
+      const matchesPlayed = currentMatchNumber;
+      const maxMatches = totalMatches;
+      const blendFactor = Math.min(0.8, (matchesPlayed / maxMatches) * 0.9);
+      const newRating = Math.round(
+        (blendFactor * newPositionRating) +
+        ((1 - blendFactor) * existingData.rating)
+      );
+      const minRating = 1000;
+      const maxRating = 2000;
+      const finalRating = Math.max(minRating, Math.min(maxRating, newRating));
+
+      return {
+        name: name.name,
+        rating: finalRating,
+        confidence: (matchesPlayed / maxMatches)
+      };
+    });
+
+    return ratingsArray;
+  }, [names, currentRatings, voteHistory, currentMatchNumber, totalMatches]);
 
   useEffect(() => {
     if (!names || names.length === 0) {
@@ -32,6 +69,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     setRoundNumber(1);
     setVoteHistory([]);
     setCanUndo(false);
+    setCurrentRatings(existingRatings);
 
     runTournament(newSorter);
   }, [names]);
@@ -181,6 +219,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     progress,
     handleVote,
     handleUndo,
-    canUndo
+    canUndo,
+    getCurrentRatings
   };
 } 

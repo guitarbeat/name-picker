@@ -1,0 +1,193 @@
+.tournament-container {
+    padding: var(--space-responsive-3);
+    max-width: min(100%, 1200px);
+    margin: 0 auto;
+}
+
+.matchup {
+    margin: var(--space-responsive-4) auto;
+    animation: slideUp var(--duration-normal) var(--ease-out-expo) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.names-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-responsive-3);
+    margin: var(--space-responsive-2) 0;
+}
+
+.matchup .name-card {
+    position: relative;
+    padding: var(--space-responsive-3);
+    min-height: clamp(120px, 20vh, 200px);
+    background: var(--card-background);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-responsive-lg);
+    box-shadow: var(--shadow-md-enhanced);
+    transition: all var(--duration-normal) var(--ease-out-expo);
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.matchup .name-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        45deg,
+        rgba(var(--primary-rgb), 0.1),
+        rgba(var(--primary-rgb), 0)
+    );
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-out-expo);
+}
+
+.matchup .name-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg-enhanced),
+                var(--glow-primary);
+    border-color: rgba(var(--primary-rgb), 0.5);
+}
+
+.matchup .name-card:hover::before {
+    opacity: 1;
+}
+
+.matchup .name-card.selected {
+    border-color: rgb(var(--primary-rgb));
+    background: linear-gradient(
+        135deg,
+        rgba(var(--primary-rgb), 0.15),
+        rgba(var(--primary-rgb), 0.05)
+    );
+}
+
+.matchup .name-card h3 {
+    font-size: var(--text-responsive-xl);
+    color: var(--text-primary);
+    margin-bottom: var(--space-responsive-2);
+    position: relative;
+    z-index: 1;
+}
+
+.matchup .name-card p {
+    font-size: var(--text-responsive-base);
+    color: var(--text-secondary);
+    position: relative;
+    z-index: 1;
+}
+
+.vs-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(40px, 10%, 60px);
+    height: clamp(40px, 10%, 60px);
+    margin: var(--space-responsive-2) auto;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    font-size: var(--text-responsive-base);
+    font-weight: 600;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm-enhanced);
+}
+
+.tournament-progress {
+    margin-top: var(--space-responsive-4);
+    padding: var(--space-responsive-3);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-responsive-lg);
+    box-shadow: var(--shadow-md-enhanced);
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--surface-color);
+    border-radius: var(--radius-responsive-sm);
+    overflow: hidden;
+    margin: var(--space-responsive-2) 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: rgb(var(--primary-rgb));
+    transition: width var(--duration-normal) var(--ease-out-expo);
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .tournament-container {
+        padding: var(--space-responsive-2);
+    }
+    
+    .names-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .matchup .name-card {
+        min-height: clamp(100px, 15vh, 150px);
+    }
+    
+    .vs-section {
+        margin: var(--space-responsive-1) auto;
+    }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .names-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* High contrast mode enhancements */
+@media (prefers-contrast: high) {
+    .matchup .name-card {
+        border-width: 2px;
+    }
+    
+    .matchup .name-card.selected {
+        border-width: 3px;
+    }
+    
+    .vs-section {
+        border-width: 2px;
+        background: var(--card-background);
+    }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    .matchup {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+    
+    .matchup .name-card {
+        transition: none;
+    }
+    
+    .matchup .name-card:hover {
+        transform: none;
+    }
+    
+    .progress-fill {
+        transition: none;
+    }
+} 

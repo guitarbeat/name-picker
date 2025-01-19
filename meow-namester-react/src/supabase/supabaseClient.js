@@ -45,13 +45,19 @@ export const getNamesWithDescriptions = async () => {
     const hiddenIds = hiddenData?.map(item => item.name_id) || [];
     console.log('Hidden IDs:', hiddenIds);
 
-    // Build query
+    // Build query with updated_at field
     let query = supabase
       .from('name_options')
       .select(`
         id,
         name,
-        description
+        description,
+        cat_name_ratings (
+          rating,
+          wins,
+          losses,
+          updated_at
+        )
       `);
     
     // Only apply the not.in filter if we have hidden IDs
@@ -64,8 +70,14 @@ export const getNamesWithDescriptions = async () => {
 
     if (error) throw error;
     
-    console.log('Received data from database:', data); // Debug log
-    return data || [];
+    // Process the data to include the latest updated_at
+    const processedData = data.map(item => ({
+      ...item,
+      updated_at: item.cat_name_ratings?.[0]?.updated_at || null
+    }));
+    
+    console.log('Received data from database:', processedData); // Debug log
+    return processedData || [];
   } catch (error) {
     console.error('Error fetching names:', error);
     throw error;
@@ -89,5 +101,35 @@ export const addRatingHistory = async (userName, nameId, oldRating, newRating) =
   } catch (error) {
     console.error('Error saving rating history:', error);
     throw error;
+  }
+};
+
+// Add this function to update ratings with proper timestamps
+export const updateRating = async (userName, nameId, newRating, wins = 0, losses = 0) => {
+  const now = new Date().toISOString();
+  
+  try {
+    const { error } = await supabase
+      .from('cat_name_ratings')
+      .upsert({
+        user_name: userName,
+        name_id: nameId,
+        rating: newRating,
+        wins: wins,
+        losses: losses,
+        updated_at: now
+      }, {
+        onConflict: 'user_name,name_id'
+      });
+
+    if (error) throw error;
+    
+    // Also update the rating history
+    await addRatingHistory(userName, nameId, null, newRating);
+    
+    return { error: null };
+  } catch (error) {
+    console.error('Error updating rating:', error);
+    return { error };
   }
 };

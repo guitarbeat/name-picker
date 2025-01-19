@@ -17,6 +17,7 @@ function Profile({ userName, onStartNewTournament }) {
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleteStatus, setDeleteStatus] = useState({ loading: false, error: null });
   const [showCopyToast, setShowCopyToast] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
@@ -129,9 +130,16 @@ function Profile({ userName, onStartNewTournament }) {
     }
   };
 
-  const handleToggleNameVisibility = async (nameId) => {
+  const handleToggleNameVisibility = async (nameId, name) => {
     try {
-      if (hiddenNames.has(nameId)) {
+      const isHidden = hiddenNames.has(nameId);
+      const action = isHidden ? 'show' : 'hide';
+      
+      if (!window.confirm(`Are you sure you want to ${action} the name "${name}"?\n\n${isHidden ? 'This will make it available in tournaments again.' : 'This will remove it from future tournaments.'}`)) {
+        return;
+      }
+
+      if (isHidden) {
         // Unhide name
         await supabase
           .from('hidden_names')
@@ -145,17 +153,34 @@ function Profile({ userName, onStartNewTournament }) {
         // Hide name
         await supabase
           .from('hidden_names')
-          .insert([{ name_id: nameId }]);
+          .insert([{ 
+            name_id: nameId,
+            hidden_by: userName 
+          }]);
         
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.add(nameId);
         setHiddenNames(newHiddenNames);
       }
       
+      // Show success toast with appropriate message
+      setToast({
+        show: true,
+        message: `Name ${isHidden ? 'shown' : 'hidden'} successfully`,
+        type: 'success'
+      });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      
       // Refresh both the ratings and the names list
       fetchAllUsersRatings();
     } catch (err) {
       console.error('Error toggling name visibility:', err);
+      setToast({
+        show: true,
+        message: `Error ${hiddenNames.has(nameId) ? 'showing' : 'hiding'} name: ${err.message}`,
+        type: 'error'
+      });
+      setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 3000);
     }
   };
 
@@ -255,8 +280,12 @@ function Profile({ userName, onStartNewTournament }) {
     const textToCopy = `Title: ${formattedDate} Cat Names 🐈‍⬛\nDescription: Cat Name Tournament Results\n\n${sortedNames}`;
     
     navigator.clipboard.writeText(textToCopy).then(() => {
-      setShowCopyToast(true);
-      setTimeout(() => setShowCopyToast(false), 3000);
+      setToast({
+        show: true,
+        message: 'Results copied to clipboard!',
+        type: 'success'
+      });
+      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     });
   };
 
@@ -318,6 +347,35 @@ function Profile({ userName, onStartNewTournament }) {
                 title="Copy ranked names to clipboard"
               >
                 📋 Copy Results
+              </button>
+              <button 
+                onClick={() => {
+                  const sortedNames = [...currentRatings]
+                    .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+                    .map((name, index) => `${index + 1}. ${name.name}`)
+                    .join('\n');
+
+                  const topName = currentRatings
+                    .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))[0]?.name || 'No names rated';
+
+                  const today = new Date();
+                  const formattedDate = today.toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  });
+
+                  const text = `🐈‍⬛ ${topName}`;
+                  const details = `${formattedDate} Cat Name Rankings:\n\n${sortedNames}`;
+                  const dates = `${today.toISOString()}/${new Date(today.getTime() + 3600000).toISOString()}`;
+                  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates.replace(/[-:]/g, '')}`;
+                  
+                  window.open(calendarUrl, '_blank');
+                }}
+                className="action-button secondary-button"
+                title="Add to Google Calendar"
+              >
+                📅 Add to Calendar
               </button>
               <button 
                 onClick={fetchAllUsersRatings} 
@@ -490,15 +548,18 @@ function Profile({ userName, onStartNewTournament }) {
                     <div key={name.id} className="rating-card">
                       <div className="rating-card-header">
                         <h4 className="name">{name.name}</h4>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleToggleNameVisibility(name.id)}
-                            className="visibility-toggle"
-                            title="Click to hide this name from tournaments"
-                          >
-                            👁️
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleToggleNameVisibility(name.id, name.name)}
+                          className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
+                          title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
+                        >
+                          <span className="visibility-icon">
+                            {hiddenNames.has(name.id) ? '🔒' : '🔓'}
+                          </span>
+                          <span className="visibility-text">
+                            {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
+                          </span>
+                        </button>
                       </div>
                       <div className="stats">
                         <div className="stat">
@@ -538,15 +599,18 @@ function Profile({ userName, onStartNewTournament }) {
                       <div key={name.id} className="rating-card is-hidden">
                         <div className="rating-card-header">
                           <h4 className="name">{name.name}</h4>
-                          {isAdmin && (
-                            <button
-                              onClick={() => handleToggleNameVisibility(name.id)}
-                              className="visibility-toggle hidden"
-                              title="Click to show this name in tournaments"
-                            >
-                              🚫
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleToggleNameVisibility(name.id, name.name)}
+                            className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
+                            title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
+                          >
+                            <span className="visibility-icon">
+                              {hiddenNames.has(name.id) ? '🔒' : '🔓'}
+                            </span>
+                            <span className="visibility-text">
+                              {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
+                            </span>
+                          </button>
                         </div>
                         <div className="stats">
                           <div className="stat">
@@ -621,15 +685,18 @@ function Profile({ userName, onStartNewTournament }) {
                           ℹ️
                         </div>
                       )}
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleToggleNameVisibility(stat.id)}
-                          className="visibility-toggle"
-                          title="Click to hide this name from tournaments"
-                        >
-                          👁️
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleToggleNameVisibility(stat.id, stat.name)}
+                        className={`visibility-toggle ${hiddenNames.has(stat.id) ? 'hidden' : ''}`}
+                        title={`Click to ${hiddenNames.has(stat.id) ? 'show' : 'hide'} this name ${hiddenNames.has(stat.id) ? 'in' : 'from'} tournaments`}
+                      >
+                        <span className="visibility-icon">
+                          {hiddenNames.has(stat.id) ? '🔒' : '🔓'}
+                        </span>
+                        <span className="visibility-text">
+                          {hiddenNames.has(stat.id) ? 'Hidden' : 'Visible'}
+                        </span>
+                      </button>
                     </div>
                     <div className="aggregated-stats">
                       <div className="stat-row">
@@ -688,15 +755,18 @@ function Profile({ userName, onStartNewTournament }) {
                             ℹ️
                           </div>
                         )}
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleToggleNameVisibility(stat.id)}
-                            className="visibility-toggle hidden"
-                            title="Click to show this name in tournaments"
-                          >
-                            🚫
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleToggleNameVisibility(stat.id, stat.name)}
+                          className={`visibility-toggle ${hiddenNames.has(stat.id) ? 'hidden' : ''}`}
+                          title={`Click to ${hiddenNames.has(stat.id) ? 'show' : 'hide'} this name ${hiddenNames.has(stat.id) ? 'in' : 'from'} tournaments`}
+                        >
+                          <span className="visibility-icon">
+                            {hiddenNames.has(stat.id) ? '🔒' : '🔓'}
+                          </span>
+                          <span className="visibility-text">
+                            {hiddenNames.has(stat.id) ? 'Hidden' : 'Visible'}
+                          </span>
+                        </button>
                       </div>
                       <div className="aggregated-stats">
                         <div className="stat-row">

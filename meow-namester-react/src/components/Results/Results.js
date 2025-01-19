@@ -144,7 +144,7 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
         <RankingAdjustment
           rankings={currentRankings}
           onSave={handleSaveAdjustments}
-          onCancel={() => {}} // Empty function since we're not using cancel anymore
+          onCancel={onStartNew}
         />
 
         <div className="results-actions">

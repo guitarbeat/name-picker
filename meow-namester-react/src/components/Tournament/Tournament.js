@@ -59,13 +59,19 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     currentMatchNumber,
     totalMatches,
     progress,
-    handleVote
+    handleVote,
+    getCurrentRatings
   } = useTournament({ names, existingRatings, onComplete });
 
   const handleVoteWithAnimation = useCallback((result) => {
     setSelectedOption(result);
     handleVote(result);
   }, [handleVote]);
+
+  const handleEndEarly = useCallback(() => {
+    const currentRatings = getCurrentRatings();
+    onComplete(currentRatings);
+  }, [getCurrentRatings, onComplete]);
 
   useEffect(() => {
     if (selectedOption) {
@@ -96,7 +102,7 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
         <div className="percentage-info" aria-label={`${progress}% Complete`}>{progress}% Complete</div>
       </div>
 
-      <TournamentControls onEndEarly={onComplete} isTransitioning={isTransitioning} />
+      <TournamentControls onEndEarly={handleEndEarly} isTransitioning={isTransitioning} />
 
       <div className="matchup" role="region" aria-label="Current matchup">
         <div className="names-row">

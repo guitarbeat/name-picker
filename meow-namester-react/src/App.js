@@ -70,9 +70,14 @@ function App() {
 
       console.log('Starting tournament completion for user:', userName);
 
+      // Convert finalRatings to array if it's an object
+      const ratingsArray = Array.isArray(finalRatings) 
+        ? finalRatings 
+        : Object.entries(finalRatings).map(([name, rating]) => ({ name, rating }));
+
       // Merge new ratings with existing ones, preserving wins/losses
       const updatedRatings = { ...ratings };
-      finalRatings.forEach(({ name, rating }) => {
+      ratingsArray.forEach(({ name, rating }) => {
         const existingRating = typeof updatedRatings[name] === 'object'
           ? updatedRatings[name]
           : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };

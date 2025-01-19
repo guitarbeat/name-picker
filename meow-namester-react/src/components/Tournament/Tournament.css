@@ -37,12 +37,13 @@
 .percentage-info {
   display: inline-block;
   padding: 0.5rem 1.5rem;
-  background: white;
+  background: linear-gradient(135deg, var(--primary-300), var(--primary-500));
   border-radius: 20px;
-  font-size: 1.1rem;
-  color: var(--primary-color);
-  font-weight: 500;
-  box-shadow: var(--shadow-sm);
+  font-size: var(--text-responsive-lg);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  transition: background var(--duration-normal) var(--ease-out-expo);
 }
 
 .progress-bar {
@@ -56,8 +57,8 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(to right, var(--primary-300), var(--primary-500));
-  transition: width 0.3s ease;
+  background: linear-gradient(to right, var(--primary-400), var(--primary-600));
+  transition: width var(--duration-normal) var(--ease-in-out-expo);
 }
 
 .tournament-stats {
@@ -158,21 +159,28 @@
 }
 
 .matchup {
-  margin: 2rem 0;
-  animation: slideUp var(--transition-normal);
+  margin: clamp(1rem, 4vw, 2rem) 0;
+  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { 
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .names-row {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 3rem;
+  grid-template-columns: minmax(200px, 1fr) auto minmax(200px, 1fr);
+  gap: clamp(1rem, 4vw, 3rem);
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: clamp(1rem, 4vw, 2rem);
+  padding: var(--space-4);
 }
 
 .name-container {
@@ -182,81 +190,130 @@
 
 /* Tournament-specific name card styles that override the hover behavior */
 .matchup .name-card {
-  padding: 2.5rem;
-  background: var(--surface-color);
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-color);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  background: var(--card-background);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--card-border);
   cursor: pointer;
   text-align: center;
-  transition: all var(--transition-normal);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  min-height: 200px;
+  gap: var(--space-4);
+  min-height: clamp(160px, 30vh, 240px);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.matchup .name-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--primary-400),
+    var(--primary-600)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.matchup .name-card:hover::before {
+  opacity: 1;
 }
 
 .matchup .name-card h3 {
-  transform: none !important;
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
   margin: 0;
   color: var(--text-primary);
-  font-family: 'Josefin Slab', serif;
+  font-family: var(--font-serif);
   line-height: 1.2;
+  transition: transform 0.3s ease;
 }
 
 .matchup .name-description {
-  position: static !important;
-  opacity: 1 !important;
-  transform: none !important;
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
   color: var(--text-secondary);
   flex-grow: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
-  pointer-events: auto !important;
   margin: 0;
+  transition: all 0.3s ease;
+  position: relative;
+  background: transparent;
+  padding: 0;
+  opacity: 0.8;
 }
 
 .matchup .name-card:hover {
-  border-color: var(--primary-color);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-400);
+  transform: translateY(-8px);
+  box-shadow: 
+    0 12px 20px -5px var(--shadow-color),
+    0 8px 12px -3px var(--shadow-color);
+}
+
+.matchup .name-card:hover .name-description {
+  opacity: 1;
 }
 
 .matchup .name-card:active {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
 }
 
 .matchup .name-card.selected {
-  border-color: var(--primary-color);
-  background: var(--primary-light);
-  animation: pulse 2s infinite;
+  border-color: var(--primary-400);
+  background: var(--primary-50);
+  animation: selected-pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+@keyframes selected-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
+  }
 }
 
 .vs-section {
-  width: 60px;
-  height: 60px;
+  width: clamp(40px, 8vw, 60px);
+  height: clamp(40px, 8vw, 60px);
   border-radius: 50%;
-  background: var(--primary-light);
+  background: var(--primary-50);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: var(--primary-color);
-  font-size: 1.2rem;
+  color: var(--primary-600);
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
   text-transform: uppercase;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 
+    0 0 0 1px var(--primary-200),
+    var(--shadow-sm);
+  position: relative;
+  z-index: 1;
+}
+
+.vs-section::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--primary-200), transparent);
+  z-index: -1;
+  opacity: 0.5;
 }
 
 .center-options {
@@ -334,6 +391,38 @@
   color: var(--primary-color);
 }
 
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .matchup .name-card {
+    background: var(--card-background);
+    border-color: var(--card-border);
+  }
+
+  .matchup .name-card:hover {
+    border-color: var(--primary-400);
+    box-shadow: 
+      0 12px 20px -5px var(--shadow-color-strong),
+      0 8px 12px -3px var(--shadow-color-strong);
+  }
+
+  .matchup .name-card.selected {
+    background: rgba(var(--primary-rgb), 0.15);
+  }
+
+  .vs-section {
+    background: var(--card-background);
+    color: var(--primary-400);
+    box-shadow: 
+      0 0 0 1px var(--primary-700),
+      var(--shadow-md);
+  }
+
+  .vs-section::before {
+    background: linear-gradient(135deg, var(--primary-900), transparent);
+  }
+}
+
+/* Mobile Optimizations */
 @media (max-width: 768px) {
   .tournament {
     padding: 1rem;
@@ -341,29 +430,24 @@
 
   .names-row {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: var(--space-4);
+    padding: var(--space-2);
   }
 
   .vs-section {
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
+    margin: var(--space-2) auto;
   }
 
-  .name-card {
-    padding: 1.5rem;
-    min-height: 160px;
-    gap: 1rem;
+  .matchup .name-card {
+    min-height: 140px;
   }
 
-  .name-card h3 {
-    font-size: 1.5rem;
+  .matchup .name-card:hover {
+    transform: translateY(-4px);
   }
 
   .name-description {
-    font-size: 0.5rem;
     -webkit-line-clamp: 2;
-    line-clamp: 2;
   }
 
   .extra-options-button {
@@ -381,4 +465,72 @@
     align-items: center;
     gap: 0.5rem;
   }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) {
+  .matchup .name-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .matchup .name-card:active {
+    transform: scale(0.98);
+  }
+
+  .matchup .name-description {
+    opacity: 1;
+  }
+}
+
+/* Animation Improvements */
+@keyframes slideUp {
+  from { 
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .matchup,
+  .matchup .name-card,
+  .matchup .name-card.selected {
+    animation: none;
+    transition: none;
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+p, span, a, li {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+/* Increase contrast for better readability */
+:root {
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --background-color: #0a0f1d;
+  --surface-color: #1f2937;
+  --card-background: #1e293b;
+  --card-border: #334155;
 }
