@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase, deleteName } from '../../supabase/supabaseClient';
 import './Profile.css';
@@ -22,18 +22,7 @@ function Profile({ userName, onStartNewTournament }) {
   const [nameToDelete, setNameToDelete] = useState(null);
   const [deleteNameStatus, setDeleteNameStatus] = useState({ loading: false, error: null });
 
-  useEffect(() => {
-    setIsAdmin(userName.toLowerCase() === 'aaron');
-  }, [userName]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAllUsersRatings();
-      fetchHiddenNames();
-    }
-  }, [isAdmin]);
-
-  const fetchAllUsersRatings = async () => {
+  const fetchAllUsersRatings = useCallback(async () => {
     try {
       setLoadingAllUsers(true);
       const { data, error: fetchError } = await supabase
@@ -55,6 +44,8 @@ function Profile({ userName, onStartNewTournament }) {
 
       // Process individual user ratings
       const ratingsByUser = data.reduce((acc, item) => {
+        if (!item.name_options) return acc; // Skip if name has been deleted
+        
         const userName = item.user_name;
         if (!acc[userName]) {
           acc[userName] = [];
@@ -71,53 +62,29 @@ function Profile({ userName, onStartNewTournament }) {
         return acc;
       }, {});
 
-      // Calculate aggregated statistics
-      const aggregated = data.reduce((acc, item) => {
-        const nameId = item.name_options.id;
-        const name = item.name_options.name;
-        
-        if (!acc[nameId]) {
-          acc[nameId] = {
-            id: nameId,
-            name: name,
-            description: item.name_options.description,
-            totalRatings: 0,
-            totalWins: 0,
-            totalLosses: 0,
-            ratings: [],
-            users: new Set(),
-          };
-        }
-        
-        acc[nameId].totalRatings++;
-        acc[nameId].totalWins += item.wins || 0;
-        acc[nameId].totalLosses += item.losses || 0;
-        acc[nameId].ratings.push(item.rating);
-        acc[nameId].users.add(item.user_name);
-        
-        return acc;
-      }, {});
-
-      // Calculate averages and other stats
-      Object.values(aggregated).forEach(stat => {
-        stat.avgRating = Math.round(
-          stat.ratings.reduce((sum, r) => sum + r, 0) / stat.ratings.length
-        );
-        stat.minRating = Math.min(...stat.ratings);
-        stat.maxRating = Math.max(...stat.ratings);
-        stat.uniqueUsers = stat.users.size;
-        delete stat.ratings; // Clean up the raw ratings array
-        delete stat.users; // Clean up the users set
-      });
-
       setAllUsersRatings(ratingsByUser);
-      setAggregatedStats(aggregated);
     } catch (err) {
       console.error('Error fetching all users ratings:', err);
+      setToast({
+        show: true,
+        message: `Error fetching ratings: ${err.message}`,
+        type: 'error'
+      });
     } finally {
       setLoadingAllUsers(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    setIsAdmin(userName.toLowerCase() === 'aaron');
+  }, [userName]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchAllUsersRatings();
+      fetchHiddenNames();
+    }
+  }, [isAdmin, fetchAllUsersRatings]);
 
   const fetchHiddenNames = async () => {
     try {
@@ -163,6 +130,7 @@ function Profile({ userName, onStartNewTournament }) {
         
         if (unhideError) throw unhideError;
         
+        // Update local state immediately
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.delete(nameId);
         setHiddenNames(newHiddenNames);
@@ -174,6 +142,7 @@ function Profile({ userName, onStartNewTournament }) {
         
         if (hideError) throw hideError;
         
+        // Update local state immediately
         const newHiddenNames = new Set(hiddenNames);
         newHiddenNames.add(nameId);
         setHiddenNames(newHiddenNames);
@@ -187,9 +156,11 @@ function Profile({ userName, onStartNewTournament }) {
       });
       setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
       
-      // Refresh both the ratings and the names list
-      await fetchAllUsersRatings();
-      await fetchHiddenNames();
+      // Refresh data
+      await Promise.all([
+        fetchAllUsersRatings(),
+        fetchHiddenNames()
+      ]);
     } catch (err) {
       console.error('Error toggling name visibility:', err);
       setToast({
@@ -317,29 +288,62 @@ function Profile({ userName, onStartNewTournament }) {
       
       // Double check the name is actually hidden
       if (!hiddenNames.has(nameId)) {
-        throw new Error('Cannot delete name that is not marked as hidden in UI state');
+        // If not hidden, hide it first
+        const { error: hideError } = await supabase
+          .from('hidden_names')
+          .insert([{ name_id: nameId }]);
+        
+        if (hideError) throw hideError;
+        
+        // Update local state
+        const newHiddenNames = new Set(hiddenNames);
+        newHiddenNames.add(nameId);
+        setHiddenNames(newHiddenNames);
+
+        // Wait a moment for the hidden status to be reflected in the database
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      const { error } = await deleteName(nameId);
+      const { error, success } = await deleteName(nameId);
       
       if (error) throw error;
+      if (!success) throw new Error('Deletion failed without an error');
 
-      // Refresh data
-      await fetchAllUsersRatings();
-      await fetchHiddenNames();
-      
-      // Reset state
-      setShowDeleteNameConfirm(false);
-      setNameToDelete(null);
-      setDeleteNameStatus({ loading: false, error: null });
-      
-      // Show success toast
-      setToast({
-        show: true,
-        message: `Successfully deleted "${name}"`,
-        type: 'success'
-      });
-      setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      // Only update state if deletion was successful
+      if (success) {
+        // Update local state immediately
+        setAllUsersRatings(prev => {
+          const updated = { ...prev };
+          // Remove the deleted name from all users' ratings
+          Object.keys(updated).forEach(user => {
+            updated[user] = updated[user].filter(rating => rating.id !== nameId);
+          });
+          return updated;
+        });
+
+        const newHiddenNames = new Set(hiddenNames);
+        newHiddenNames.delete(nameId);
+        setHiddenNames(newHiddenNames);
+
+        // Refresh data
+        await Promise.all([
+          fetchAllUsersRatings(),
+          fetchHiddenNames()
+        ]);
+        
+        // Reset state
+        setShowDeleteNameConfirm(false);
+        setNameToDelete(null);
+        setDeleteNameStatus({ loading: false, error: null });
+        
+        // Show success toast
+        setToast({
+          show: true,
+          message: `Successfully deleted "${name}"`,
+          type: 'success'
+        });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      }
     } catch (err) {
       console.error('Error deleting name:', err);
       setDeleteNameStatus({ loading: false, error: err.message });

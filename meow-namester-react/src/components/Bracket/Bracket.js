@@ -1,7 +1,7 @@
 /**
  * @module Bracket
  * @description A React component that displays a tournament bracket visualization.
- * Shows the progression of matches, winners, and results in a bracket format.
+ * Shows the progression of matches in a merge sort tournament structure.
  * Supports different match outcomes including wins, ties, and skipped matches.
  * 
  * @example
@@ -21,6 +21,7 @@
  */
 
 import React from 'react';
+import './Bracket.css';
 
 function Bracket({ matches }) {
   const getMatchStatus = (match) => {
@@ -40,54 +41,100 @@ function Bracket({ matches }) {
     return 'default';
   };
 
-  const rounds = matches.reduce((acc, match) => {
-    const lastRound = acc[acc.length - 1];
-    if (!lastRound || lastRound.length === Math.pow(2, acc.length - 1)) {
-      acc.push([match]);
-    } else {
-      lastRound.push(match);
-    }
-    return acc;
-  }, []);
+  // Group matches into a proper tournament tree structure
+  const organizeMatchesIntoTree = (matches) => {
+    const totalRounds = Math.ceil(Math.log2(matches.length + 1));
+    const tree = Array(totalRounds).fill().map(() => []);
+    
+    // Track winners to connect matches
+    const winnerMap = new Map();
+    
+    matches.forEach(match => {
+      // Calculate which round this match belongs to based on match number
+      const roundIndex = Math.floor(Math.log2(match.id));
+      tree[roundIndex].push(match);
+      
+      // Track the winner for connecting matches
+      const winner = match.winner === -1 ? match.name1 : match.name2;
+      winnerMap.set(winner, match.id);
+    });
+
+    // Sort matches within each round by their position
+    tree.forEach(round => {
+      round.sort((a, b) => a.id - b.id);
+    });
+
+    return { tree, winnerMap };
+  };
+
+  const { tree, winnerMap } = organizeMatchesIntoTree(matches);
 
   return (
-    <div className="bracket">
-      {rounds.map((round, roundIndex) => (
-        <div key={roundIndex} className="bracket-round">
-          <div className="round-title">
-            Round {roundIndex + 1}
-          </div>
-          <div className="bracket-matches">
-            {round.map((match) => (
-              <div key={match.id} className="bracket-match">
-                <div
-                  className={`bracket-player ${getCardVariant(match, true)}`}
-                >
-                  <span>{match.name1}</span>
-                  {getMatchStatus(match) === 'first' && <span className="winner-badge">Winner</span>}
-                  {getMatchStatus(match) === 'both' && <span className="tie-badge">Tie</span>}
-                </div>
-                {match.name2 ? (
-                  <div
-                    className={`bracket-player ${getCardVariant(match, false)}`}
+    <div className="bracket-container">
+      <div className="bracket">
+        {tree.map((round, roundIndex) => (
+          <div key={roundIndex} className="bracket-round">
+            <div className="round-header">
+              <span className="round-title">Round {roundIndex + 1}</span>
+              <span className="round-matches">{round.length} matches</span>
+            </div>
+            <div className="bracket-matches">
+              {round.map((match) => {
+                const matchPosition = Math.pow(2, roundIndex + 1);
+                const spacing = 100 / matchPosition;
+                
+                return (
+                  <div 
+                    key={match.id} 
+                    className="bracket-match"
+                    style={{
+                      marginTop: `${spacing}%`,
+                      marginBottom: `${spacing}%`
+                    }}
                   >
-                    <span>{match.name2}</span>
-                    {getMatchStatus(match) === 'second' && <span className="winner-badge">Winner</span>}
-                    {getMatchStatus(match) === 'both' && <span className="tie-badge">Tie</span>}
+                    <div className="match-content">
+                      <div
+                        className={`bracket-player ${getCardVariant(match, true)}`}
+                      >
+                        <span className="player-name">{match.name1}</span>
+                        {getMatchStatus(match) === 'first' && (
+                          <span className="winner-badge">Winner</span>
+                        )}
+                        {getMatchStatus(match) === 'both' && (
+                          <span className="tie-badge">Tie</span>
+                        )}
+                      </div>
+                      <div className="vs-divider">vs</div>
+                      {match.name2 ? (
+                        <div
+                          className={`bracket-player ${getCardVariant(match, false)}`}
+                        >
+                          <span className="player-name">{match.name2}</span>
+                          {getMatchStatus(match) === 'second' && (
+                            <span className="winner-badge">Winner</span>
+                          )}
+                          {getMatchStatus(match) === 'both' && (
+                            <span className="tie-badge">Tie</span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bracket-player bye">
+                          <span className="bye-text">Bye</span>
+                        </div>
+                      )}
+                    </div>
+                    {roundIndex < tree.length - 1 && (
+                      <div className="match-connector">
+                        <div className="connector-line"></div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="bracket-player bye">
-                    <span className="bye-text">Bye</span>
-                  </div>
-                )}
-                {getMatchStatus(match) === 'skip' && (
-                  <div className="skip-badge">Skipped</div>
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

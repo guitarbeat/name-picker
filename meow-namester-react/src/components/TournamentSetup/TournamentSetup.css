@@ -300,4 +300,32 @@
   .overlay {
     transition: none;
   }
+}
+
+/* Error and Empty States */
+.error-container,
+.empty-container {
+  text-align: center;
+  padding: var(--space-8);
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+  margin: var(--space-8) auto;
+  max-width: 600px;
+}
+
+.error-container h2,
+.empty-container h2 {
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-4);
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: var(--text-lg);
+}
+
+.empty-message {
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
 } 

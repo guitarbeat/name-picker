@@ -297,3 +297,40 @@
 .back-button:hover svg {
   transform: translateX(-2px);
 }
+
+.tournament-bracket {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow-x: auto;
+}
+
+.tournament-bracket h3 {
+  font-size: var(--text-responsive-xl);
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .tournament-bracket {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+  
+  .tournament-bracket h3 {
+    font-size: var(--text-responsive-lg);
+    margin-bottom: 1rem;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .tournament-bracket {
+    background: var(--card-background);
+    border: 1px solid var(--card-border);
+  }
+}

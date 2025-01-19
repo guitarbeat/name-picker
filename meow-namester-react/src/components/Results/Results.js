@@ -7,6 +7,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import ResultsTable from './ResultsTable';
 import RankingAdjustment from '../RankingAdjustment/RankingAdjustment';
+import Bracket from '../Bracket/Bracket';
 import './Results.css';
 
 // Memoized stats card component for better performance
@@ -28,10 +29,22 @@ const Toast = memo(({ message, type, onClose }) => (
   </div>
 ));
 
-function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTournamentNames }) {
+function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTournamentNames, voteHistory }) {
   const [currentRankings, setCurrentRankings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  // Convert vote history to bracket matches
+  const getBracketMatches = useCallback(() => {
+    if (!voteHistory || !voteHistory.length) return [];
+    
+    return voteHistory.map((vote, index) => ({
+      id: index + 1,
+      name1: vote.match.left.name,
+      name2: vote.match.right.name,
+      winner: vote.result < 0 ? -1 : vote.result > 0 ? 1 : 0
+    }));
+  }, [voteHistory]);
 
   // Memoized rankings processor
   const processRankings = useCallback((ratingsData) => {
@@ -123,6 +136,8 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
     );
   }
 
+  const bracketMatches = getBracketMatches();
+
   return (
     <div className="results-container">
       <header className="results-header">
@@ -140,6 +155,13 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
             value={currentRankings.length} 
           />
         </div>
+
+        {bracketMatches.length > 0 && (
+          <div className="tournament-bracket">
+            <h3>Tournament Bracket</h3>
+            <Bracket matches={bracketMatches} />
+          </div>
+        )}
 
         <RankingAdjustment
           rankings={currentRankings}

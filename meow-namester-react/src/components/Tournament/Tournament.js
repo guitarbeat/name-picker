@@ -49,7 +49,7 @@ const TournamentControls = ({ onEndEarly, isTransitioning }) => {
   );
 };
 
-function TournamentContent({ onComplete, existingRatings = {}, names = [], userName }) {
+function TournamentContent({ onComplete, existingRatings = {}, names = [], userName, onVote }) {
   const [selectedOption, setSelectedOption] = useState(null);
 
   const {
@@ -65,8 +65,22 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
 
   const handleVoteWithAnimation = useCallback((result) => {
     setSelectedOption(result);
+    
+    // Create vote data
+    const voteData = {
+      matchNumber: currentMatchNumber,
+      result: result === 'left' ? -1 : result === 'right' ? 1 : result === 'both' ? 0 : 2,
+      timestamp: Date.now(),
+      match: currentMatch
+    };
+    
+    // Call the onVote callback
+    if (onVote) {
+      onVote(voteData);
+    }
+    
     handleVote(result);
-  }, [handleVote]);
+  }, [handleVote, currentMatch, currentMatchNumber, onVote]);
 
   const handleEndEarly = useCallback(() => {
     const currentRatings = getCurrentRatings();

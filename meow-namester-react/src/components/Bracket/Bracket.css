@@ -1,0 +1,254 @@
+.bracket-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0.5rem;
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+}
+
+.bracket {
+  display: flex;
+  gap: 1.5rem;
+  min-width: min-content;
+  padding: 1rem;
+  position: relative;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  position: relative;
+}
+
+.round-header {
+  text-align: center;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.round-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--primary-color);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.round-matches {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.bracket-matches {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex: 1;
+}
+
+.bracket-match {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  margin: 0.5rem 0;
+}
+
+.match-content {
+  background: var(--card-background);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  z-index: 2;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.match-content:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.match-connector {
+  position: absolute;
+  right: -1.5rem;
+  top: 50%;
+  width: 1.5rem;
+  height: 2px;
+  z-index: 1;
+}
+
+.connector-line {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-color);
+  opacity: 0.3;
+}
+
+.connector-line::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  transform: translate(50%, -50%);
+}
+
+.bracket-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--surface-color);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.bracket-player:last-child {
+  margin-bottom: 0;
+}
+
+.bracket-player.winner {
+  border-color: var(--primary-color);
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
+.bracket-player.loser {
+  opacity: 0.7;
+}
+
+.player-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+
+.winner-badge, .tie-badge {
+  font-size: var(--text-xs);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  font-weight: 500;
+}
+
+.vs-divider {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0.25rem 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.vs-divider::before,
+.vs-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.vs-divider::before {
+  left: 0;
+}
+
+.vs-divider::after {
+  right: 0;
+}
+
+.bye {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.bye-text {
+  color: var(--text-secondary);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .match-content {
+    background: var(--card-background);
+  }
+
+  .bracket-player {
+    background: var(--surface-color);
+  }
+
+  .bracket-player.winner {
+    background: rgba(var(--primary-rgb), 0.15);
+    border-color: var(--primary-400);
+  }
+
+  .connector-line {
+    background: var(--primary-400);
+  }
+
+  .connector-line::after {
+    background: var(--primary-400);
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .bracket-round {
+    min-width: 180px;
+  }
+
+  .match-content {
+    padding: 0.5rem;
+  }
+
+  .bracket-player {
+    padding: 0.35rem;
+  }
+
+  .player-name {
+    font-size: var(--text-sm);
+  }
+
+  .winner-badge, .tie-badge {
+    font-size: var(--text-xs);
+    padding: 0.1rem 0.35rem;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bracket-match {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .bracket-match {
+    animation: none;
+  }
+
+  .match-content:hover {
+    transform: none;
+  }
+} 

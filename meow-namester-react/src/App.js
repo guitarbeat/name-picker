@@ -35,6 +35,7 @@ function App() {
   const [tournamentComplete, setTournamentComplete] = useState(false);
   const [tournamentNames, setTournamentNames] = useState(null);
   const [names, setNames] = useState([]);
+  const [voteHistory, setVoteHistory] = useState([]);
 
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
@@ -164,12 +165,18 @@ function App() {
   const handleStartNewTournament = () => {
     setTournamentComplete(false);
     setTournamentNames(null);
+    setVoteHistory([]);
     setView('tournament');
   };
 
   const handleTournamentSetup = (names) => {
     console.log('App - Setting up tournament with names:', names);
     setTournamentNames(names);
+  };
+
+  // Handle vote history updates
+  const handleVoteHistoryUpdate = (newVote) => {
+    setVoteHistory(prev => [...prev, newVote]);
   };
 
   // Simplified ratings update logic
@@ -259,6 +266,7 @@ function App() {
           userName={userName}
           onUpdateRatings={handleUpdateRatings}
           currentTournamentNames={tournamentNames}
+          voteHistory={voteHistory}
         />
       );
     }
@@ -279,6 +287,7 @@ function App() {
         existingRatings={ratings}
         onComplete={handleTournamentComplete}
         userName={userName}
+        onVote={handleVoteHistoryUpdate}
       />
     );
   };

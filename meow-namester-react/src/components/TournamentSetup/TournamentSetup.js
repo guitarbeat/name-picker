@@ -134,14 +134,32 @@ function useTournamentSetup(onStart) {
   const [selectedNames, setSelectedNames] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [enlargedImage, setEnlargedImage] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchNames = async () => {
       try {
+        setIsLoading(true);
+        setError(null);
+        
+        // This will automatically exclude hidden names
         const data = await getNamesWithDescriptions();
-        setAvailableNames(data || []);
+        
+        // Additional check to ensure we're not showing any hidden names
+        const { data: hiddenData } = await supabase
+          .from('hidden_names')
+          .select('name_id');
+        
+        const hiddenIds = new Set(hiddenData?.map(item => item.name_id) || []);
+        
+        // Filter out any hidden names that might have slipped through
+        const filteredData = data.filter(name => !hiddenIds.has(name.id));
+        
+        console.log('Available names after filtering:', filteredData);
+        setAvailableNames(filteredData || []);
       } catch (err) {
         console.error('Error fetching names:', err);
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }
@@ -168,6 +186,7 @@ function useTournamentSetup(onStart) {
     availableNames,
     selectedNames,
     isLoading,
+    error,
     enlargedImage,
     setEnlargedImage,
     toggleName,
@@ -180,6 +199,7 @@ function TournamentSetupContent({ onStart }) {
     availableNames,
     selectedNames,
     isLoading,
+    error,
     enlargedImage,
     setEnlargedImage,
     toggleName,
@@ -187,6 +207,24 @@ function TournamentSetupContent({ onStart }) {
   } = useTournamentSetup(onStart);
 
   if (isLoading) return <LoadingSpinner />;
+
+  if (error) {
+    return (
+      <div className="tournament-setup error-container">
+        <h2>Error Loading Names</h2>
+        <p className="error-message">{error}</p>
+      </div>
+    );
+  }
+
+  if (availableNames.length === 0) {
+    return (
+      <div className="tournament-setup empty-container">
+        <h2>No Names Available</h2>
+        <p className="empty-message">There are no names available for the tournament at this time.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="tournament-setup container">
