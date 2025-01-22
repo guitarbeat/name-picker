@@ -412,20 +412,6 @@ function Profile({ userName, onStartNewTournament }) {
     : 0;
   const totalMatches = currentRatings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
   
-  // Sort by rating first, then by most recent update
-  const topNames = [...currentRatings]
-    .sort((a, b) => {
-      // First sort by rating
-      const ratingDiff = (b.rating || 1500) - (a.rating || 1500);
-      if (ratingDiff !== 0) return ratingDiff;
-      
-      // If ratings are equal, sort by most recent update
-      const dateA = new Date(a.updated_at || 0);
-      const dateB = new Date(b.updated_at || 0);
-      return dateB - dateA;
-    })
-    .slice(0, 5);
-
   return (
     <div className="profile-container">
       <header className="profile-header">
@@ -434,165 +420,167 @@ function Profile({ userName, onStartNewTournament }) {
             <span className="profile-emoji">😺</span>
             {isAdmin ? 'Admin Dashboard' : `${userName}'s Profile`}
           </h2>
-          {isAdmin && (
-            <div className="admin-controls">
-              <div className="view-controls">
-                <button 
-                  className={`view-button ${viewMode === 'individual' ? 'active' : ''}`}
-                  onClick={() => setViewMode('individual')}
-                >
-                  Individual View
-                </button>
-                <button 
-                  className={`view-button ${viewMode === 'aggregated' ? 'active' : ''}`}
-                  onClick={() => setViewMode('aggregated')}
-                >
-                  Aggregated View
-                </button>
-              </div>
-              <button 
-                onClick={copyResultsToClipboard}
-                className="action-button secondary-button"
-                title="Copy ranked names to clipboard"
-              >
-                📋 Copy Results
-              </button>
-              <button 
-                onClick={() => {
-                  const sortedNames = [...currentRatings]
-                    .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
-                    .map((name, index) => `${index + 1}. ${name.name}`)
-                    .join('\n');
-
-                  const topName = currentRatings
-                    .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))[0]?.name || 'No names rated';
-
-                  const today = new Date();
-                  const formattedDate = today.toLocaleDateString('en-US', { 
-                    weekday: 'short', 
-                    month: 'short', 
-                    day: 'numeric' 
-                  });
-
-                  const text = `🐈‍⬛ ${topName}`;
-                  const details = `${formattedDate} Cat Name Rankings:\n\n${sortedNames}`;
-                  // Format dates for all-day event
-                  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-                  const tomorrow = new Date(today);
-                  tomorrow.setDate(tomorrow.getDate() + 1);
-                  const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
-                  const dates = `${dateStr}/${tomorrowStr}`;
-                  const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates}`;
-                  
-                  window.open(calendarUrl, '_blank');
-                }}
-                className="action-button secondary-button"
-                title="Add to Google Calendar"
-              >
-                📅 Add to Calendar
-              </button>
-              <button 
-                onClick={fetchAllUsersRatings} 
-                className="action-button secondary-button"
-              >
-                🔄 Refresh Data
-              </button>
-              {showCopyToast && (
-                <div className="toast success">
-                  Results copied to clipboard!
-                </div>
-              )}
-              {viewMode === 'individual' && (
-                <>
-                  <div className="user-switcher">
-                    <button
-                      className={`user-avatar ${selectedUser === userName ? 'active' : ''}`}
-                      onClick={() => setSelectedUser(userName)}
-                      title="Your Profile"
-                    >
-                      👤 You
-                    </button>
-                    {Object.keys(allUsersRatings)
-                      .filter(user => user !== userName)
-                      .sort()
-                      .map(user => (
-                        <button
-                          key={user}
-                          className={`user-avatar ${selectedUser === user ? 'active' : ''}`}
-                          onClick={() => setSelectedUser(user)}
-                          title={`View ${user}'s profile`}
-                        >
-                          👤 {user}
-                        </button>
-                      ))
-                    }
-                  </div>
-                  <div className="user-controls">
-                    {selectedUser !== userName && (
-                      <button
-                        onClick={() => {
-                          setUserToDelete(selectedUser);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="action-button danger-button"
-                        title="Delete this user's data"
-                      >
-                        🗑️ Delete User Data
-                      </button>
-                    )}
-                  </div>
-                </>
-              )}
-              {/* Delete Confirmation Modal */}
-              {showDeleteConfirm && (
-                <div className="modal-overlay">
-                  <div className="modal-content">
-                    <h3>⚠️ Delete User Data</h3>
-                    <p>Are you sure you want to delete all data for user <strong>{userToDelete}</strong>?</p>
-                    <p className="warning-text">This action cannot be undone!</p>
-                    
-                    {deleteStatus.error && (
-                      <div className="error-message">
-                        Error: {deleteStatus.error}
-                      </div>
-                    )}
-                    
-                    <div className="modal-actions">
-                      <button
-                        onClick={() => handleDeleteUser(userToDelete)}
-                        className="action-button danger-button"
-                        disabled={deleteStatus.loading}
-                      >
-                        {deleteStatus.loading ? 'Deleting...' : 'Yes, Delete User Data'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowDeleteConfirm(false);
-                          setUserToDelete(null);
-                          setDeleteStatus({ loading: false, error: null });
-                        }}
-                        className="action-button secondary-button"
-                        disabled={deleteStatus.loading}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
           {!isAdmin && (
             <p className="profile-subtitle">Cat Name Connoisseur</p>
           )}
         </div>
+
         <button 
           onClick={onStartNewTournament}
-          className="action-button primary-button"
+          className="start-tournament-button"
         >
           <span className="button-icon">🏆</span>
           Start New Tournament
         </button>
+
+        {isAdmin && (
+          <div className="admin-controls">
+            <div className="view-controls">
+              <button 
+                className={`view-button ${viewMode === 'individual' ? 'active' : ''}`}
+                onClick={() => setViewMode('individual')}
+              >
+                Individual View
+              </button>
+              <button 
+                className={`view-button ${viewMode === 'aggregated' ? 'active' : ''}`}
+                onClick={() => setViewMode('aggregated')}
+              >
+                Aggregated View
+              </button>
+            </div>
+            <button 
+              onClick={copyResultsToClipboard}
+              className="action-button secondary-button"
+              title="Copy ranked names to clipboard"
+            >
+              📋 Copy Results
+            </button>
+            <button 
+              onClick={() => {
+                const sortedNames = [...currentRatings]
+                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+                  .map((name, index) => `${index + 1}. ${name.name}`)
+                  .join('\n');
+
+                const topName = currentRatings
+                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))[0]?.name || 'No names rated';
+
+                const today = new Date();
+                const formattedDate = today.toLocaleDateString('en-US', { 
+                  weekday: 'short', 
+                  month: 'short', 
+                  day: 'numeric' 
+                });
+
+                const text = `🐈‍⬛ ${topName}`;
+                const details = `${formattedDate} Cat Name Rankings:\n\n${sortedNames}`;
+                // Format dates for all-day event
+                const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
+                const dates = `${dateStr}/${tomorrowStr}`;
+                const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates}`;
+                
+                window.open(calendarUrl, '_blank');
+              }}
+              className="action-button secondary-button"
+              title="Add to Google Calendar"
+            >
+              📅 Add to Calendar
+            </button>
+            <button 
+              onClick={fetchAllUsersRatings} 
+              className="action-button secondary-button"
+            >
+              🔄 Refresh Data
+            </button>
+            {showCopyToast && (
+              <div className="toast success">
+                Results copied to clipboard!
+              </div>
+            )}
+            {viewMode === 'individual' && (
+              <>
+                <div className="user-switcher">
+                  <button
+                    className={`user-avatar ${selectedUser === userName ? 'active' : ''}`}
+                    onClick={() => setSelectedUser(userName)}
+                    title="Your Profile"
+                  >
+                    👤 You
+                  </button>
+                  {Object.keys(allUsersRatings)
+                    .filter(user => user !== userName)
+                    .sort()
+                    .map(user => (
+                      <button
+                        key={user}
+                        className={`user-avatar ${selectedUser === user ? 'active' : ''}`}
+                        onClick={() => setSelectedUser(user)}
+                        title={`View ${user}'s profile`}
+                      >
+                        👤 {user}
+                      </button>
+                    ))
+                  }
+                </div>
+                <div className="user-controls">
+                  {selectedUser !== userName && (
+                    <button
+                      onClick={() => {
+                        setUserToDelete(selectedUser);
+                        setShowDeleteConfirm(true);
+                      }}
+                      className="action-button danger-button"
+                      title="Delete this user's data"
+                    >
+                      🗑️ Delete User Data
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+              <div className="modal-overlay">
+                <div className="modal-content">
+                  <h3>⚠️ Delete User Data</h3>
+                  <p>Are you sure you want to delete all data for user <strong>{userToDelete}</strong>?</p>
+                  <p className="warning-text">This action cannot be undone!</p>
+                  
+                  {deleteStatus.error && (
+                    <div className="error-message">
+                      Error: {deleteStatus.error}
+                    </div>
+                  )}
+                  
+                  <div className="modal-actions">
+                    <button
+                      onClick={() => handleDeleteUser(userToDelete)}
+                      className="action-button danger-button"
+                      disabled={deleteStatus.loading}
+                    >
+                      {deleteStatus.loading ? 'Deleting...' : 'Yes, Delete User Data'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setUserToDelete(null);
+                        setDeleteStatus({ loading: false, error: null });
+                      }}
+                      className="action-button secondary-button"
+                      disabled={deleteStatus.loading}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {viewMode === 'individual' ? (
@@ -618,35 +606,6 @@ function Profile({ userName, onStartNewTournament }) {
                 </div>
               </div>
             </div>
-
-            <div className="stat-card">
-              <h3>
-                <span className="card-icon">🏅</span>
-                Top 5 Names
-              </h3>
-              {topNames.length > 0 ? (
-                <ol className="top-names-list">
-                  {topNames.map((name, index) => (
-                    <li key={name.id} className="top-name-item">
-                      <div className="rank-badge">{index + 1}</div>
-                      <div className="name-details">
-                        <span className="name-text">{name.name}</span>
-                        <div className="name-stats">
-                          <span className="rating-badge">
-                            {Math.round(name.rating || 1500)}
-                          </span>
-                          <span className="record-text">
-                            W: {name.wins || 0} L: {name.losses || 0}
-                          </span>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="subtitle">No names rated yet</p>
-              )}
-            </div>
           </div>
 
           <div className="ratings-sections">
@@ -657,10 +616,12 @@ function Profile({ userName, onStartNewTournament }) {
               </h3>
               <div className="ratings-grid">
                 {currentRatings
+                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
                   .filter(name => !hiddenNames.has(name.id))
-                  .map(name => (
+                  .map((name, index) => (
                     <div key={name.id} className="rating-card">
                       <div className="rating-card-header">
+                        <div className="name-rank">#{index + 1}</div>
                         <h4 className="name">{name.name}</h4>
                         <button
                           onClick={() => handleToggleNameVisibility(name.id, name.name)}
@@ -675,27 +636,21 @@ function Profile({ userName, onStartNewTournament }) {
                           </span>
                         </button>
                       </div>
-                      <div className="stats">
-                        <div className="stat">
-                          <span className="stat-number">{Math.round(name.rating || 1500)}</span>
-                          <span className="stat-text">Rating</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-number">{name.wins || 0}</span>
-                          <span className="stat-text">Wins</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-number">{name.losses || 0}</span>
-                          <span className="stat-text">Losses</span>
+                      <div className="rating-info">
+                        <div className="rating-value">Rating: {Math.round(name.rating || 1500)}</div>
+                        <div className="record">
+                          <span className="wins">🏆 Wins: {name.wins || 0}</span>
+                          <span className="losses">❌ Losses: {name.losses || 0}</span>
                         </div>
                       </div>
-                      <div className="timestamps">
-                        <div className="timestamp">
-                          <span className="timestamp-label">Last Updated:</span>
-                          <span className="timestamp-value">
-                            {console.log('Updated at:', name.updated_at) /* Debug log */}
-                            {formatDate(name.updated_at)}
-                          </span>
+                      <div className="rating-card-actions">
+                        <div className="timestamps">
+                          <div className="timestamp">
+                            <span className="timestamp-label">Last Updated:</span>
+                            <span className="timestamp-value">
+                              {formatDate(name.updated_at)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -741,27 +696,21 @@ function Profile({ userName, onStartNewTournament }) {
                             </button>
                           </div>
                         </div>
-                        <div className="stats">
-                          <div className="stat">
-                            <span className="stat-number">{Math.round(name.rating || 1500)}</span>
-                            <span className="stat-text">Rating</span>
-                          </div>
-                          <div className="stat">
-                            <span className="stat-number">{name.wins || 0}</span>
-                            <span className="stat-text">Wins</span>
-                          </div>
-                          <div className="stat">
-                            <span className="stat-number">{name.losses || 0}</span>
-                            <span className="stat-text">Losses</span>
+                        <div className="rating-info">
+                          <div className="rating-value">Rating: {Math.round(name.rating || 1500)}</div>
+                          <div className="record">
+                            <span className="wins">🏆 Wins: {name.wins || 0}</span>
+                            <span className="losses">❌ Losses: {name.losses || 0}</span>
                           </div>
                         </div>
-                        <div className="timestamps">
-                          <div className="timestamp">
-                            <span className="timestamp-label">Last Updated:</span>
-                            <span className="timestamp-value">
-                              {console.log('Updated at:', name.updated_at) /* Debug log */}
-                              {formatDate(name.updated_at)}
-                            </span>
+                        <div className="rating-card-actions">
+                          <div className="timestamps">
+                            <div className="timestamp">
+                              <span className="timestamp-label">Last Updated:</span>
+                              <span className="timestamp-value">
+                                {formatDate(name.updated_at)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         <div className="hidden-status">

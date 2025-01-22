@@ -38,24 +38,38 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
   const getBracketMatches = useCallback(() => {
     if (!voteHistory || !voteHistory.length) return [];
     
-    return voteHistory.map((vote, index) => ({
-      id: index + 1,
-      name1: vote.match.left.name,
-      name2: vote.match.right.name,
-      winner: vote.result < 0 ? -1 : vote.result > 0 ? 1 : 0
-    }));
-  }, [voteHistory]);
+    // Filter to only include matches from the current tournament
+    const tournamentNameSet = new Set(currentTournamentNames?.map(n => n.name) || []);
+    
+    return voteHistory
+      .filter(vote => 
+        tournamentNameSet.has(vote.match.left.name) && 
+        tournamentNameSet.has(vote.match.right.name)
+      )
+      .map((vote, index) => ({
+        id: index + 1,
+        name1: vote.match.left.name,
+        name2: vote.match.right.name,
+        winner: vote.result < 0 ? -1 : vote.result > 0 ? 1 : 0
+      }));
+  }, [voteHistory, currentTournamentNames]);
 
   // Memoized rankings processor
   const processRankings = useCallback((ratingsData) => {
+    // Filter to only include names from the current tournament
+    const tournamentNameSet = new Set(currentTournamentNames?.map(n => n.name) || []);
+    
     return Object.entries(ratingsData || {})
+      .filter(([name]) => tournamentNameSet.has(name))
       .map(([name, rating]) => ({
         name,
-        rating: Math.round(typeof rating === 'number' ? rating : 1500),
+        rating: Math.round(typeof rating === 'number' ? rating : rating?.rating || 1500),
+        wins: typeof rating === 'object' ? rating.wins || 0 : 0,
+        losses: typeof rating === 'object' ? rating.losses || 0 : 0,
         change: 0
       }))
       .sort((a, b) => b.rating - a.rating);
-  }, []);
+  }, [currentTournamentNames]);
 
   useEffect(() => {
     try {
@@ -88,8 +102,7 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
       const newRatings = updatedRankings.map(({ name, rating }) => {
         const existingRating = ratings[name];
         return {
-          name_id: existingRating?.name_id,
-          name: name,
+          name,
           rating: Math.round(rating),
           wins: existingRating?.wins || 0,
           losses: existingRating?.losses || 0
@@ -127,6 +140,36 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
     }
   }, [toast.show, closeToast]);
 
+  useEffect(() => {
+    // Add cool effects to the results header
+    const header = document.querySelector('.results-header');
+    if (header && window.vfx) {
+      window.vfx.add(header, { shader: "wave", frequency: 2, amplitude: 0.01 });
+    }
+
+    // Add glitch effect to stats cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+      if (window.vfx) {
+        window.vfx.add(card, { shader: "glitch", intensity: 0.2 });
+      }
+    });
+
+    // Add RGB shift to the tournament bracket
+    const bracket = document.querySelector('.tournament-bracket');
+    if (bracket && window.vfx) {
+      window.vfx.add(bracket, { shader: "rgbShift", intensity: 0.3 });
+    }
+
+    return () => {
+      if (window.vfx) {
+        if (header) window.vfx.remove(header);
+        statCards.forEach(card => window.vfx.remove(card));
+        if (bracket) window.vfx.remove(bracket);
+      }
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className="results-loading" role="status" aria-label="Loading rankings">
@@ -155,13 +198,6 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
             value={currentRankings.length} 
           />
         </div>
-
-        {bracketMatches.length > 0 && (
-          <div className="tournament-bracket">
-            <h3>Tournament Bracket</h3>
-            <Bracket matches={bracketMatches} />
-          </div>
-        )}
 
         <RankingAdjustment
           rankings={currentRankings}
@@ -192,6 +228,13 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
             Starting a new tournament will let you rate more names while keeping your current rankings.
           </p>
         </div>
+
+        {bracketMatches.length > 0 && (
+          <div className="tournament-bracket">
+            <h3>Tournament Bracket</h3>
+            <Bracket matches={bracketMatches} />
+          </div>
+        )}
       </div>
 
       {toast.show && (

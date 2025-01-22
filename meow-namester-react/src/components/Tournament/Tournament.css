@@ -1,7 +1,11 @@
 .tournament {
-  max-width: 1200px;
-  padding: 2rem;
+  position: relative;
+  width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: var(--space-4);
+  animation: slideIn var(--duration-normal) var(--ease-out-expo);
+  z-index: var(--z-modal);
 }
 
 .progress-info {
@@ -12,6 +16,22 @@
   border: 1px solid rgb(139 92 246 / 10%);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-info::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    var(--primary-color) var(--progress-percentage, 0%), 
+    transparent var(--progress-percentage, 0%)
+  );
+  transition: --progress-percentage 0.5s var(--ease-out-expo);
 }
 
 .round-info {
@@ -78,10 +98,12 @@
 
 .tournament-controls {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
   align-items: center;
+  justify-content: center;
   margin: 2rem 0;
+  transition: opacity var(--duration-normal) var(--ease-out-expo);
 }
 
 .pause-button,
@@ -98,7 +120,7 @@
   cursor: pointer;
   border: none;
   border-radius: var(--radius-md);
-  transition: all var(--transition-normal);
+  transition: all var(--duration-normal) var(--ease-elastic);
 }
 
 .pause-button {
@@ -124,55 +146,111 @@
 }
 
 .end-early-confirmation {
-  padding: 2rem;
-  margin: 2rem 0;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: var(--z-modal);
+  width: 90%;
+  max-width: 400px;
+  padding: 1.5rem;
+  margin: 0;
   text-align: center;
-  background: var(--surface-color);
+  background: var(--card-background);
   border: 2px solid var(--error-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
+  transform: translate(-50%, -50%);
+  animation: slideIn var(--duration-normal) var(--ease-out-expo);
+  backdrop-filter: blur(8px);
+}
+
+.end-early-confirmation::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: '';
+  background: rgb(0 0 0 / 50%);
 }
 
 .end-early-confirmation p {
-  margin-bottom: 1.5rem;
-  font-size: 1.1rem;
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
   color: var(--text-primary);
 }
 
+.end-early-confirmation button {
+  min-width: 120px;
+  padding: 0.75rem 1.25rem;
+  margin: 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
 .confirm-end-button {
-  margin-right: 1rem;
   color: white;
   background: var(--error-color);
+  border: none;
 }
 
 .confirm-end-button:hover {
   filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .cancel-end-button {
-  color: white;
-  background: var(--text-secondary);
+  color: var(--text-primary);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
 }
 
 .cancel-end-button:hover {
-  filter: brightness(1.1);
+  background: var(--card-hover);
+  transform: translateY(-1px);
+}
+
+.sound-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-full);
+  transition: all var(--duration-normal) var(--ease-elastic);
+}
+
+.sound-toggle-button:hover {
+  background: var(--card-hover);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+}
+
+.sound-toggle-button.muted {
+  color: var(--error-500);
+  border-color: var(--error-500);
+}
+
+.sound-toggle-button:active,
+.end-early-button:active {
+  transform: scale(0.95);
 }
 
 .matchup {
-  margin: clamp(1rem, 4vw, 2rem) 0;
-  animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  position: relative;
+  transition: transform var(--duration-normal) var(--ease-elastic);
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0; 
-    transform: translateY(30px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.matchup:hover {
+  transform: scale(1.02);
 }
 
 .names-row {
@@ -192,6 +270,20 @@
   justify-content: center;
   width: 100%;
   text-align: center;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.name-container.left {
+  transform-origin: right center;
+}
+
+.name-container.right {
+  transform-origin: left center;
+}
+
+.name-container:hover {
+  transform: scale(1.05);
+  z-index: var(--z-elevate);
 }
 
 /* Tournament-specific name card styles that override the hover behavior */
@@ -288,6 +380,7 @@
   box-shadow: 
     0 0 0 1px var(--primary-200),
     var(--shadow-sm);
+  animation: float 3s ease-in-out infinite;
 }
 
 .vs-section::before {
@@ -298,6 +391,18 @@
   background: linear-gradient(135deg, var(--primary-200), transparent);
   border-radius: inherit;
   opacity: 0.5;
+}
+
+.vs-text {
+  font-size: var(--text-xl);
+  font-weight: bold;
+  color: var(--primary-color);
+  text-shadow: 0 2px 4px var(--shadow-color-light);
+  transition: all var(--duration-normal) var(--ease-elastic);
+}
+
+.vs-text:hover {
+  transform: scale(1.2) rotate(5deg);
 }
 
 .center-options {
@@ -322,20 +427,26 @@
   background: var(--surface-color);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-md);
-  transition: all var(--transition-normal);
+  transition: all var(--duration-normal) var(--ease-elastic);
+  transform-origin: center;
 }
 
 .extra-options-button:hover:not(:disabled) {
   color: var(--primary-color);
   border-color: var(--primary-color);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: scale(1.1);
+}
+
+.extra-options-button:active:not(:disabled) {
+  transform: scale(0.95);
 }
 
 .extra-options-button.selected {
   color: white;
   background: var(--primary-color);
   border-color: var(--primary-color);
+  animation: pulse 0.5s var(--ease-elastic);
 }
 
 .tournament-instructions {
@@ -347,6 +458,13 @@
   background: var(--surface-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.tournament-instructions:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 2px 4px var(--shadow-color-light);
 }
 
 .keyboard-hints {
@@ -355,6 +473,12 @@
   gap: 2rem;
   justify-content: center;
   margin-top: 1rem;
+  opacity: 0.7;
+  transition: opacity var(--duration-normal) var(--ease-out-expo);
+}
+
+.keyboard-hints:hover {
+  opacity: 1;
 }
 
 .keyboard-hint {
@@ -409,7 +533,7 @@
 /* Mobile Optimizations */
 @media (width <= 768px) {
   .tournament {
-    padding: 1rem;
+    padding: var(--space-3);
   }
 
   .names-row {
@@ -448,6 +572,17 @@
     flex-direction: column;
     gap: 0.5rem;
     align-items: center;
+  }
+
+  .end-early-confirmation {
+    width: 95%;
+    padding: 1.25rem;
+  }
+
+  .end-early-confirmation button {
+    width: calc(50% - 1rem);
+    min-width: unset;
+    margin: 0.25rem;
   }
 }
 
@@ -488,6 +623,15 @@
     transition: none;
     animation: none;
   }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {
@@ -518,4 +662,62 @@ p, span, a, li {
   --surface-color: #1f2937;
   --card-background: #1e293b;
   --card-border: #334155;
+}
+
+.tournament-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: var(--space-6) 0;
+}
+
+.bracket-view {
+  max-height: 300px;
+  padding: var(--space-4);
+  margin-top: var(--space-8);
+  overflow-y: auto;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.9);
+  transform-origin: top center;
+  transition: transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.bracket-view:hover {
+  transform: scale(1.02);
+}
+
+/* Responsive adjustments */
+@media (width <= 1024px) {
+  .bracket-view {
+    max-height: 250px;
+    transform: scale(0.85);
+  }
+}
+
+@media (width <= 768px) {
+  .tournament {
+    padding: var(--space-3);
+  }
+
+  .tournament-layout {
+    gap: var(--space-4);
+    margin: var(--space-4) 0;
+  }
+
+  .bracket-view {
+    max-height: 200px;
+    padding: var(--space-3);
+    transform: scale(0.8);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .bracket-view {
+    background: var(--card-background);
+    border-color: var(--card-border);
+  }
 }

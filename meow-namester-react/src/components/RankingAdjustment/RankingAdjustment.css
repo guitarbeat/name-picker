@@ -1,21 +1,36 @@
 .ranking-adjustment {
   max-width: 800px;
-  padding: var(--space-4);
+  padding: var(--space-6);
   margin: 0 auto;
+  animation: fadeScale var(--duration-normal) var(--ease-out-expo);
+  position: relative;
+  z-index: var(--z-modal);
+  background: var(--surface-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
 }
 
 .ranking-header {
   position: relative;
   margin-bottom: var(--space-8);
   text-align: center;
+  padding: var(--space-6);
+  background: linear-gradient(
+    135deg,
+    var(--primary-600) 0%,
+    var(--primary-700) 100%
+  );
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
 }
 
 .ranking-header h2 {
   margin-bottom: var(--space-2);
   font-family: var(--font-serif);
   font-size: var(--text-4xl);
-  color: var(--text-primary);
+  color: white;
   text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .instructions-card {
@@ -24,11 +39,12 @@
   gap: var(--space-6);
   align-items: center;
   padding: var(--space-6);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
   background: var(--card-background);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--primary-200);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
 .instructions-card::before {
@@ -56,6 +72,7 @@
   background: var(--primary-light);
   border: 2px solid var(--primary-color);
   border-radius: var(--radius-lg);
+  animation: float 3s ease-in-out infinite;
 }
 
 .instruction-text {
@@ -77,6 +94,19 @@
 }
 
 @media (width <= 768px) {
+  .ranking-adjustment {
+    padding: var(--space-4);
+  }
+
+  .ranking-header {
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+
+  .ranking-header h2 {
+    font-size: var(--text-3xl);
+  }
+
   .instructions-card {
     flex-direction: column;
     gap: var(--space-4);
@@ -84,13 +114,9 @@
     text-align: center;
   }
 
-  .instruction-icon {
-    margin: 0 auto;
-  }
-
   .ranking-card {
     grid-template-columns: 60px 1fr auto;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3);
   }
 
   .rank-badge {
@@ -101,51 +127,57 @@
 }
 
 .rankings-grid {
-  overflow: hidden;
   background: var(--card-background);
-  border: 1px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
 }
 
 .rankings-header {
   display: grid;
   grid-template-columns: 80px 1fr 120px;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  background: var(--card-background);
+  border-bottom: 2px solid var(--card-border);
   font-weight: 600;
   color: var(--text-primary);
-  background: var(--surface-color);
-  border-bottom: 1px solid var(--border-color);
 }
 
-.rankings-list {
-  display: grid;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .rankings-header {
+    background: var(--primary-600);
+    border-bottom-color: var(--primary-700);
+    color: white;
+  }
 }
 
 .ranking-card {
   display: grid;
-  grid-template-columns: 80px 1fr 50px;
-  align-items: center;
-  padding: var(--space-3) var(--space-4);
+  grid-template-columns: 80px 1fr 120px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   margin: var(--space-2);
-  background: var(--card-background);
+  background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  transition: all 0.2s ease;
+  transition: all var(--duration-normal) var(--ease-elastic);
+  cursor: grab;
 }
 
 .ranking-card:hover {
-  background: var(--card-hover);
-  border-color: var(--primary-color);
+  transform: scale(1.02);
+  background: var(--primary-50);
+  border-color: var(--primary-400);
+  box-shadow: var(--shadow-md);
 }
 
 .ranking-card.dragging {
-  background: var(--surface-color);
-  border-color: var(--primary-color);
-  box-shadow: 
-    0 0 0 2px var(--primary-light),
-    0 8px 16px -4px var(--shadow-color-strong);
+  background: var(--primary-100);
+  box-shadow: var(--shadow-lg);
+  transform: scale(1.05);
+  z-index: var(--z-elevate);
 }
 
 .rank-badge {
@@ -154,64 +186,63 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
   font-weight: 600;
-  color: var(--primary-color);
-  background: var(--primary-light);
-  border: 2px solid var(--primary-color);
-  border-radius: 50%;
+  color: var(--primary-700);
+  background: var(--primary-100);
+  border: 2px solid var(--primary-300);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-normal) var(--ease-elastic);
+}
+
+.ranking-card:hover .rank-badge {
+  transform: scale(1.1) rotate(-5deg);
+  background: var(--primary-200);
+  box-shadow: var(--shadow-md);
 }
 
 .card-content {
   display: flex;
-  flex: 1;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-.card-content .name {
-  margin: 0;
-  font-size: 1.2rem;
+.name {
+  font-size: var(--text-xl);
+  font-weight: 600;
   color: var(--text-primary);
+  margin: 0;
 }
 
-.card-content .stats {
+.stats {
   display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
-.card-content .stats .rating {
+.stats .rating {
+  font-weight: 600;
+  color: var(--primary-500);
+}
+
+.stats .record {
   font-weight: 500;
-  color: var(--primary-color);
-}
-
-.card-content .stats .record {
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.rating {
-  composes: rating-base;
-  margin-top: var(--space-1);
-  color: var(--text-secondary);
 }
 
 .drag-handle {
-  color: var(--text-tertiary);
-  cursor: grab;
-  opacity: 0.7;
-  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: all var(--duration-normal) var(--ease-out-expo);
 }
 
-.drag-handle:hover {
-  color: var(--primary-color);
+.ranking-card:hover .drag-handle {
   opacity: 1;
-}
-
-.dragging .drag-handle {
-  cursor: grabbing;
+  color: var(--primary-500);
 }
 
 .adjustment-controls {
@@ -230,15 +261,154 @@
 }
 
 .save-status {
-  composes: status-info status-floating;
-  background: var(--card-background);
-  border: 1px solid var(--primary-color);
-  box-shadow: 
-    0 0 0 1px var(--primary-light),
-    0 4px 6px -1px var(--shadow-color);
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  animation: slideInFromRight var(--duration-normal) var(--ease-out-expo);
+}
+
+.save-status.saving {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.save-status.success {
+  background: var(--success-100);
+  color: var(--success-700);
+  animation: glow 2s var(--ease-out-expo);
 }
 
 .save-status.error {
-  composes: status-error status-floating;
-  border-color: var(--error-500);
+  background: var(--error-100);
+  color: var(--error-700);
+}
+
+/* Base animations */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--primary-color);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--primary-color);
+  }
+}
+
+/* Instructions card animations */
+.instructions-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Back button animations */
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-elastic);
+}
+
+.back-button:hover {
+  color: var(--primary-color);
+  transform: translateX(-5px);
+}
+
+.back-button svg {
+  transition: transform var(--duration-normal) var(--ease-elastic);
+}
+
+.back-button:hover svg {
+  transform: translateX(-5px);
+}
+
+/* Responsive animations */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes fadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .ranking-card:hover {
+    background: rgba(var(--primary-rgb), 0.15);
+    border-color: var(--primary-400);
+  }
+
+  .ranking-card.dragging {
+    background: rgba(var(--primary-rgb), 0.2);
+    border-color: var(--primary-300);
+  }
+
+  .rank-badge {
+    background: rgba(var(--primary-rgb), 0.2);
+    color: var(--primary-300);
+    border-color: var(--primary-400);
+  }
+
+  .ranking-card:hover .rank-badge {
+    background: rgba(var(--primary-rgb), 0.3);
+    color: var(--primary-200);
+    border-color: var(--primary-300);
+  }
+
+  .stats .rating {
+    color: var(--primary-300);
+  }
+
+  .ranking-card:hover .drag-handle {
+    color: var(--primary-300);
+  }
+
+  .ranking-header {
+    background: linear-gradient(
+      135deg,
+      var(--primary-600) 0%,
+      var(--primary-800) 100%
+    );
+    box-shadow: 
+      0 0 0 1px var(--primary-400),
+      var(--shadow-lg),
+      0 0 20px rgba(var(--primary-rgb), 0.3);
+  }
+
+  .ranking-header h2 {
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  }
 } 

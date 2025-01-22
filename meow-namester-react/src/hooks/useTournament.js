@@ -19,12 +19,23 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     const ratingsArray = names.map(name => {
       const existingData = typeof currentRatings[name.name] === 'object'
         ? currentRatings[name.name]
-        : { rating: currentRatings[name.name] || 1500, matches: 0 };
+        : { rating: currentRatings[name.name] || 1500, wins: 0, losses: 0 };
 
       const totalNames = names.length;
       const position = voteHistory.filter(vote => 
-        (vote.match.left.name === name.name && vote.result < 0) ||
-        (vote.match.right.name === name.name && vote.result > 0)
+        (vote.match.left.name === name.name && vote.result === 'left') ||
+        (vote.match.right.name === name.name && vote.result === 'right')
+      ).length;
+
+      // Count wins and losses from vote history
+      const wins = voteHistory.filter(vote => 
+        (vote.match.left.name === name.name && vote.result === 'left') ||
+        (vote.match.right.name === name.name && vote.result === 'right')
+      ).length;
+
+      const losses = voteHistory.filter(vote => 
+        (vote.match.left.name === name.name && vote.result === 'right') ||
+        (vote.match.right.name === name.name && vote.result === 'left')
       ).length;
 
       const ratingSpread = Math.min(1000, totalNames * 25);
@@ -44,6 +55,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       return {
         name: name.name,
         rating: finalRating,
+        wins: existingData.wins + wins,
+        losses: existingData.losses + losses,
         confidence: (matchesPlayed / maxMatches)
       };
     });
@@ -63,7 +76,9 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     setSorter(newSorter);
     
     const n = names.length;
-    const estimatedMatches = Math.ceil(n * Math.log2(n));
+    // For 2 names, we only need 1 match
+    const estimatedMatches = n === 2 ? 1 : Math.ceil((n * (n - 1)) / 2);
+    console.log(`Tournament setup: ${n} names, ${estimatedMatches} matches`);
     setTotalMatches(estimatedMatches);
     setCurrentMatchNumber(1);
     setRoundNumber(1);
@@ -97,7 +112,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       const ratingsArray = sortedResults.map((name, index) => {
         const existingData = typeof existingRatings[name] === 'object'
           ? existingRatings[name]
-          : { rating: existingRatings[name] || 1500, matches: 0 };
+          : { rating: existingRatings[name] || 1500, wins: 0, losses: 0 };
 
         const totalNames = sortedResults.length;
         const position = index;
@@ -118,6 +133,8 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         return {
           name,
           rating: finalRating,
+          wins: existingData.wins,
+          losses: existingData.losses,
           confidence: (matchesPlayed / maxMatches)
         };
       });
@@ -161,9 +178,12 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     
     const voteData = {
       matchNumber: currentMatchNumber,
-      result: voteValue,
+      result: voteValue, // Store the numeric result
       timestamp: Date.now(),
-      match: currentMatch
+      match: {
+        left: currentMatch.left,
+        right: currentMatch.right
+      }
     };
 
     setVoteHistory(prev => [...prev, voteData]);
@@ -172,16 +192,29 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     localStorage.setItem('lastVote', JSON.stringify(voteData));
 
     resolveVote(voteValue);
+    
+    // Check if this was the last match
+    if (currentMatchNumber >= totalMatches) {
+      console.log('Tournament complete:', { currentMatchNumber, totalMatches });
+      const finalRatings = getCurrentRatings();
+      onComplete(finalRatings);
+      return;
+    }
+
     setCurrentMatchNumber(prev => prev + 1);
     
-    if (currentMatchNumber % Math.ceil(names.length / 2) === 0) {
-      setRoundNumber(prev => prev + 1);
+    // For 2 names, we stay in round 1
+    if (names.length > 2) {
+      const matchesPerRound = Math.ceil(names.length / 2);
+      if (currentMatchNumber % matchesPerRound === 0) {
+        setRoundNumber(prev => prev + 1);
+      }
     }
     
     setTimeout(() => {
       setIsTransitioning(false);
     }, 500);
-  }, [resolveVote, isTransitioning, currentMatchNumber, names.length, currentMatch]);
+  }, [resolveVote, isTransitioning, currentMatchNumber, totalMatches, names.length, currentMatch, onComplete, getCurrentRatings]);
 
   const handleUndo = useCallback(() => {
     if (isTransitioning || !canUndo || voteHistory.length === 0) return;

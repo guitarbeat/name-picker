@@ -17,7 +17,31 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
   };
 
   useEffect(() => {
-    setItems(rankings); // Update items when rankings prop changes
+    // Sort rankings by rating first, then by win percentage if ratings are equal
+    const sortedRankings = [...rankings].sort((a, b) => {
+      // Calculate win percentages
+      const aWinPercent = (a.wins || 0) / (Math.max((a.wins || 0) + (a.losses || 0), 1));
+      const bWinPercent = (b.wins || 0) / (Math.max((b.wins || 0) + (b.losses || 0), 1));
+      
+      // If ratings differ by more than 10 points, sort by rating
+      if (Math.abs(a.rating - b.rating) > 10) {
+        return b.rating - a.rating;
+      }
+      
+      // If ratings are close, sort by win percentage first
+      if (aWinPercent !== bWinPercent) {
+        return bWinPercent - aWinPercent;
+      }
+      
+      // If win percentages are equal, sort by total wins
+      if ((a.wins || 0) !== (b.wins || 0)) {
+        return (b.wins || 0) - (a.wins || 0);
+      }
+      
+      // Finally, sort by rating
+      return b.rating - a.rating;
+    });
+    setItems(sortedRankings);
   }, [rankings]);
 
   useEffect(() => {
@@ -51,16 +75,19 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
     const [reorderedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, reorderedItem);
 
-    // Enhanced rating calculation with smoother distribution while preserving wins/losses
-    const adjustedItems = newItems.map((item, index) => ({
-      ...item,
-      rating: Math.round(
-        1000 + (1000 * (newItems.length - index)) / newItems.length
-      ),
-      // Preserve wins and losses from the original item
-      wins: item.wins || 0,
-      losses: item.losses || 0
-    }));
+    // Enhanced rating calculation with better wins/losses preservation
+    const adjustedItems = newItems.map((item, index) => {
+      const originalItem = items.find(original => original.name === item.name);
+      return {
+        ...item,
+        rating: Math.round(
+          1000 + (1000 * (newItems.length - index)) / newItems.length
+        ),
+        // Explicitly preserve wins and losses from the original item
+        wins: originalItem?.wins ?? 0,
+        losses: originalItem?.losses ?? 0
+      };
+    });
 
     setItems(adjustedItems);
   };

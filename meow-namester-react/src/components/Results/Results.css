@@ -3,6 +3,8 @@
   max-width: 1024px;
   padding: var(--space-4);
   margin: 0 auto;
+  position: relative;
+  z-index: var(--z-modal);
 }
 
 .results-header {

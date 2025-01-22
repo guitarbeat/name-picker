@@ -24,6 +24,7 @@ import {
   TournamentSetup,
   NameSuggestion  // Add this import
 } from './components';
+import Sidebar from './components/Sidebar/Sidebar';
 import useUserSession from './hooks/useUserSession';
 import useSupabaseStorage from './supabase/useSupabaseStorage';
 import { supabase, getNamesWithDescriptions } from './supabase/supabaseClient';
@@ -36,6 +37,7 @@ function App() {
   const [tournamentNames, setTournamentNames] = useState(null);
   const [names, setNames] = useState([]);
   const [voteHistory, setVoteHistory] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
@@ -82,66 +84,51 @@ function App() {
 
       console.log('Starting tournament completion for user:', userName);
       console.log('Final vote history:', voteHistory);
+      console.log('Final ratings:', finalRatings);
 
       // Convert finalRatings to array if it's an object
       const ratingsArray = Array.isArray(finalRatings) 
         ? finalRatings 
         : Object.entries(finalRatings).map(([name, rating]) => ({ name, rating }));
 
-      // Initialize win/loss counters for this tournament
+      // Initialize tournament results for all names
       const tournamentResults = {};
+      ratingsArray.forEach(rating => {
+        tournamentResults[rating.name] = { wins: 0, losses: 0 };
+      });
       
+      // Process vote history to count wins and losses
       voteHistory.forEach(vote => {
-        console.log('Processing vote:', vote);  // Add debug log for each vote
         const { match, result } = vote;
         const { left, right } = match;
         
-        // Initialize if not exists
+        // Initialize if not exists (safety check)
         if (!tournamentResults[left.name]) tournamentResults[left.name] = { wins: 0, losses: 0 };
         if (!tournamentResults[right.name]) tournamentResults[right.name] = { wins: 0, losses: 0 };
         
-        // Update based on result (using string values from Tournament.js)
-        if (result === 'left') {
+        // Update based on numeric result
+        if (result < -0.1) {  // left won (using threshold to account for floating point)
           tournamentResults[left.name].wins++;
           tournamentResults[right.name].losses++;
-        } else if (result === 'right') {
+        } else if (result > 0.1) {  // right won
           tournamentResults[right.name].wins++;
           tournamentResults[left.name].losses++;
         }
+        // For values near 0 (both/none), we don't update wins/losses
       });
 
-      console.log('Tournament results:', tournamentResults);  // Debug log
-
-      // Merge new ratings with existing ones, adding new wins/losses
-      const updatedRatings = { ...ratings };
-      ratingsArray.forEach(({ name, rating }) => {
-        const existingRating = typeof updatedRatings[name] === 'object'
-          ? updatedRatings[name]
-          : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };
-
-        const tournamentStats = tournamentResults[name] || { wins: 0, losses: 0 };
-
-        updatedRatings[name] = {
-          rating: Math.round(rating),
-          wins: (existingRating.wins || 0) + tournamentStats.wins,
-          losses: (existingRating.losses || 0) + tournamentStats.losses
-        };
-      });
-
-      console.log('Fetching name_ids for:', Object.keys(updatedRatings));
+      console.log('Tournament results:', tournamentResults);
 
       // Get name_ids from name_options table
       const { data: nameOptions, error: nameError } = await supabase
         .from('name_options')
         .select('id, name')
-        .in('name', Object.keys(updatedRatings));
+        .in('name', Object.keys(tournamentResults));
 
       if (nameError) {
         console.error('Error fetching name options:', nameError);
         return;
       }
-
-      console.log('Retrieved name options:', nameOptions);
 
       // Create a map of name to name_id
       const nameToIdMap = nameOptions.reduce((acc, { id, name }) => {
@@ -149,23 +136,29 @@ function App() {
         return acc;
       }, {});
 
-      // Prepare records for database
-      const recordsToUpsert = Object.entries(updatedRatings)
-        .map(([name, data]) => {
+      // Prepare records for database update
+      const recordsToUpsert = Object.entries(tournamentResults)
+        .map(([name, results]) => {
           const name_id = nameToIdMap[name];
           if (!name_id) {
             console.warn(`No name_id found for ${name}`);
             return null;
           }
-          const timestamp = new Date().toISOString();
-          console.log(`Setting timestamp for ${name}:`, timestamp); // Debug log
+
+          // Get the final rating for this name
+          const finalRating = ratingsArray.find(r => r.name === name)?.rating || 1500;
+          
+          // Get existing rating data
+          const existingRating = ratings[name] || { wins: 0, losses: 0 };
+
           return {
             user_name: userName,
             name_id,
-            rating: data.rating,
-            wins: data.wins,
-            losses: data.losses,
-            updated_at: timestamp
+            rating: Math.round(finalRating),
+            // Add new wins/losses to existing totals
+            wins: (existingRating.wins || 0) + results.wins,
+            losses: (existingRating.losses || 0) + results.losses,
+            updated_at: new Date().toISOString()
           };
         })
         .filter(Boolean);
@@ -173,7 +166,6 @@ function App() {
       console.log('Prepared records for upsert:', recordsToUpsert);
 
       if (recordsToUpsert.length > 0) {
-        // Update ratings directly without checking user
         const { error: upsertError } = await supabase
           .from('cat_name_ratings')
           .upsert(recordsToUpsert, {
@@ -187,17 +179,27 @@ function App() {
         }
 
         console.log('Successfully updated ratings');
+        
+        // Update local state with new ratings
+        const updatedRatings = { ...ratings };
+        recordsToUpsert.forEach(record => {
+          const name = nameOptions.find(opt => opt.id === record.name_id)?.name;
+          if (name) {
+            updatedRatings[name] = {
+              rating: record.rating,
+              wins: record.wins,
+              losses: record.losses
+            };
+          }
+        });
+        
+        setRatings(updatedRatings);
       }
 
-      // Update local state
-      setRatings(updatedRatings);
+      // Set tournament as complete
       setTournamentComplete(true);
-      
-      // Only reset vote history after we've processed everything
-      setVoteHistory([]);
-
     } catch (error) {
-      console.error('Tournament completion error:', error);
+      console.error('Error in tournament completion:', error);
     }
   };
 
@@ -271,9 +273,9 @@ function App() {
     logout();
   };
 
-  if (!isLoggedIn) {
-    return <Login onLogin={login} />;
-  }
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   const renderMainContent = () => {
     if (view === 'profile') {
@@ -327,48 +329,22 @@ function App() {
 
   return (
     <div className="app">
-      <header>
-        <div 
-          className="header-background"
-          style={{ 
-            backgroundImage: `url(${process.env.PUBLIC_URL}/images/cat.gif)` 
-          }}
-        ></div>
-        <img src={`${process.env.PUBLIC_URL}/images/cat.gif`} alt="Cat animation" className="header-image" />
-        <h1>Meow Namester</h1>
-        <div className="user-controls">
-          <div className="nav-menu">
-            <button 
-              onClick={() => setView('tournament')}
-              className={view === 'tournament' ? 'active' : ''}
-            >
-              Tournament
-            </button>
-            <button 
-              onClick={() => setView('profile')}
-              className={view === 'profile' ? 'active' : ''}
-            >
-              My Profile
-            </button>
-            <button 
-              onClick={() => setView('suggest')}
-              className={view === 'suggest' ? 'active' : ''}
-            >
-              Suggest Names
-            </button>
-          </div>
-          <span className="user-welcome">Welcome, {userName}!</span>
-          <button onClick={handleLogout} className="logout-button">
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main>
-        <ErrorBoundary>
-          {renderMainContent()}
-        </ErrorBoundary>
-      </main>
+      <Sidebar 
+        view={view}
+        setView={setView}
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onToggle={toggleSidebar}
+      />
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
+        {!isLoggedIn ? (
+          <Login onLogin={login} />
+        ) : (
+          renderMainContent()
+        )}
+      </div>
     </div>
   );
 }
