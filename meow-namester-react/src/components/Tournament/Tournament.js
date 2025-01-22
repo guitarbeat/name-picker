@@ -85,7 +85,8 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     // Initialize audio with random song selection
     const songs = [
       '/sounds/AdhesiveWombat - Night Shade.mp3',
-      '/sounds/what-is-love.mp3'
+      '/sounds/what-is-love.mp3',
+      '/sounds/MiseryBusiness.mp3'
     ];
     const randomSong = songs[Math.floor(Math.random() * songs.length)];
     audioRef.current = new Audio(randomSong);

@@ -193,19 +193,92 @@
 }
 
 @media (width <= 768px) {
+  :root {
+    /* Adjust spacing for mobile */
+    --space-responsive-1: clamp(0.25rem, 0.75vw, 0.375rem);
+    --space-responsive-2: clamp(0.375rem, 1.5vw, 0.75rem);
+    --space-responsive-3: clamp(0.75rem, 2vw, 1rem);
+    --space-responsive-4: clamp(1rem, 2.5vw, 1.5rem);
+    --space-responsive-5: clamp(1.5rem, 3vw, 2rem);
+    
+    /* Adjust text sizes for mobile */
+    --text-responsive-xs: clamp(0.75rem, 1vw, 0.875rem);
+    --text-responsive-sm: clamp(0.875rem, 1.25vw, 1rem);
+    --text-responsive-base: clamp(1rem, 1.5vw, 1.125rem);
+    --text-responsive-lg: clamp(1.125rem, 1.75vw, 1.25rem);
+    --text-responsive-xl: clamp(1.25rem, 2vw, 1.5rem);
+    --text-responsive-2xl: clamp(1.5rem, 2.5vw, 2rem);
+  }
+
   .user-controls {
     flex-direction: column;
-    gap: 1rem;
-    gap: var(--space-4);
+    gap: var(--space-responsive-2);
+    padding: var(--space-responsive-2);
   }
 
   .main-content {
     width: 100%;
+    padding: var(--space-responsive-2);
     margin-left: 0;
   }
   
   .main-content.sidebar-open {
     margin-left: 0;
+  }
+
+  /* Improve touch targets */
+  button,
+  .button-primary,
+  .button-secondary,
+  .nav-menu button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Better spacing for mobile content */
+  .container {
+    padding: 0 var(--space-responsive-2);
+  }
+}
+
+/* iPhone-specific adjustments */
+@media (width <= 430px) {
+  :root {
+    /* Further adjust spacing for iPhone */
+    --space-responsive-1: 0.25rem;
+    --space-responsive-2: 0.5rem;
+    --space-responsive-3: 0.75rem;
+    --space-responsive-4: 1rem;
+    --space-responsive-5: 1.5rem;
+  }
+
+  .container {
+    padding: 0 var(--space-responsive-2);
+  }
+
+  /* Ensure content fits iPhone screen */
+  .main-content {
+    padding: var(--space-responsive-2);
+    overflow-x: hidden;
+  }
+
+  /* Adjust header for iPhone */
+  header {
+    padding: var(--space-responsive-4) var(--space-responsive-2);
+    margin-bottom: var(--space-responsive-4);
+  }
+
+  .header-image {
+    width: 100px;
+    height: 100px;
+  }
+
+  /* Safe area inset padding for iPhone notch */
+  .main-content {
+    padding-top: env(safe-area-inset-top);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
   }
 }
 

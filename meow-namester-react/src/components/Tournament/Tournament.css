@@ -533,56 +533,121 @@
 /* Mobile Optimizations */
 @media (width <= 768px) {
   .tournament {
-    padding: var(--space-3);
+    padding: var(--space-2);
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .progress-info {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .round-number {
+    font-size: 1.75rem;
   }
 
   .names-row {
     grid-template-columns: 1fr;
     gap: var(--space-4);
-    padding: var(--space-2);
+    padding: 0;
   }
 
   .vs-section {
     margin: var(--space-2) auto;
+    width: 40px;
+    height: 40px;
+  }
+
+  .matchup {
+    width: 100%;
+    max-width: 100%;
   }
 
   .matchup .name-card {
-    min-height: 140px;
+    min-height: 200px;
+    padding: 1.5rem;
   }
 
-  .matchup .name-card:hover {
-    transform: translateY(-4px);
+  .matchup .name-card h3 {
+    font-size: 2rem;
+    word-break: break-word;
   }
 
-  .name-description {
-    -webkit-line-clamp: 2;
+  .matchup .name-description {
+    font-size: 1rem;
+    padding: 1rem;
+    position: static;
+    opacity: 1;
+    transform: none;
+    border-radius: var(--radius-lg);
+    margin-top: 1rem;
   }
 
-  .extra-options-button {
-    width: 100%;
-    padding: 0.75rem 1rem;
-  }
-
-  .center-options {
+  .tournament-controls {
     flex-direction: column;
-    gap: 0.5rem;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .pause-button,
+  .end-early-button {
+    width: 100%;
+    min-height: 48px; /* Better touch target */
+    font-size: 1rem;
+  }
+
+  .sound-toggle-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .tournament-instructions {
+    padding: 1rem;
+    margin: 1rem 0;
+    font-size: 1rem;
   }
 
   .keyboard-hints {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: center;
+    display: none; /* Hide keyboard hints on mobile */
+  }
+}
+
+/* iPhone-specific optimizations */
+@media (width <= 430px) {
+  .tournament {
+    padding: var(--space-2);
   }
 
-  .end-early-confirmation {
-    width: 95%;
+  .matchup .name-card {
+    min-height: 180px;
     padding: 1.25rem;
   }
 
-  .end-early-confirmation button {
-    width: calc(50% - 1rem);
-    min-width: unset;
-    margin: 0.25rem;
+  .matchup .name-card h3 {
+    font-size: 1.75rem;
+  }
+
+  .progress-info {
+    padding: 1.25rem;
+  }
+
+  .percentage-info {
+    font-size: 1.1rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .round-info {
+    gap: 0.25rem;
+  }
+
+  .tournament-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-item {
+    padding: 0.75rem;
   }
 }
 
