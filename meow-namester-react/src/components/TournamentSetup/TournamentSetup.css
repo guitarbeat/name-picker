@@ -36,10 +36,9 @@
 
 /* Welcome Section */
 .welcome-section {
-  width: 100%;
-  margin-bottom: var(--space-8);
   text-align: center;
-  transition: width var(--transition-smooth), transform var(--duration-normal) var(--ease-out-expo);
+  padding: var(--space-4);
+  margin-top: 3rem; /* Add margin to push content below hamburger menu */
   position: relative;
 }
 
@@ -48,10 +47,11 @@
 }
 
 .welcome-section h2 {
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
   margin-bottom: var(--space-4);
-  font-family: var(--font-serif);
-  font-size: var(--text-4xl);
   color: var(--text-primary);
+  font-family: var(--font-serif);
+  line-height: 1.3;
 }
 
 .welcome-text {
@@ -363,6 +363,16 @@
   .cat-photo:hover,
   .cat-photo:focus-visible {
     transform: scale(1.01);
+  }
+
+  .welcome-section {
+    margin-top: 4rem; /* Increase top margin on mobile */
+    padding: var(--space-3);
+  }
+
+  .welcome-section h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    padding: 0 var(--space-4);
   }
 }
 
