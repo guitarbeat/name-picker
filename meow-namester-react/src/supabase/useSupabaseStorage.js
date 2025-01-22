@@ -47,12 +47,14 @@ function useSupabaseStorage(tableName, initialValue = [], userName = '') {
           wins,
           losses,
           name_id,
+          updated_at,
           name_options (
             id,
             name
           )
         `)
-        .eq('user_name', userName);
+        .eq('user_name', userName)
+        .order('rating', { ascending: false }); // Sort by rating descending
 
       if (fetchError) throw fetchError;
 
@@ -61,7 +63,8 @@ function useSupabaseStorage(tableName, initialValue = [], userName = '') {
         name: item.name_options.name,
         rating: item.rating,
         wins: item.wins,
-        losses: item.losses
+        losses: item.losses,
+        updated_at: item.updated_at
       })) || initialValue);
     } catch (err) {
       console.error('Error fetching data:', err);

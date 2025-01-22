@@ -1,15 +1,15 @@
 .calendar-button {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   padding: 10px 16px;
-  background-color: #4285f4;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  color: white;
+  cursor: pointer;
+  background-color: #4285f4;
+  border: none;
+  border-radius: 4px;
   transition: background-color 0.2s;
 }
 
@@ -18,8 +18,8 @@
 }
 
 .calendar-button:disabled {
-  background-color: #ccc;
   cursor: not-allowed;
+  background-color: #ccc;
 }
 
 .calendar-icon {

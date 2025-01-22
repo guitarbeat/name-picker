@@ -66,19 +66,25 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
   const handleVoteWithAnimation = useCallback((result) => {
     setSelectedOption(result);
     
-    // Create vote data
+    // Create vote data with the original string result
     const voteData = {
       matchNumber: currentMatchNumber,
-      result: result === 'left' ? -1 : result === 'right' ? 1 : result === 'both' ? 0 : 2,
+      result: result,  // Keep original string value: 'left', 'right', 'both', or 'none'
       timestamp: Date.now(),
-      match: currentMatch
+      match: {
+        left: { ...currentMatch.left },
+        right: { ...currentMatch.right }
+      }
     };
     
-    // Call the onVote callback
+    console.log('Recording vote:', voteData);  // Debug log
+    
+    // Call the onVote callback first to ensure vote is recorded
     if (onVote) {
       onVote(voteData);
     }
     
+    // Then handle the tournament logic
     handleVote(result);
   }, [handleVote, currentMatch, currentMatchNumber, onVote]);
 

@@ -39,6 +39,7 @@ function App() {
 
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
+  console.log('App - Vote history:', voteHistory);  // Add debug log
 
   useEffect(() => {
     const loadNames = async () => {
@@ -62,6 +63,16 @@ function App() {
     }
   }, [view]);
 
+  // Handle vote history updates
+  const handleVoteHistoryUpdate = (newVote) => {
+    console.log('Recording new vote:', newVote);  // Add debug log
+    setVoteHistory(prev => {
+      const updated = [...prev, newVote];
+      console.log('Updated vote history:', updated);  // Add debug log
+      return updated;
+    });
+  };
+
   const handleTournamentComplete = async (finalRatings) => {
     try {
       if (!userName) {
@@ -70,27 +81,50 @@ function App() {
       }
 
       console.log('Starting tournament completion for user:', userName);
+      console.log('Final vote history:', voteHistory);
 
       // Convert finalRatings to array if it's an object
       const ratingsArray = Array.isArray(finalRatings) 
         ? finalRatings 
         : Object.entries(finalRatings).map(([name, rating]) => ({ name, rating }));
 
-      // Merge new ratings with existing ones, preserving wins/losses
+      // Initialize win/loss counters for this tournament
+      const tournamentResults = {};
+      
+      voteHistory.forEach(vote => {
+        console.log('Processing vote:', vote);  // Add debug log for each vote
+        const { match, result } = vote;
+        const { left, right } = match;
+        
+        // Initialize if not exists
+        if (!tournamentResults[left.name]) tournamentResults[left.name] = { wins: 0, losses: 0 };
+        if (!tournamentResults[right.name]) tournamentResults[right.name] = { wins: 0, losses: 0 };
+        
+        // Update based on result (using string values from Tournament.js)
+        if (result === 'left') {
+          tournamentResults[left.name].wins++;
+          tournamentResults[right.name].losses++;
+        } else if (result === 'right') {
+          tournamentResults[right.name].wins++;
+          tournamentResults[left.name].losses++;
+        }
+      });
+
+      console.log('Tournament results:', tournamentResults);  // Debug log
+
+      // Merge new ratings with existing ones, adding new wins/losses
       const updatedRatings = { ...ratings };
       ratingsArray.forEach(({ name, rating }) => {
         const existingRating = typeof updatedRatings[name] === 'object'
           ? updatedRatings[name]
           : { rating: updatedRatings[name] || 1500, wins: 0, losses: 0 };
 
-        // Calculate rating difference and estimate matches played
-        const ratingDiff = rating - (existingRating.rating || 1500);
-        const matchesPlayed = Math.abs(Math.round(ratingDiff / 32)); // Using standard Elo K-factor
+        const tournamentStats = tournamentResults[name] || { wins: 0, losses: 0 };
 
         updatedRatings[name] = {
           rating: Math.round(rating),
-          wins: (existingRating.wins || 0) + (ratingDiff > 0 ? matchesPlayed : 0),
-          losses: (existingRating.losses || 0) + (ratingDiff < 0 ? matchesPlayed : 0)
+          wins: (existingRating.wins || 0) + tournamentStats.wins,
+          losses: (existingRating.losses || 0) + tournamentStats.losses
         };
       });
 
@@ -123,13 +157,15 @@ function App() {
             console.warn(`No name_id found for ${name}`);
             return null;
           }
+          const timestamp = new Date().toISOString();
+          console.log(`Setting timestamp for ${name}:`, timestamp); // Debug log
           return {
             user_name: userName,
             name_id,
             rating: data.rating,
             wins: data.wins,
             losses: data.losses,
-            updated_at: new Date().toISOString()
+            updated_at: timestamp
           };
         })
         .filter(Boolean);
@@ -156,6 +192,9 @@ function App() {
       // Update local state
       setRatings(updatedRatings);
       setTournamentComplete(true);
+      
+      // Only reset vote history after we've processed everything
+      setVoteHistory([]);
 
     } catch (error) {
       console.error('Tournament completion error:', error);
@@ -165,18 +204,12 @@ function App() {
   const handleStartNewTournament = () => {
     setTournamentComplete(false);
     setTournamentNames(null);
-    setVoteHistory([]);
     setView('tournament');
   };
 
   const handleTournamentSetup = (names) => {
     console.log('App - Setting up tournament with names:', names);
     setTournamentNames(names);
-  };
-
-  // Handle vote history updates
-  const handleVoteHistoryUpdate = (newVote) => {
-    setVoteHistory(prev => [...prev, newVote]);
   };
 
   // Simplified ratings update logic

@@ -25,6 +25,8 @@ function Profile({ userName, onStartNewTournament }) {
   const fetchAllUsersRatings = useCallback(async () => {
     try {
       setLoadingAllUsers(true);
+      console.log('Fetching all users ratings...'); // Debug log
+      
       const { data, error: fetchError } = await supabase
         .from('cat_name_ratings')
         .select(`
@@ -42,6 +44,8 @@ function Profile({ userName, onStartNewTournament }) {
 
       if (fetchError) throw fetchError;
 
+      console.log('Raw data from database:', data); // Debug log
+
       // Process individual user ratings
       const ratingsByUser = data.reduce((acc, item) => {
         if (!item.name_options) return acc; // Skip if name has been deleted
@@ -50,19 +54,63 @@ function Profile({ userName, onStartNewTournament }) {
         if (!acc[userName]) {
           acc[userName] = [];
         }
-        acc[userName].push({
+        
+        const ratingEntry = {
           id: item.name_options.id,
           name: item.name_options.name,
           description: item.name_options.description,
           rating: item.rating,
           wins: item.wins,
           losses: item.losses,
-          updated_at: item.updated_at
-        });
+          updated_at: item.updated_at // Ensure we're including the timestamp
+        };
+        
+        console.log(`Processing rating for ${ratingEntry.name}:`, ratingEntry); // Debug log
+        
+        acc[userName].push(ratingEntry);
         return acc;
       }, {});
 
+      console.log('Processed ratings by user:', ratingsByUser); // Debug log
+
+      // Calculate aggregated statistics
+      const aggregatedStats = {};
+      Object.values(ratingsByUser).forEach(userRatings => {
+        userRatings.forEach(rating => {
+          if (!aggregatedStats[rating.id]) {
+            aggregatedStats[rating.id] = {
+              id: rating.id,
+              name: rating.name,
+              description: rating.description,
+              ratings: [],
+              totalWins: 0,
+              totalLosses: 0,
+              uniqueUsers: new Set(),
+            };
+          }
+          
+          const stats = aggregatedStats[rating.id];
+          stats.ratings.push(rating.rating || 1500);
+          stats.totalWins += rating.wins || 0;
+          stats.totalLosses += rating.losses || 0;
+          stats.uniqueUsers.add(rating.user_name);
+        });
+      });
+
+      // Calculate final aggregated metrics
+      Object.values(aggregatedStats).forEach(stats => {
+        stats.avgRating = Math.round(
+          stats.ratings.reduce((sum, r) => sum + r, 0) / stats.ratings.length
+        );
+        stats.minRating = Math.round(Math.min(...stats.ratings));
+        stats.maxRating = Math.round(Math.max(...stats.ratings));
+        stats.totalRatings = stats.ratings.length;
+        stats.uniqueUsers = stats.uniqueUsers.size;
+        delete stats.ratings; // Clean up the temporary ratings array
+      });
+
       setAllUsersRatings(ratingsByUser);
+      setAggregatedStats(aggregatedStats);
     } catch (err) {
       console.error('Error fetching all users ratings:', err);
       setToast({
@@ -195,14 +243,27 @@ function Profile({ userName, onStartNewTournament }) {
   // Add a helper function to format dates
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    try {
+      // Parse the UTC timestamp from Supabase
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      
+      // Format the date using Intl.DateTimeFormat with local timezone
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZoneName: 'short'
+      });
+      
+      return formatter.format(date);
+    } catch (error) {
+      console.error('Error formatting date:', error, 'for dateString:', dateString);
+      return 'N/A';
+    }
   };
 
   const handleDeleteUser = async (userNameToDelete) => {
@@ -351,8 +412,18 @@ function Profile({ userName, onStartNewTournament }) {
     : 0;
   const totalMatches = currentRatings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
   
+  // Sort by rating first, then by most recent update
   const topNames = [...currentRatings]
-    .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+    .sort((a, b) => {
+      // First sort by rating
+      const ratingDiff = (b.rating || 1500) - (a.rating || 1500);
+      if (ratingDiff !== 0) return ratingDiff;
+      
+      // If ratings are equal, sort by most recent update
+      const dateA = new Date(a.updated_at || 0);
+      const dateB = new Date(b.updated_at || 0);
+      return dateB - dateA;
+    })
     .slice(0, 5);
 
   return (
@@ -621,7 +692,10 @@ function Profile({ userName, onStartNewTournament }) {
                       <div className="timestamps">
                         <div className="timestamp">
                           <span className="timestamp-label">Last Updated:</span>
-                          <span className="timestamp-value">{formatDate(name.updated_at)}</span>
+                          <span className="timestamp-value">
+                            {console.log('Updated at:', name.updated_at) /* Debug log */}
+                            {formatDate(name.updated_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -684,7 +758,10 @@ function Profile({ userName, onStartNewTournament }) {
                         <div className="timestamps">
                           <div className="timestamp">
                             <span className="timestamp-label">Last Updated:</span>
-                            <span className="timestamp-value">{formatDate(name.updated_at)}</span>
+                            <span className="timestamp-value">
+                              {console.log('Updated at:', name.updated_at) /* Debug log */}
+                              {formatDate(name.updated_at)}
+                            </span>
                           </div>
                         </div>
                         <div className="hidden-status">

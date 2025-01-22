@@ -51,12 +51,15 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
     const [reorderedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, reorderedItem);
 
-    // Enhanced rating calculation with smoother distribution
+    // Enhanced rating calculation with smoother distribution while preserving wins/losses
     const adjustedItems = newItems.map((item, index) => ({
       ...item,
       rating: Math.round(
         1000 + (1000 * (newItems.length - index)) / newItems.length
-      )
+      ),
+      // Preserve wins and losses from the original item
+      wins: item.wins || 0,
+      losses: item.losses || 0
     }));
 
     setItems(adjustedItems);
@@ -127,6 +130,10 @@ function RankingAdjustment({ rankings, onSave, onCancel }) {
                         <div className="rank-badge">{index + 1}</div>
                         <div className="card-content">
                           <h3 className="name">{item.name}</h3>
+                          <div className="stats">
+                            <span className="rating">Rating: {Math.round(item.rating)}</span>
+                            <span className="record">W: {item.wins || 0} L: {item.losses || 0}</span>
+                          </div>
                         </div>
                         <div className="drag-handle">
                           <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">

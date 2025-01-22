@@ -1,15 +1,15 @@
 .results-container {
-  max-width: 1024px;
-  margin: 0 auto;
-  padding: var(--space-4);
   width: 100%;
+  max-width: 1024px;
+  padding: var(--space-4);
+  margin: 0 auto;
 }
 
 .results-header {
   position: relative;
-  text-align: center;
-  margin-bottom: var(--space-6);
   padding: var(--space-4);
+  margin-bottom: var(--space-6);
+  text-align: center;
   background: linear-gradient(
     to bottom,
     var(--card-background),
@@ -21,22 +21,22 @@
 }
 
 .results-header h2 {
-  font-size: var(--text-4xl);
-  color: var(--text-primary);
   margin: 0 0 var(--space-4);
   font-family: var(--font-serif);
+  font-size: var(--text-4xl);
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .results-welcome {
-  color: var(--text-secondary);
   font-size: var(--text-lg);
   line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 .user-name {
-  color: var(--primary-color);
   font-weight: 600;
+  color: var(--primary-color);
 }
 
 .results-content {
@@ -46,29 +46,29 @@
 
 .rankings-stats {
   display: flex;
-  justify-content: center;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
   flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+  margin-bottom: var(--space-4);
 }
 
 .stat-card {
   position: relative;
+  min-width: 140px;
   padding: var(--space-3) var(--space-4);
+  text-align: center;
   background: var(--card-background);
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
-  text-align: center;
-  min-width: 140px;
   box-shadow: 
     0 0 0 1px var(--card-border),
     0 4px 6px -1px var(--shadow-color);
 }
 
 .stat-card h3 {
+  margin-bottom: var(--space-2);
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin-bottom: var(--space-2);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -76,30 +76,30 @@
 .stat-value {
   font-size: var(--text-3xl);
   font-weight: 600;
-  color: var(--primary-color);
   line-height: 1;
+  color: var(--primary-color);
 }
 
 .results-actions {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: var(--space-4);
+  align-items: center;
   margin-top: var(--space-8);
 }
 
 .start-new-button {
   display: inline-flex;
-  align-items: center;
   gap: var(--space-2);
+  align-items: center;
   padding: var(--space-3) var(--space-6);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-primary);
+  cursor: pointer;
   background: var(--primary-color);
   border: none;
   border-radius: var(--radius-lg);
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -114,19 +114,19 @@
 }
 
 .results-tip {
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  text-align: center;
   max-width: 400px;
+  font-size: var(--text-sm);
   line-height: 1.6;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 .results-loading {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
   min-height: 300px;
   color: var(--text-secondary);
 }
@@ -142,15 +142,15 @@
 
 .toast {
   position: fixed;
-  bottom: var(--space-4);
   right: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-lg);
-  background: var(--card-background);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
+  bottom: var(--space-4);
   z-index: var(--z-30);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  background: var(--card-background);
+  border-radius: var(--radius-lg);
   box-shadow: 
     0 0 0 1px var(--card-border),
     0 4px 6px -1px var(--shadow-color);
@@ -158,15 +158,15 @@
 }
 
 .toast.success {
-  border: 1px solid var(--primary-color);
-  background: var(--primary-light);
   color: var(--primary-color);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-color);
 }
 
 .toast.error {
-  border: 1px solid var(--error-500);
-  background: rgba(239, 68, 68, 0.1);
   color: var(--error-500);
+  background: rgb(239 68 68 / 10%);
+  border: 1px solid var(--error-500);
 }
 
 @keyframes spin {
@@ -180,13 +180,14 @@
     opacity: 0;
     transform: translateX(100%);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
-@media (min-width: 1025px) and (max-width: 1440px) {
+@media (width >= 1025px) and (width <= 1440px) {
   .results-container {
     max-width: 90%;
     padding: var(--space-4);
@@ -215,7 +216,7 @@
   }
 }
 
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .results-container {
     padding: var(--space-3);
   }
@@ -226,8 +227,8 @@
   }
 
   .results-header h2 {
-    font-size: var(--text-2xl);
     margin-bottom: var(--space-3);
+    font-size: var(--text-2xl);
   }
 
   .results-welcome {
@@ -235,10 +236,9 @@
   }
 
   .rankings-stats {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-flow: row wrap;
     gap: var(--space-3);
+    justify-content: center;
   }
 
   .stat-card {
@@ -268,23 +268,23 @@
 
 .back-button {
   display: inline-flex;
-  align-items: center;
   gap: var(--space-2);
+  align-items: center;
   padding: var(--space-3) var(--space-6);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-secondary);
+  cursor: pointer;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .back-button:hover {
   color: var(--primary-color);
-  border-color: var(--primary-color);
   background: var(--primary-light);
+  border-color: var(--primary-color);
   transform: translateY(-1px);
 }
 
@@ -299,31 +299,31 @@
 }
 
 .tournament-bracket {
-  margin: 2rem 0;
   padding: 2rem;
+  margin: 2rem 0;
+  overflow-x: auto;
   background: var(--surface-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  overflow-x: auto;
 }
 
 .tournament-bracket h3 {
+  margin-bottom: 2rem;
   font-size: var(--text-responsive-xl);
   color: var(--text-primary);
-  margin-bottom: 2rem;
   text-align: center;
 }
 
 /* Mobile optimizations */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .tournament-bracket {
     padding: 1rem;
     margin: 1rem 0;
   }
   
   .tournament-bracket h3 {
-    font-size: var(--text-responsive-lg);
     margin-bottom: 1rem;
+    font-size: var(--text-responsive-lg);
   }
 }
 

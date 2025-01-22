@@ -1,16 +1,16 @@
 .tournament {
   max-width: 1200px;
-  margin: 0 auto;
   padding: 2rem;
+  margin: 0 auto;
 }
 
 .progress-info {
-  background: var(--primary-light);
-  border-radius: var(--radius-lg);
   padding: 2rem;
   margin-bottom: 2rem;
   text-align: center;
-  border: 1px solid rgba(139, 92, 246, 0.1);
+  background: var(--primary-light);
+  border: 1px solid rgb(139 92 246 / 10%);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -23,10 +23,10 @@
 }
 
 .round-number {
+  font-family: 'Josefin Slab', serif;
   font-size: 2rem;
   font-weight: 700;
   color: var(--primary-color);
-  font-family: 'Josefin Slab', serif;
 }
 
 .match-count {
@@ -37,11 +37,11 @@
 .percentage-info {
   display: inline-block;
   padding: 0.5rem 1.5rem;
+  font-size: var(--text-responsive-lg);
+  font-weight: 600;
+  color: #fff;
   background: linear-gradient(135deg, var(--primary-300), var(--primary-500));
   border-radius: 20px;
-  font-size: var(--text-responsive-lg);
-  color: #ffffff;
-  font-weight: 600;
   box-shadow: var(--shadow-md);
   transition: background var(--duration-normal) var(--ease-out-expo);
 }
@@ -49,10 +49,10 @@
 .progress-bar {
   width: 100%;
   height: 8px;
+  margin: 1rem 0;
+  overflow: hidden;
   background: var(--surface-color);
   border-radius: var(--radius-full);
-  overflow: hidden;
-  margin: 1rem 0;
 }
 
 .progress-fill {
@@ -70,8 +70,8 @@
 }
 
 .stat-item {
-  background: var(--background-color);
   padding: 1rem;
+  background: var(--background-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
@@ -88,61 +88,61 @@
 .end-early-button,
 .confirm-end-button,
 .cancel-end-button {
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  border: none;
-  min-width: 180px;
   display: flex;
+  gap: 0.5rem;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  min-width: 180px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
 }
 
 .pause-button {
-  background: var(--primary-color);
   color: white;
+  background: var(--primary-color);
 }
 
 .pause-button:hover:not(:disabled) {
   background: var(--primary-dark);
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .end-early-button {
-  background: var(--error-color);
   color: white;
+  background: var(--error-color);
 }
 
 .end-early-button:hover:not(:disabled) {
   filter: brightness(1.1);
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .end-early-confirmation {
-  text-align: center;
   padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
   background: var(--surface-color);
+  border: 2px solid var(--error-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  margin: 2rem 0;
-  border: 2px solid var(--error-color);
 }
 
 .end-early-confirmation p {
-  color: var(--text-primary);
   margin-bottom: 1.5rem;
   font-size: 1.1rem;
+  color: var(--text-primary);
 }
 
 .confirm-end-button {
-  background: var(--error-color);
-  color: white;
   margin-right: 1rem;
+  color: white;
+  background: var(--error-color);
 }
 
 .confirm-end-button:hover {
@@ -150,8 +150,8 @@
 }
 
 .cancel-end-button {
-  background: var(--text-secondary);
   color: white;
+  background: var(--text-secondary);
 }
 
 .cancel-end-button:hover {
@@ -164,100 +164,82 @@
 }
 
 @keyframes slideUp {
-  from { 
+  from {
+    opacity: 0; 
     transform: translateY(30px);
-    opacity: 0;
   }
+
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .names-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) auto minmax(200px, 1fr);
-  gap: clamp(1rem, 4vw, 3rem);
+  grid-template-columns: 1fr auto 1fr;
+  grid-gap: var(--space-8);
+  gap: var(--space-8);
   align-items: center;
-  margin-bottom: clamp(1rem, 4vw, 2rem);
-  padding: var(--space-4);
+  padding: 0 2rem;
+  margin-bottom: var(--space-6);
 }
 
 .name-container {
+  display: flex;
   flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   text-align: center;
 }
 
 /* Tournament-specific name card styles that override the hover behavior */
 .matchup .name-card {
-  padding: clamp(1.5rem, 4vw, 2.5rem);
-  background: var(--card-background);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--card-border);
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  min-height: clamp(160px, 30vh, 240px);
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+  padding: 3rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.matchup .name-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(
-    to right,
-    var(--primary-400),
-    var(--primary-600)
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.matchup .name-card:hover::before {
-  opacity: 1;
+  transition: all var(--transition-normal);
 }
 
 .matchup .name-card h3 {
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  width: 100%;
   margin: 0;
-  color: var(--text-primary);
-  font-family: var(--font-serif);
+  font-family: 'Josefin Slab', serif;
+  font-size: 3rem;
   line-height: 1.2;
-  transition: transform 0.3s ease;
+  color: var(--text-primary);
+  text-align: center;
+  transform: none !important;
 }
 
 .matchup .name-description {
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  color: var(--text-secondary);
-  flex-grow: 1;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  width: 100%;
   margin: 0;
-  transition: all 0.3s ease;
-  position: relative;
-  background: transparent;
-  padding: 0;
-  opacity: 0.8;
+  font-size: 1.3rem;
+  color: var(--text-secondary);
+  text-align: center;
+  opacity: 1 !important;
 }
 
 .matchup .name-card:hover {
   border-color: var(--primary-400);
-  transform: translateY(-8px);
   box-shadow: 
     0 12px 20px -5px var(--shadow-color),
     0 8px 12px -3px var(--shadow-color);
+  transform: translateY(-8px);
 }
 
 .matchup .name-card:hover .name-description {
@@ -265,13 +247,13 @@
 }
 
 .matchup .name-card:active {
-  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
 }
 
 .matchup .name-card.selected {
-  border-color: var(--primary-400);
   background: var(--primary-50);
+  border-color: var(--primary-400);
   animation: selected-pulse 2s infinite;
 }
 
@@ -279,116 +261,118 @@
   0% {
     box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.4);
   }
+
   70% {
     box-shadow: 0 0 0 15px rgba(var(--primary-rgb), 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
   }
 }
 
 .vs-section {
-  width: clamp(40px, 8vw, 60px);
-  height: clamp(40px, 8vw, 60px);
-  border-radius: 50%;
-  background: var(--primary-50);
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: clamp(40px, 8vw, 60px);
+  height: clamp(40px, 8vw, 60px);
+  font-size: clamp(0.9rem, 2vw, 1.2rem);
   font-weight: 600;
   color: var(--primary-600);
-  font-size: clamp(0.9rem, 2vw, 1.2rem);
   text-transform: uppercase;
+  background: var(--primary-50);
+  border-radius: 50%;
   box-shadow: 
     0 0 0 1px var(--primary-200),
     var(--shadow-sm);
-  position: relative;
-  z-index: 1;
 }
 
 .vs-section::before {
-  content: '';
   position: absolute;
   inset: -4px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, var(--primary-200), transparent);
   z-index: -1;
+  content: '';
+  background: linear-gradient(135deg, var(--primary-200), transparent);
+  border-radius: inherit;
   opacity: 0.5;
 }
 
 .center-options {
   display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
   flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
 }
 
 .extra-options-button {
-  padding: 1rem 2rem;
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-md);
-  background: var(--surface-color);
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  min-width: 120px;
   display: flex;
+  gap: 0.5rem;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  min-width: 120px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
 }
 
 .extra-options-button:hover:not(:disabled) {
-  border-color: var(--primary-color);
   color: var(--primary-color);
-  transform: translateY(-2px);
+  border-color: var(--primary-color);
   box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .extra-options-button.selected {
-  background: var(--primary-color);
   color: white;
+  background: var(--primary-color);
   border-color: var(--primary-color);
 }
 
 .tournament-instructions {
-  text-align: center;
-  margin: 2rem 0;
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  background: var(--surface-color);
   padding: 1.5rem;
+  margin: 2rem 0;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  background: var(--surface-color);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
 
 .keyboard-hints {
   display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin-top: 1rem;
   flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 1rem;
 }
 
 .keyboard-hint {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
-  color: var(--text-secondary);
+  align-items: center;
   font-size: 0.9rem;
+  color: var(--text-secondary);
 }
 
 .key {
   padding: 0.25rem 0.5rem;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
   font-family: monospace;
   font-size: 0.9rem;
   color: var(--primary-color);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
 }
 
 /* Dark mode adjustments */
@@ -410,8 +394,8 @@
   }
 
   .vs-section {
-    background: var(--card-background);
     color: var(--primary-400);
+    background: var(--card-background);
     box-shadow: 
       0 0 0 1px var(--primary-700),
       var(--shadow-md);
@@ -423,7 +407,7 @@
 }
 
 /* Mobile Optimizations */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .tournament {
     padding: 1rem;
   }
@@ -462,16 +446,16 @@
 
   .keyboard-hints {
     flex-direction: column;
-    align-items: center;
     gap: 0.5rem;
+    align-items: center;
   }
 }
 
 /* Touch Device Optimizations */
 @media (hover: none) {
   .matchup .name-card:hover {
-    transform: none;
     box-shadow: var(--shadow-sm);
+    transform: none;
   }
 
   .matchup .name-card:active {
@@ -485,13 +469,14 @@
 
 /* Animation Improvements */
 @keyframes slideUp {
-  from { 
+  from {
+    opacity: 0; 
     transform: translateY(30px);
-    opacity: 0;
   }
+
   to {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -500,8 +485,8 @@
   .matchup,
   .matchup .name-card,
   .matchup .name-card.selected {
-    animation: none;
     transition: none;
+    animation: none;
   }
 }
 
@@ -515,19 +500,19 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color: var(--text-primary);
   line-height: 1.3;
+  color: var(--text-primary);
 }
 
 p, span, a, li {
-  color: var(--text-secondary);
   font-size: var(--text-base);
   line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 /* Increase contrast for better readability */
 :root {
-  --text-primary: #ffffff;
+  --text-primary: #fff;
   --text-secondary: #d1d5db;
   --background-color: #0a0f1d;
   --surface-color: #1f2937;
