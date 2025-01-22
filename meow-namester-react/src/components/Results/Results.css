@@ -4,22 +4,18 @@
   padding: var(--space-4);
   margin: 0 auto;
   position: relative;
-  z-index: var(--z-modal);
+  z-index: var(--z-0);
 }
 
 .results-header {
   position: relative;
-  padding: var(--space-4);
-  margin-bottom: var(--space-6);
+  z-index: var(--z-0);
+  padding: var(--space-6) var(--space-4);
+  margin-bottom: var(--space-8);
   text-align: center;
-  background: linear-gradient(
-    to bottom,
-    var(--card-background),
-    var(--surface-color)
-  );
-  border: 1px solid var(--card-border);
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
 }
 
 .results-header h2 {

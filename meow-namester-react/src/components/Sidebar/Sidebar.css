@@ -28,7 +28,7 @@
   position: fixed;
   top: 1rem;
   left: 1rem;
-  z-index: var(--z-drawer);
+  z-index: var(--z-popover);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -40,6 +40,7 @@
   border: 1px solid var(--gray-700);
   border-radius: 0.5rem;
   transition: all 0.3s ease;
+  box-shadow: var(--shadow-lg);
 }
 
 .sidebar-toggle span {

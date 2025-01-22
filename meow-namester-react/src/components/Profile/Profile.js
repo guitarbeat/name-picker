@@ -22,6 +22,7 @@ function Profile({ userName, onStartNewTournament }) {
   const [showDeleteNameConfirm, setShowDeleteNameConfirm] = useState(false);
   const [nameToDelete, setNameToDelete] = useState(null);
   const [deleteNameStatus, setDeleteNameStatus] = useState({ loading: false, error: null });
+  const [userLastActivity, setUserLastActivity] = useState({});
 
   const fetchAllUsersRatings = useCallback(async () => {
     try {
@@ -46,6 +47,15 @@ function Profile({ userName, onStartNewTournament }) {
       if (fetchError) throw fetchError;
 
       console.log('Raw data from database:', data); // Debug log
+
+      // Track last activity per user
+      const lastActivity = {};
+      data.forEach(item => {
+        if (!lastActivity[item.user_name] || new Date(item.updated_at) > new Date(lastActivity[item.user_name])) {
+          lastActivity[item.user_name] = item.updated_at;
+        }
+      });
+      setUserLastActivity(lastActivity);
 
       // Process individual user ratings
       const ratingsByUser = data.reduce((acc, item) => {
@@ -485,15 +495,23 @@ function Profile({ userName, onStartNewTournament }) {
                   </button>
                   {Object.keys(allUsersRatings)
                     .filter(user => user !== userName)
-                    .sort()
+                    .sort((a, b) => {
+                      // Sort by most recent activity
+                      const dateA = new Date(userLastActivity[a] || 0);
+                      const dateB = new Date(userLastActivity[b] || 0);
+                      return dateB - dateA;
+                    })
                     .map(user => (
                       <button
                         key={user}
                         className={`user-avatar ${selectedUser === user ? 'active' : ''}`}
                         onClick={() => setSelectedUser(user)}
-                        title={`View ${user}'s profile`}
+                        title={`View ${user}'s profile - Last active: ${formatDate(userLastActivity[user])}`}
                       >
                         👤 {user}
+                        <small className="last-active">
+                          {formatDate(userLastActivity[user])}
+                        </small>
                       </button>
                     ))
                   }
