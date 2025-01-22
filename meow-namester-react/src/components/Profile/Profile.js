@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase, deleteName } from '../../supabase/supabaseClient';
+import CalendarButton from '../CalendarButton/CalendarButton';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
@@ -456,43 +457,11 @@ function Profile({ userName, onStartNewTournament }) {
             >
               📋 Copy Results
             </button>
-            <button 
-              onClick={() => {
-                // Filter out hidden names and sort by rating
-                const activeNames = currentRatings
-                  .filter(name => !hiddenNames.has(name.id))
-                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500));
-
-                const sortedNames = activeNames
-                  .map((name, index) => `${index + 1}. ${name.name}`)
-                  .join('\n');
-
-                const topName = activeNames[0]?.name || 'No names rated';
-
-                const today = new Date();
-                const formattedDate = today.toLocaleDateString('en-US', { 
-                  weekday: 'short', 
-                  month: 'short', 
-                  day: 'numeric' 
-                });
-
-                const text = `🐈‍⬛ ${topName}`;
-                const details = `${formattedDate} Cat Name Rankings:\n\n${sortedNames}`;
-                // Format dates for all-day event
-                const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
-                const dates = `${dateStr}/${tomorrowStr}`;
-                const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&details=${encodeURIComponent(details)}&dates=${dates}`;
-                
-                window.open(calendarUrl, '_blank');
-              }}
-              className="action-button secondary-button"
-              title="Add to Google Calendar"
-            >
-              📅 Add to Calendar
-            </button>
+            <CalendarButton 
+              rankings={currentRatings}
+              userName={userName}
+              hiddenNames={hiddenNames}
+            />
             <button 
               onClick={fetchAllUsersRatings} 
               className="action-button secondary-button"
