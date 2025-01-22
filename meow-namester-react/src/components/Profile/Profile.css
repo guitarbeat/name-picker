@@ -1092,8 +1092,8 @@
 }
 
 .rating-card.is-hidden {
-  opacity: 0.7;
   filter: grayscale(0.5);
+  opacity: 0.7;
 }
 
 .rating-card.is-hidden::before {
@@ -1105,8 +1105,8 @@
 }
 
 .rating-card.is-hidden:hover {
-  opacity: 0.9;
   filter: grayscale(0.2);
+  opacity: 0.9;
 }
 
 .hidden-status {
@@ -1137,9 +1137,9 @@
   }
 
   .rating-card.is-hidden {
-    opacity: 0.6;
     background: var(--gray-900);
     border-color: var(--gray-800);
+    opacity: 0.6;
   }
 
   .rating-card.is-hidden:hover {

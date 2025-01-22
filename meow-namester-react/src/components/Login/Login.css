@@ -55,7 +55,6 @@
   margin: auto;
   background: rgb(255 255 255 / 98%);
   backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: var(--radius-2xl);
   box-shadow: 
