@@ -458,13 +458,16 @@ function Profile({ userName, onStartNewTournament }) {
             </button>
             <button 
               onClick={() => {
-                const sortedNames = [...currentRatings]
-                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+                // Filter out hidden names and sort by rating
+                const activeNames = currentRatings
+                  .filter(name => !hiddenNames.has(name.id))
+                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500));
+
+                const sortedNames = activeNames
                   .map((name, index) => `${index + 1}. ${name.name}`)
                   .join('\n');
 
-                const topName = currentRatings
-                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))[0]?.name || 'No names rated';
+                const topName = activeNames[0]?.name || 'No names rated';
 
                 const today = new Date();
                 const formattedDate = today.toLocaleDateString('en-US', { 

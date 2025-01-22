@@ -1,20 +1,29 @@
 import React from 'react';
 import './CalendarButton.css';
 
-function CalendarButton({ rankings, userName }) {
+function CalendarButton({ rankings, userName, hiddenNames }) {
   const handleClick = () => {
-    const topNames = rankings.slice(0, 10).map(r => r.name).join(', ');
+    // Filter out hidden names and get active rankings
+    const activeRankings = rankings.filter(r => !hiddenNames.has(r.id));
+    const topName = activeRankings[0]?.name || 'No names rated';
+    const topNames = activeRankings.slice(0, 10).map((r, i) => `${i + 1}. ${r.name}`).join('\n');
+
     const today = new Date();
-    // Format date as YYYYMMDD for all-day event
+    const formattedDate = today.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    
+    // Format dates for all-day event
     const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-    // For all-day events, end date should be next day
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0].replace(/-/g, '');
 
     const event = {
-      text: `Top Cat Names for ${userName}`,
-      details: `Top 10 names:\n${topNames}`,
+      text: `🐈‍⬛ ${topName}`,
+      details: `${formattedDate} Cat Name Rankings:\n\n${topNames}`,
       dates: `${dateStr}/${tomorrowStr}`
     };
 
