@@ -85,74 +85,146 @@
   backface-visibility: hidden;
 }
 
-/* Remove the gallery hover effect that was causing displacement */
-.cat-gallery:hover {
-  transform: none;
-  box-shadow: var(--shadow-lg);
+.cat-photo-container {
+  position: relative;
+  aspect-ratio: 1;
+  cursor: pointer;
+  border-radius: var(--radius-xl);
+  transition: transform 0.2s ease-out;
+}
+
+.cat-photo-container:hover {
+  transform: translateY(-4px);
+}
+
+.cat-photo-container:focus-visible {
+  outline: 3px solid var(--primary-400);
+  outline-offset: 2px;
 }
 
 .cat-photo {
   position: relative;
   width: 100%;
-  height: 300px;
-  cursor: pointer;
+  height: 100%;
   object-fit: cover;
   border: 3px solid var(--primary-100);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   transform: translateZ(0);
   backface-visibility: hidden;
-  transition: transform 0.2s ease-out,
-              border-color 0.2s ease-out,
-              box-shadow 0.2s ease-out,
-              filter 0.2s ease-out;
-  transform-origin: center;
+  transition: all 0.2s ease-out;
   filter: brightness(0.9) saturate(1.1);
 }
 
-.cat-photo:hover,
-.cat-photo:focus-visible {
+.cat-photo.loading {
+  opacity: 0;
+}
+
+.cat-photo:not(.loading):hover {
   border-color: var(--primary-400);
   box-shadow: 
     0 0 0 3px var(--primary-200),
     var(--shadow-lg);
-  transform: scale(1.02);
-  z-index: var(--z-elevate);
   filter: brightness(1.1) saturate(1.2);
 }
 
-.cat-photo.enlarged {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: var(--z-modal);
-  width: 90vw;
-  max-width: 1200px;
-  height: 90vh;
-  max-height: 800px;
-  border: 4px solid var(--primary-400);
-  transform: translate(-50%, -50%);
-  object-fit: contain;
-  background: var(--surface-color);
-  box-shadow: var(--shadow-2xl);
-  filter: brightness(1.1) saturate(1.2);
-  transition: transform 0.3s ease-out,
-              width 0.3s ease-out,
-              height 0.3s ease-out;
-}
-
-.overlay {
+.overlay-backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--z-overlay);
-  background: rgb(0 0 0 / 0%);
-  backdrop-filter: blur(0);
-  transition: all 0.3s ease-out;
-}
-
-.overlay.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgb(0 0 0 / 85%);
   backdrop-filter: blur(8px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.overlay-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enlarged-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  max-width: min(90vw, 1200px);
+  max-height: min(90vh, 800px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border: 4px solid var(--primary-400);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  filter: brightness(1.1) saturate(1.2);
+  transition: transform 0.3s ease-out;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.close-button {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: calc(var(--z-modal) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 32px;
+  color: white;
+  cursor: pointer;
+  background: rgb(0 0 0 / 40%);
+  border: none;
+  border-radius: 50%;
+  transition: all 0.2s ease-out;
+}
+
+.close-button:hover {
+  background: rgb(0 0 0 / 60%);
+  transform: scale(1.1);
+}
+
+.image-instructions {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  padding: var(--space-3) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: white;
+  background: rgb(0 0 0 / 40%);
+  border-radius: var(--radius-full);
+  transform: translateX(-50%);
+  animation: fadeInUp 0.3s ease-out 0.2s both;
+  pointer-events: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* Name Selection */
@@ -343,10 +415,6 @@
     padding: var(--space-3);
     margin: var(--space-6) auto;
   }
-
-  .cat-photo {
-    height: 250px;
-  }
 }
 
 @media (width <= 768px) {
@@ -355,14 +423,12 @@
     gap: var(--space-3);
   }
 
-  .cat-photo {
-    height: 200px;
-    border-width: 2px;
+  .cat-photo-container:hover {
+    transform: translateY(-2px);
   }
 
-  .cat-photo:hover,
-  .cat-photo:focus-visible {
-    transform: scale(1.01);
+  .image-instructions {
+    display: none;
   }
 
   .welcome-section {
@@ -374,16 +440,24 @@
     font-size: clamp(1.5rem, 3.5vw, 2rem);
     padding: 0 var(--space-4);
   }
+
+  .close-button {
+    top: var(--space-4);
+    right: var(--space-4);
+    width: 36px;
+    height: 36px;
+    font-size: 28px;
+  }
+
+  .enlarged-image {
+    border-width: 2px;
+  }
 }
 
 @media (width <= 480px) {
   .cat-gallery {
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: var(--space-2);
-  }
-
-  .cat-photo {
-    height: 150px;
   }
 }
 
@@ -393,31 +467,51 @@
     border-color: var(--card-border);
   }
 
-  .cat-photo:hover,
-  .cat-photo:focus-visible {
+  .cat-photo:hover {
     border-color: var(--primary-400);
   }
 
-  .cat-photo.enlarged {
+  .enlarged-image {
     border-color: var(--primary-400);
   }
 
-  .overlay.active {
-    background: rgb(0 0 0 / 90%);
+  .loading-placeholder {
+    background: var(--card-background);
+    border-color: var(--card-border);
+  }
+
+  .error-placeholder {
+    background: var(--card-background);
+    border-color: var(--error-400);
+  }
+
+  .close-button {
+    background: rgb(255 255 255 / 10%);
+  }
+
+  .close-button:hover {
+    background: rgb(255 255 255 / 20%);
   }
 }
 
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .cat-gallery,
+  .cat-photo-container,
   .cat-photo,
-  .overlay {
+  .close-button {
     transition: none;
     transform: none;
+    animation: none;
   }
 
+  .loading-spinner {
+    animation: none;
+  }
+
+  .cat-photo-container:hover,
   .cat-photo:hover,
-  .cat-photo:focus-visible {
+  .close-button:hover {
     transform: none;
   }
 

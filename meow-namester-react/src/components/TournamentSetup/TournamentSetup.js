@@ -24,39 +24,148 @@ const WelcomeSection = ({ enlargedImage, setEnlargedImage }) => (
       enlargedImage={enlargedImage} 
       setEnlargedImage={setEnlargedImage} 
     />
-    
-    {enlargedImage && (
-      <div 
-        className="overlay active" 
-        onClick={() => setEnlargedImage(null)}
-        role="button"
-        tabIndex={0}
-        aria-label="Close enlarged image"
-      />
-    )}
   </div>
 );
 
-const CatGallery = ({ enlargedImage, setEnlargedImage }) => (
-  <div className="cat-gallery">
-    {CAT_IMAGES.map((image, index) => (
-      <img 
-        key={image}
-        src={`/images/${image}`}
-        alt={`Adorable cat photo ${index + 1}`}
-        className={`cat-photo ${enlargedImage === image ? 'enlarged' : ''}`}
-        onClick={() => setEnlargedImage(enlargedImage === image ? null : image)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            setEnlargedImage(enlargedImage === image ? null : image);
-          }
-        }}
-        role="button"
-        tabIndex={0}
-      />
-    ))}
-  </div>
-);
+const CatGallery = ({ enlargedImage, setEnlargedImage }) => {
+  const [loadedImages, setLoadedImages] = useState({});
+  const [imageError, setImageError] = useState({});
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  const handleImageLoad = (image) => {
+    setLoadedImages(prev => ({ ...prev, [image]: true }));
+  };
+
+  const handleImageError = (image) => {
+    setImageError(prev => ({ ...prev, [image]: true }));
+    console.error(`Failed to load image: ${image}`);
+  };
+
+  const handleMouseDown = (e) => {
+    if (!enlargedImage) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || !enlargedImage) return;
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    setDragOffset({ x: newX, y: newY });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (!enlargedImage) {
+      setDragOffset({ x: 0, y: 0 });
+    }
+  }, [enlargedImage]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging]);
+
+  return (
+    <>
+      <div className="cat-gallery">
+        {CAT_IMAGES.map((image, index) => {
+          const isEnlarged = enlargedImage === image;
+          const isLoaded = loadedImages[image];
+          const hasError = imageError[image];
+
+          return (
+            <div 
+              key={image}
+              className="cat-photo-container"
+              role="button"
+              tabIndex={0}
+              onClick={() => !hasError && setEnlargedImage(isEnlarged ? null : image)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  !hasError && setEnlargedImage(isEnlarged ? null : image);
+                }
+                if (e.key === 'Escape' && isEnlarged) {
+                  setEnlargedImage(null);
+                }
+              }}
+              aria-label={`${hasError ? 'Failed to load' : 'View'} cat photo ${index + 1}`}
+            >
+              {!isLoaded && !hasError && (
+                <div className="loading-placeholder" aria-hidden="true">
+                  <div className="loading-spinner" />
+                </div>
+              )}
+              
+              {hasError ? (
+                <div className="error-placeholder">
+                  <span role="img" aria-label="Error">⚠️</span>
+                  <p>Failed to load image</p>
+                </div>
+              ) : (
+                <img 
+                  src={`/images/${image}`}
+                  alt={`Adorable cat photo ${index + 1}`}
+                  className={`cat-photo ${!isLoaded ? 'loading' : ''}`}
+                  onLoad={() => handleImageLoad(image)}
+                  onError={() => handleImageError(image)}
+                  loading="lazy"
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {enlargedImage && (
+        <div 
+          className="overlay-backdrop"
+          onClick={() => setEnlargedImage(null)}
+          role="button"
+          tabIndex={-1}
+          aria-label="Close enlarged image"
+        >
+          <div className="overlay-content">
+            <img 
+              src={`/images/${enlargedImage}`}
+              alt="Enlarged cat photo"
+              className="enlarged-image"
+              style={{
+                transform: `translate(-50%, -50%) translate(${dragOffset.x}px, ${dragOffset.y}px)`,
+                cursor: isDragging ? 'grabbing' : 'grab'
+              }}
+              onMouseDown={handleMouseDown}
+            />
+            <button 
+              className="close-button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEnlargedImage(null);
+              }}
+              aria-label="Close enlarged image"
+            >
+              ×
+            </button>
+            <p className="image-instructions">
+              Click and drag to pan • Press ESC or click outside to close
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
   <div className="name-count">
