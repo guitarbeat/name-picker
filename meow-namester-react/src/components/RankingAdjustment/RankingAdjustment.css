@@ -95,34 +95,108 @@
 
 @media (width <= 768px) {
   .ranking-adjustment {
-    padding: var(--space-4);
+    padding: var(--space-3);
+    margin: 0;
+    border-radius: var(--radius-lg);
   }
 
   .ranking-header {
-    padding: var(--space-4);
-    margin-bottom: var(--space-6);
+    padding: var(--space-3);
+    margin-bottom: var(--space-4);
   }
 
   .ranking-header h2 {
-    font-size: var(--text-3xl);
+    font-size: var(--text-2xl);
   }
 
   .instructions-card {
     flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-4);
+    gap: var(--space-3);
+    padding: var(--space-3);
     text-align: center;
+    margin-bottom: var(--space-4);
+  }
+
+  .instruction-icon {
+    width: 36px;
+    height: 36px;
+    font-size: var(--text-xl);
+  }
+
+  .instruction-text h3 {
+    font-size: var(--text-lg);
+  }
+
+  .instruction-text p {
+    font-size: var(--text-sm);
+  }
+
+  .rankings-grid {
+    border-width: 1px;
+  }
+
+  .rankings-header {
+    grid-template-columns: 50px 1fr 80px;
+    padding: var(--space-2);
+    font-size: var(--text-sm);
   }
 
   .ranking-card {
-    grid-template-columns: 60px 1fr auto;
-    padding: var(--space-3);
+    grid-template-columns: 50px 1fr 80px;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    margin: var(--space-1);
   }
 
   .rank-badge {
     width: 32px;
     height: 32px;
     font-size: var(--text-base);
+  }
+
+  .name {
+    font-size: var(--text-base);
+  }
+
+  .stats {
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+  }
+
+  .drag-handle {
+    opacity: 0.5;
+  }
+
+  .adjustment-controls {
+    padding: var(--space-3);
+  }
+
+  .back-button {
+    width: 100%;
+    justify-content: center;
+    font-size: var(--text-sm);
+  }
+}
+
+@media (width <= 480px) {
+  .ranking-card {
+    grid-template-columns: 40px 1fr 60px;
+  }
+
+  .rank-badge {
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
+  }
+
+  .stats {
+    display: none;
+  }
+
+  .drag-handle svg {
+    width: 20px;
+    height: 20px;
   }
 }
 

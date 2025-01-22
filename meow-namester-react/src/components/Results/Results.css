@@ -318,14 +318,103 @@
 
 /* Mobile optimizations */
 @media (width <= 768px) {
-  .tournament-bracket {
-    padding: 1rem;
-    margin: 1rem 0;
+  .results-container {
+    padding: var(--space-2);
   }
-  
+
+  .results-header {
+    padding: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .results-header h2 {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-2);
+  }
+
+  .results-welcome {
+    font-size: var(--text-sm);
+  }
+
+  .results-content {
+    gap: var(--space-4);
+  }
+
+  .rankings-stats {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .stat-card {
+    flex: 1 1 calc(50% - var(--space-2));
+    min-width: 100px;
+    padding: var(--space-2);
+  }
+
+  .stat-card h3 {
+    font-size: var(--text-xs);
+  }
+
+  .stat-value {
+    font-size: var(--text-2xl);
+  }
+
+  .results-actions {
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+
+  .start-new-button {
+    width: 100%;
+    justify-content: center;
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+  }
+
+  .results-tip {
+    font-size: var(--text-xs);
+    max-width: 300px;
+  }
+
+  .tournament-bracket {
+    padding: var(--space-2);
+    margin-top: var(--space-2);
+  }
+
   .tournament-bracket h3 {
-    margin-bottom: 1rem;
-    font-size: var(--text-responsive-lg);
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  .toast {
+    left: var(--space-2);
+    right: var(--space-2);
+    bottom: var(--space-2);
+    text-align: center;
+  }
+}
+
+@media (width <= 480px) {
+  .results-container {
+    padding: var(--space-1);
+  }
+
+  .results-header {
+    padding: var(--space-2);
+  }
+
+  .stat-card {
+    flex: 1 1 100%;
+  }
+
+  .results-content {
+    gap: var(--space-3);
+  }
+
+  .tournament-bracket {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
