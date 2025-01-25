@@ -70,7 +70,8 @@ function Login({ onLogin }) {
           loading="eager"
         />
         <div className="login-content">
-          <h1>Thanks for helping me name my cat!</h1>
+          <h1>Hi! I'm Aaron, and I need your help naming this adorable cat! 😺</h1>
+          <p className="subtitle">These are actual photos of my new feline friend, who's currently living with a temporary name until we find the perfect one!</p>
           <p className="cat-fact">{catFact || 'Loading a fun cat fact...'}</p>
           
           <form onSubmit={handleSubmit} className="login-form">
@@ -79,7 +80,7 @@ function Login({ onLogin }) {
                 type="text"
                 value={name}
                 onChange={handleNameChange}
-                placeholder="Enter your name"
+                placeholder="Enter your name to join the fun"
                 className={`login-input ${error ? 'error' : ''}`}
                 autoFocus
                 disabled={isLoading}
@@ -100,12 +101,13 @@ function Login({ onLogin }) {
                 </span>
               ) : (
                 <span className="button-content">
-                  Start Rating Names
-                  <span className="button-emoji">🐱</span>
+                  Join the Cat Name Tournament!
+                  <span className="button-emoji">🏆</span>
                 </span>
               )}
             </button>
           </form>
+          <p className="helper-text">Join hundreds of others in a fun tournament-style voting system to help pick the purr-fect name!</p>
         </div>
       </div>
     </div>

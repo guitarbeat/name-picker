@@ -14,11 +14,21 @@ const DEFAULT_DESCRIPTION = "A name as unique as your future companion";
 
 const WelcomeSection = ({ enlargedImage, setEnlargedImage }) => (
   <div className="welcome-section">
-    <h2>What do you think I should name my cat! 🐈‍⬛ ✨</h2>
-    <p className="welcome-text">
-      Welcome to the ultimate cat name showdown! Pick your favorite names and let them battle it out in a fun tournament.
-      Each name has been carefully chosen with love and personality in mind.
-    </p>
+    <h2>Welcome to Aaron's Cat Name Tournament! 🏆</h2>
+    <div className="welcome-text">
+      <p>Here's how it works:</p>
+      <ol className="tournament-steps">
+        <li>Pick the names you find interesting (they'll compete in head-to-head matchups)</li>
+        <li>Vote in fun 1v1 matches between names</li>
+        <li>Your votes help determine which names rise to the top</li>
+        <li>I'll use everyone's collective wisdom to make the final choice!</li>
+      </ol>
+    </div>
+    
+    <div className="cat-intro">
+      <h3>Meet my cat! 😺</h3>
+      <p>Still unnamed but full of personality, as you can see from these photos!</p>
+    </div>
     
     <CatGallery 
       enlargedImage={enlargedImage} 
@@ -195,10 +205,10 @@ const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
 
 const NameSelection = ({ selectedNames, availableNames, onToggleName }) => (
   <div className="name-selection">
-    <h2 className="heading">Choose Your Contestants</h2>
+    <h2 className="heading">Step 1: Choose Your Contestants</h2>
     <p className="selection-guide">
-      Click on the names you'd like to include in the tournament. 
-      Hover over each card to learn more about the name's meaning and charm!
+      Select the names you'd like to see compete in the tournament. Each name has been carefully chosen
+      and comes with a unique story - hover over the cards to learn more about their meanings!
     </p>
 
     <div className="cards-container">
