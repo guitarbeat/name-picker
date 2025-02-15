@@ -7,71 +7,74 @@ const Sidebar = ({ view, setView, isLoggedIn, userName, onLogout, isOpen, onTogg
       <button 
         className={`sidebar-toggle ${isOpen ? 'open' : ''}`}
         onClick={onToggle}
-        aria-label="Toggle menu"
+        aria-label={isOpen ? "Close menu" : "Open menu"}
       >
         <span></span>
         <span></span>
         <span></span>
       </button>
       
-      <div className={`sidebar ${isOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <img 
-            src={`${process.env.PUBLIC_URL}/images/cat.gif`} 
-            alt="Cat animation" 
-            className="sidebar-cat-image" 
-          />
+          <div className="logo-container">
+            <img 
+              src={`${process.env.PUBLIC_URL}/images/cat.gif`} 
+              alt="Cat animation" 
+              className="sidebar-cat-image" 
+            />
+            <h1 className="app-title">Meow Namester</h1>
+          </div>
           {isLoggedIn && (
             <div className="user-info">
-              <span>👋 {userName}</span>
+              <span className="user-greeting">Welcome back</span>
+              <span className="user-name">{userName}</span>
             </div>
           )}
         </div>
         
         <nav className="sidebar-nav">
           <button 
-            className={`sidebar-button ${view === 'tournament' ? 'active' : ''}`}
+            className={`nav-button ${view === 'tournament' ? 'active' : ''}`}
             onClick={() => {
               setView('tournament');
               onToggle();
             }}
           >
-            Tournament
+            <span className="button-icon">🏆</span>
+            <span className="button-text">Tournament</span>
           </button>
           
           {isLoggedIn && (
             <>
               <button 
-                className={`sidebar-button ${view === 'suggest' ? 'active' : ''}`}
-                onClick={() => {
-                  setView('suggest');
-                  onToggle();
-                }}
-              >
-                Suggest Names
-              </button>
-              <button 
-                className={`sidebar-button ${view === 'profile' ? 'active' : ''}`}
+                className={`nav-button ${view === 'profile' ? 'active' : ''}`}
                 onClick={() => {
                   setView('profile');
                   onToggle();
                 }}
               >
-                My Profile
-              </button>
-              <button 
-                className="sidebar-button logout"
-                onClick={() => {
-                  onLogout();
-                  onToggle();
-                }}
-              >
-                Logout
+                <span className="button-icon">👤</span>
+                <span className="button-text">My Profile</span>
               </button>
             </>
           )}
         </nav>
-      </div>
+
+        {isLoggedIn && (
+          <div className="sidebar-footer">
+            <button 
+              className="logout-button"
+              onClick={() => {
+                onLogout();
+                onToggle();
+              }}
+            >
+              <span className="button-icon">👋</span>
+              <span className="button-text">Logout</span>
+            </button>
+          </div>
+        )}
+      </aside>
     </>
   );
 };

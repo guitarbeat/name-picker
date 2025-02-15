@@ -19,16 +19,18 @@
 import React from 'react';
 import './LoadingSpinner.css';
 
+/**
+ * A modern, elegant loading spinner component that provides visual feedback
+ * during asynchronous operations.
+ * 
+ * @param {Object} props
+ * @param {('small'|'medium'|'large')} [props.size='medium'] - Size variant of the spinner
+ * @returns {JSX.Element}
+ */
 const LoadingSpinner = ({ size = 'medium' }) => {
-  const sizeClasses = {
-    small: { width: '40px', height: '40px' },
-    medium: { width: '60px', height: '60px' },
-    large: { width: '80px', height: '80px' }
-  };
-
   return (
     <div className="loading-spinner" role="status" aria-label="Loading content">
-      <div className="spinner" style={sizeClasses[size]} />
+      <div className={`spinner ${size}`} />
       <span className="sr-only">Loading...</span>
     </div>
   );

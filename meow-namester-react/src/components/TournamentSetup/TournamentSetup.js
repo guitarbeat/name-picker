@@ -1,41 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, getNamesWithDescriptions } from '../../supabase/supabaseClient';
 import { LoadingSpinner, NameCard, ErrorBoundary } from '../';
+import useNameOptions from '../../supabase/useNameOptions';
 import './TournamentSetup.css';
 
 const CAT_IMAGES = [
   'IMG_4844.jpg',
   'IMG_4845.jpg',
   'IMG_4846.jpg',
-  'IMG_4847.jpg'
+  'IMG_4847.jpg',
+  'IMG_5044.JPEG',
+  'IMG_5071.JPG'
 ];
 
 const DEFAULT_DESCRIPTION = "A name as unique as your future companion";
 
-const WelcomeSection = ({ enlargedImage, setEnlargedImage }) => (
-  <div className="welcome-section">
-    <h2>Welcome to Aaron's Cat Name Tournament! 🏆</h2>
-    <div className="welcome-text">
-      <p>Here's how it works:</p>
-      <ol className="tournament-steps">
-        <li>Pick the names you find interesting (they'll compete in head-to-head matchups)</li>
-        <li>Vote in fun 1v1 matches between names</li>
-        <li>Your votes help determine which names rise to the top</li>
-        <li>I'll use everyone's collective wisdom to make the final choice!</li>
-      </ol>
+const WelcomeSection = ({ enlargedImage, setEnlargedImage }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="welcome-section">
+      <h2>Ultimate Cat Name Championship! 🏆</h2>
+      <div className={`welcome-text ${isExpanded ? 'expanded' : ''}`}>
+        <button 
+          className="expand-toggle"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          aria-controls="instructions"
+        >
+          <span className="toggle-text">{isExpanded ? 'Hide Instructions' : 'Show Instructions'}</span>
+          <span className="toggle-icon">{isExpanded ? '−' : '+'}</span>
+        </button>
+        <div id="instructions" className="instructions-content">
+          <p>Help name this adorable feline:</p>
+          <ol className="tournament-steps">
+            <li>Pick your favorite names from our collection</li>
+            <li>Watch names battle in head-to-head matchups</li>
+            <li>Vote to crown the purrfect champion</li>
+            <li>Help write this kitty's next chapter</li>
+          </ol>
+        </div>
+      </div>
     </div>
-    
-    <div className="cat-intro">
-      <h3>Meet my cat! 😺</h3>
-      <p>Still unnamed but full of personality, as you can see from these photos!</p>
-    </div>
-    
-    <CatGallery 
-      enlargedImage={enlargedImage} 
-      setEnlargedImage={setEnlargedImage} 
-    />
-  </div>
-);
+  );
+};
 
 const CatGallery = ({ enlargedImage, setEnlargedImage }) => {
   const [loadedImages, setLoadedImages] = useState({});
@@ -182,8 +190,8 @@ const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
     <div className="count-and-select">
       <span className="count-text">
         {selectedCount === 0 
-          ? "No names selected yet - let's get started!" 
-          : `${selectedCount} Purr-fect Names Selected`}
+          ? "Pick some pawsome names! 🐾" 
+          : `${selectedCount} Names Selected`}
       </span>
       <button 
         onClick={onSelectAll}
@@ -192,12 +200,12 @@ const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
       >
         {selectedCount === totalCount 
           ? '✨ Start Fresh' 
-          : '🎲 Include All Names'}
+          : '🎲 Select All'}
       </button>
     </div>
     {selectedCount === 1 && (
       <span className="helper-text" role="alert">
-        Just one more name and we can start the tournament! 🎯
+        Just one more to start! 🎯
       </span>
     )}
   </div>
@@ -205,10 +213,9 @@ const NameCounter = ({ selectedCount, totalCount, onSelectAll }) => (
 
 const NameSelection = ({ selectedNames, availableNames, onToggleName }) => (
   <div className="name-selection">
-    <h2 className="heading">Step 1: Choose Your Contestants</h2>
+    <h2 className="heading">Choose Your Champions</h2>
     <p className="selection-guide">
-      Select the names you'd like to see compete in the tournament. Each name has been carefully chosen
-      and comes with a unique story - hover over the cards to learn more about their meanings!
+      Each name has a unique story - hover to discover their meanings!
     </p>
 
     <div className="cards-container">
@@ -240,13 +247,95 @@ const StartButton = ({ selectedNames, onStart }) => (
       disabled={selectedNames.length < 2}
       aria-label={`Start tournament with ${selectedNames.length} names`}
     >
-      <span className="button-text">Start the Name Tournament!</span>
+      <span className="button-text">Let the Games Begin! 🎮</span>
       <span className="button-subtext">
-        {selectedNames.length} Names Ready to Compete 🏆
+        {selectedNames.length} Names Ready 🏆
       </span>
     </button>
   </div>
 );
+
+const NameSuggestionSection = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const { addNameOption, loading } = useNameOptions();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!name.trim()) {
+      setError('Please enter a name');
+      return;
+    }
+
+    if (!description.trim()) {
+      setError('Please enter a description');
+      return;
+    }
+
+    try {
+      await addNameOption(name.trim(), description.trim());
+      setSuccess('Thank you for your suggestion!');
+      setName('');
+      setDescription('');
+    } catch (err) {
+      setError('Failed to add name. It might already exist.');
+    }
+  };
+
+  return (
+    <div className="suggestion-section">
+      <div className="suggestion-card">
+        <h2>Suggest a Cat Name</h2>
+        <p className="suggestion-intro">
+          Have a great cat name in mind? Share it with the community!
+        </p>
+
+        <form onSubmit={handleSubmit} className="suggestion-form">
+          <div className="form-group">
+            <label htmlFor="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter a cat name"
+              maxLength={50}
+              disabled={loading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Tell us about this name's meaning or origin"
+              maxLength={500}
+              disabled={loading}
+            />
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+          {success && <p className="success-message">{success}</p>}
+
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={loading}
+          >
+            {loading ? 'Submitting...' : 'Submit Name'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 function useTournamentSetup(onStart) {
   const [availableNames, setAvailableNames] = useState([]);
@@ -354,30 +443,89 @@ function TournamentSetupContent({ onStart }) {
   }
 
   return (
-    <div className="tournament-setup container">
-      <WelcomeSection 
-        enlargedImage={enlargedImage} 
-        setEnlargedImage={setEnlargedImage} 
-      />
+    <div className="tournament-setup">
+      <div className="tournament-layout">
+        <aside className="photo-sidebar">
+          <div className="photo-sidebar-content">
+            <h3>Meet Your VIP! 😺</h3>
+            <p>This charmer needs a name that matches their spirit</p>
+            <div className="photo-grid">
+              {CAT_IMAGES.map((image, index) => (
+                <div 
+                  key={image}
+                  className="photo-thumbnail"
+                  onClick={() => setEnlargedImage(image)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View cat photo ${index + 1}`}
+                >
+                  <img 
+                    src={`/images/${image}`}
+                    alt={`Cat photo ${index + 1}`}
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <NameSuggestionSection />
+        </aside>
 
-      <NameSelection 
-        selectedNames={selectedNames}
-        availableNames={availableNames}
-        onToggleName={toggleName}
-      />
+        <main className="names-content">
+          <WelcomeSection 
+            enlargedImage={enlargedImage}
+            setEnlargedImage={setEnlargedImage}
+          />
 
-      <NameCounter 
-        selectedCount={selectedNames.length}
-        totalCount={availableNames.length}
-        onSelectAll={handleSelectAll}
-      />
+          <NameSelection 
+            selectedNames={selectedNames}
+            availableNames={availableNames}
+            onToggleName={toggleName}
+          />
 
-      {selectedNames.length >= 2 && (
-        <StartButton 
-          selectedNames={selectedNames}
-          onStart={onStart}
-        />
-      )}
+          <NameCounter 
+            selectedCount={selectedNames.length}
+            totalCount={availableNames.length}
+            onSelectAll={handleSelectAll}
+          />
+
+          {selectedNames.length >= 2 && (
+            <StartButton 
+              selectedNames={selectedNames}
+              onStart={onStart}
+            />
+          )}
+        </main>
+
+        {enlargedImage && (
+          <div 
+            className="overlay-backdrop"
+            onClick={() => setEnlargedImage(null)}
+            role="button"
+            tabIndex={-1}
+            aria-label="Close enlarged image"
+          >
+            <div className="overlay-content">
+              <img 
+                src={`/images/${enlargedImage}`}
+                alt="Enlarged cat photo"
+                className="enlarged-image"
+              />
+              <button 
+                className="close-button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEnlargedImage(null);
+                }}
+                aria-label="Close enlarged image"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

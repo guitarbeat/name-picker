@@ -21,8 +21,7 @@ import {
   ErrorBoundary,
   Login,
   Profile,
-  TournamentSetup,
-  NameSuggestion  // Add this import
+  TournamentSetup
 } from './components';
 import Sidebar from './components/Sidebar/Sidebar';
 import useUserSession from './hooks/useUserSession';
@@ -287,10 +286,6 @@ function App() {
           onUpdateRatings={handleUpdateRatings}
         />
       );
-    }
-
-    if (view === 'suggest') {  // Add this section
-      return <NameSuggestion />;
     }
 
     if (tournamentComplete) {

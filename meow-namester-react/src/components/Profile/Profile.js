@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase, deleteName } from '../../supabase/supabaseClient';
 import CalendarButton from '../CalendarButton/CalendarButton';
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import './Profile.css';
 
 function Profile({ userName, onStartNewTournament }) {
@@ -401,7 +402,7 @@ function Profile({ userName, onStartNewTournament }) {
 
   if (loading || loadingAllUsers) return (
     <div className="profile container">
-      <div className="loading-spinner"></div>
+      <LoadingSpinner size="large" />
       <p className="subtitle">Loading profile data...</p>
     </div>
   );
