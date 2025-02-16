@@ -28,6 +28,16 @@ class EloRating {
     return Math.max(this.minRating, Math.min(this.maxRating, newRating));
   }
 
+  /**
+   * Calculate new ratings after a match
+   * @param {number} ratingA - Current rating of first item
+   * @param {number} ratingB - Current rating of second item
+   * @param {'left'|'right'|'both'|'none'} outcome - Match result
+   * @param {Object} stats - Player statistics
+   * @param {number} [stats.winsA] - Wins for player A
+   * @param {number} [stats.lossesA] - Losses for player A
+   * @returns {Object} New ratings for both items
+   */
   calculateNewRatings(ratingA, ratingB, outcome, stats = {}) {
     const expectedA = this.getExpectedScore(ratingA, ratingB);
     const expectedB = this.getExpectedScore(ratingB, ratingA);

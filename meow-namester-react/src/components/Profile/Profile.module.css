@@ -1,0 +1,893 @@
+.profileContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--background-gradient);
+}
+
+.profileHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--header-bg);
+  box-shadow: var(--header-shadow);
+}
+
+.profileTitle {
+  flex: 1;
+  min-width: 300px;
+}
+
+.profileTitle h2 {
+  margin: 0;
+  font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.profileSubtitle {
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 0;
+}
+
+.startTournamentButton {
+  composes: btnPrimary from global;
+}
+
+.adminPanelHeader {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+  padding: var(--space-2);
+  width: 100%;
+  background: var(--admin-panel-bg, #f8fafc);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--admin-border, #e2e8f0);
+}
+
+.adminPanelHeader.minimized {
+  max-height: 40px; /* Height of collapsed state */
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  background: var(--admin-panel-bg);
+  border-color: var(--admin-border);
+}
+
+.minimizeButton {
+  composes: btnGhost from global;
+  position: absolute;
+  right: var(--space-2);
+  top: var(--space-2);
+  z-index: 1;
+  padding: var(--space-1);
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--button-bg);
+  border-radius: var(--radius-full);
+}
+
+.minimizeButton:hover {
+  background: var(--button-hover-bg);
+}
+
+.adminPanelHeader.minimized .minimizeButton::after {
+  transform: rotate(180deg);
+}
+
+/* Add transition to child elements */
+.adminPanelHeader > * {
+  transition: opacity 0.2s ease, transform 0.3s ease;
+}
+
+.adminPanelHeader.minimized > *:not(.minimizeButton) {
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+}
+
+/* Add subtle gradient when minimized */
+.adminPanelHeader.minimized::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent 0%, var(--card-hover) 100%);
+}
+
+.viewControls {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.viewButton {
+  composes: btnSecondary from global;
+}
+
+.viewButton.active {
+  background: var(--primary-color);
+  color: var(--text-primary-inverted);
+  border-color: var(--primary-color);
+}
+
+.adminToolbar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.actionButton {
+  composes: btnSecondary from global;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.userGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.adminUserCard {
+  composes: card from global;
+  position: relative;
+  transition: var(--transition-transform);
+  background: var(--admin-card-bg, #ffffff);
+  border: 1px solid var(--admin-card-border, #e2e8f0);
+}
+
+.adminUserCard:hover {
+  transform: translateY(-2px);
+}
+
+.userStatus {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  
+  &.inactive {
+    background: var(--admin-status-inactive);
+  }
+}
+
+.userName {
+  font-weight: 600;
+  color: var(--admin-text-primary);
+}
+
+.userStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.userStat {
+  background: var(--admin-stat-bg, #f1f5f9);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--admin-text-secondary);
+}
+
+.userStatCount {
+  display: block;
+  font-weight: bold;
+  color: var(--admin-text-primary);
+  margin-top: var(--space-1);
+}
+
+.dangerButton {
+  composes: btn from global;
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger-text);
+}
+
+.dangerButton:hover {
+  background: var(--admin-danger-hover);
+}
+
+.contentWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.topSection {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-rows: auto auto;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-2);
+  background: var(--card-bg);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+}
+
+.scrollableContent {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--space-4);
+  overflow: hidden;
+  height: 100%;
+}
+
+.ratingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+  padding-right: var(--space-2);
+  align-content: start;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ratingCard {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: var(--space-2);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease;
+}
+
+.ratingCard:hover {
+  transform: translateY(-3px);
+}
+
+.ratingCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-1);
+}
+
+.nameRank {
+  background: var(--rank-bg);
+  color: var(--rank-text);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.name {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.visibilityToggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: var(--toggle-bg);
+  border: 1px solid var(--toggle-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.visibilityToggle:hover {
+  background: var(--toggle-hover-bg);
+}
+
+.visibilityToggle.hidden {
+  background: var(--toggle-hidden-bg);
+  border-color: var(--toggle-hidden-border);
+}
+
+.visibilityIcon {
+  font-size: 1.1rem;
+}
+
+.visibilityText {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.ratingInfo {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+}
+
+.ratingValue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ratingLabel {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.ratingNumber {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--rating-color);
+}
+
+.record {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.wins, .losses {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.winIcon {
+  color: var(--win-color);
+}
+
+.lossIcon {
+  color: var(--loss-color);
+}
+
+.userControls {
+  margin-bottom: var(--space-4);
+}
+
+.sortControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+  padding: var(--space-1) 0;
+  border-bottom: 2px solid var(--admin-border);
+  margin-bottom: var(--space-2);
+}
+
+.sortControls button {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--admin-stat-bg);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text-secondary);
+  transition: var(--transition-all);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.9rem;
+}
+
+.sortControls button.activeSort {
+  background: var(--admin-status-active);
+  color: var(--admin-text-primary);
+  border-color: var(--admin-status-active);
+  padding-right: var(--space-6);
+  position: relative;
+}
+
+.sortControls button.activeSort::after {
+  content: '↓';
+  position: absolute;
+  right: var(--space-2);
+  font-weight: 700;
+  color: var(--admin-text-primary);
+}
+
+.calendarButton {
+  composes: actionButton;
+}
+
+.sortDirection {
+  margin-left: var(--space-1);
+  font-weight: 700;
+}
+
+.buttonIcon {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.modalOverlay {
+  composes: modalBackdrop from global;
+}
+
+.modalContent {
+  composes: modal from global;
+}
+
+.modalActions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  margin-inline-start: auto;
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+.secondaryButton {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chartGrid {
+  display: grid;
+  gap: 2rem;
+  min-height: 400px;
+  height: 50vh;
+  max-height: 600px;
+  margin: 2rem 0;
+}
+
+.chartCard {
+  height: 100%;
+  position: relative;
+  padding: 1rem;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.chartHeader {
+  border-bottom: 1px solid var(--admin-border);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.chartTitle {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chartContent {
+  min-height: 300px;
+}
+
+.chartControls {
+  display: flex;
+  gap: 10px;
+  margin: 1rem 0;
+}
+
+.chartToggle {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chartToggle.active {
+  background: var(--primary-color);
+  color: var(--text-primary-inverted);
+  border-color: var(--primary-color);
+}
+
+.adminBadge {
+  background: var(--admin-status-active);
+  color: var(--admin-text-primary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 639px) {
+  .mainContent {
+    gap: var(--space-2);
+  }
+  
+  .ratingsGrid {
+    gap: var(--space-1);
+    padding: var(--space-1);
+  }
+  
+  .adminToolbar {
+    flex-wrap: wrap;
+    
+    button {
+      flex: 1 1 120px;
+      padding: var(--space-1);
+    }
+  }
+}
+
+@media (min-width: 768px) {
+  .profileContainer {
+    padding: var(--space-3);
+  }
+  
+  .statsGrid {
+    gap: var(--space-2);
+  }
+  
+  .ratingCard {
+    padding: var(--space-2);
+  }
+}
+
+@media (min-width: 1024px) {
+  .mainContent {
+    grid-template-columns: 1fr 320px;
+    align-items: start;
+  }
+  
+  .adminPanelHeader {
+    grid-column: 1 / -1;
+  }
+  
+  .chartGrid {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Add these variables to your global CSS */
+:root {
+  --admin-panel-bg: #f3f4f6;
+  --admin-border: #d1d5db;
+  --admin-card-bg: #ffffff;
+  --admin-card-border: #e5e7eb;
+  --admin-stat-bg: #f9fafb;
+  --admin-danger-bg: #fee2e2;
+  --admin-danger-text: #b91c1c;
+  --admin-danger-hover: #fecaca;
+  --admin-text-primary: #1f2937;
+  --admin-text-secondary: #4b5563;
+  --admin-status-active: #10b981;
+  --admin-status-inactive: #ef4444;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --admin-panel-bg: #1f2937;
+    --admin-border: #374151;
+    --admin-card-bg: #111827;
+    --admin-card-border: #1f2937;
+    --admin-stat-bg: #1f2937;
+    --admin-danger-bg: #7f1d1d;
+    --admin-danger-text: #fecaca;
+    --admin-danger-hover: #991b1b;
+    --admin-text-primary: #f3f4f6;
+    --admin-text-secondary: #9ca3af;
+    --admin-status-active: #059669;
+    --admin-status-inactive: #b91c1c;
+  }
+}
+
+/* Apply admin color scheme */
+.adminPanelHeader {
+  background: var(--admin-panel-bg);
+  border-color: var(--admin-border);
+  color: var(--admin-text-primary);
+}
+
+.adminUserCard {
+  background: var(--admin-card-bg);
+  border-color: var(--admin-card-border);
+  color: var(--admin-text-primary);
+}
+
+.userStatus {
+  background: var(--admin-status-active);
+  &.inactive {
+    background: var(--admin-status-inactive);
+  }
+}
+
+.userStat {
+  background: var(--admin-stat-bg);
+  color: var(--admin-text-secondary);
+}
+
+.userStatCount {
+  color: var(--admin-text-primary);
+}
+
+.dangerButton {
+  background: var(--admin-danger-bg);
+  color: var(--admin-danger-text);
+  &:hover {
+    background: var(--admin-danger-hover);
+  }
+}
+
+/* Fix minimized state gradient */
+.adminPanelHeader.minimized::after {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--admin-panel-bg) 100%
+  );
+}
+
+/* Chart colors in admin mode */
+.chartCard {
+  background: var(--admin-card-bg);
+  border-color: var(--admin-card-border);
+}
+
+/* Admin badge styling */
+.adminBadge {
+  background: var(--admin-status-active);
+  color: var(--admin-text-primary);
+}
+
+/* Active Names section */
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  margin: var(--space-2) 0;
+  border-bottom: 2px solid var(--admin-border);
+  color: var(--admin-text-primary);
+  font-size: 1.1rem;
+}
+
+.sectionIcon {
+  font-size: 1em;
+  margin-right: var(--space-1);
+}
+
+/* Rating card header */
+.ratingCardHeader {
+  background: var(--admin-stat-bg);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-1);
+  gap: var(--space-1);
+}
+
+.nameRank {
+  background: var(--admin-status-active);
+  color: var(--admin-text-primary);
+  font-weight: 700;
+}
+
+/* Sort indicator alignment */
+.sortDirection {
+  margin-left: var(--space-1);
+  font-weight: 700;
+}
+
+/* Admin Design System */
+:root {
+  /* Spacing */
+  --space-3d: var(--space-3);
+  --space-4d: var(--space-4);
+  
+  /* Colors */
+  --admin-component-bg: var(--admin-panel-bg);
+  --admin-component-border: var(--admin-border);
+  --admin-text: var(--admin-text-primary);
+}
+
+/* Base Admin Components */
+[class*="admin-"] {
+  background: var(--admin-component-bg);
+  border: 1px solid var(--admin-component-border);
+  color: var(--admin-text);
+  border-radius: var(--radius-md);
+}
+
+.admin-panel {
+  --admin-component-bg: var(--admin-panel-bg);
+  padding: var(--space-3d);
+  margin-top: var(--space-3d);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.admin-card {
+  --admin-component-bg: var(--admin-card-bg);
+  --admin-component-border: var(--admin-card-border);
+  padding: var(--space-3d);
+  transition: var(--transition-all);
+}
+
+/* Shared Section Styles */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  margin: var(--space-4d) 0;
+  border-bottom: 2px solid var(--admin-border);
+  
+  & > [class*="icon"] {
+    font-size: 1.25em;
+    margin-right: var(--space-1);
+  }
+}
+
+/* Grid Systems */
+.auto-grid {
+  display: grid;
+  gap: var(--space-3d);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+
+.compact-grid {
+  --grid-min: 240px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-min)), 1fr));
+  gap: var(--space-2);
+}
+
+/* Shared Card Styles */
+.stats-card {
+  padding: var(--space-3d);
+  background: var(--admin-stat-bg);
+  border-radius: var(--radius-lg);
+  
+  & header {
+    padding: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+}
+
+/* Button Groups */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+  
+  & button {
+    flex: 1 1 160px;
+    white-space: nowrap;
+  }
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+  :root {
+    --space-3d: var(--space-4);
+    --space-4d: var(--space-5);
+  }
+  
+  .auto-grid {
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .admin-panel {
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-4d);
+  }
+}
+
+/* Apply DRY patterns to existing components */
+.profileHeader {
+  @extend .auto-grid;
+  padding: var(--space-3d);
+}
+
+.adminPanelHeader {
+  @extend .admin-panel;
+}
+
+.adminUserCard {
+  @extend .admin-card;
+}
+
+.userGrid {
+  @extend .compact-grid;
+  --grid-min: 280px;
+}
+
+.statsGrid {
+  @extend .auto-grid;
+}
+
+.sortControls {
+  @extend .button-group;
+  border-bottom: 2px solid var(--admin-border);
+  padding-bottom: var(--space-2);
+}
+
+.chartGrid {
+  @extend .auto-grid;
+}
+
+.ratingCard {
+  @extend .stats-card;
+}
+
+.modalActions {
+  @extend .button-group;
+}
+
+/* Constrain admin panel height */
+.adminPanel {
+  flex: none;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* Admin Panel Container */
+.adminPanelContainer {
+  background: var(--admin-panel-bg);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3);
+  border: 1px solid var(--admin-border);
+  margin-top: var(--space-4);
+  box-shadow: var(--shadow-lg);
+  max-height: 60vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.button {
+  background: var(--button-bg);
+  &:hover {
+    background: var(--button-hover-bg);
+  }
+}
+
+.statItem {
+  background: var(--stat-bg);
+  border: 1px solid var(--stat-border);
+}
+
+.profileEmoji {
+  flex-shrink: 0;
+}
+
+/* Add cursor pointer to sort/chart controls */
+.sortButton,
+.chartToggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Maintain existing button styles for div elements */
+.sortButton {
+  /* existing button styles */
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--admin-stat-bg);
+  border: 1px solid var(--admin-border);
+  transition: var(--transition-all);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}

@@ -1,0 +1,416 @@
+/* Base Layout */
+.container {
+  composes: container from '../../styles/base.css';
+  width: 100%;
+  max-width: var(--container-max-width);
+  padding: var(--space-4);
+  margin: 0 auto;
+}
+
+.tournamentLayout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* Welcome Section */
+.welcomeSection {
+  margin-bottom: var(--space-6);
+}
+
+.welcomeText {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.welcomeText.expanded {
+  max-height: 500px;
+  opacity: 1;
+  margin-top: var(--space-4);
+}
+
+.expandToggle {
+  composes: btnSecondary from '../../styles/base.css';
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.toggleText {
+  flex: 1;
+  text-align: left;
+}
+
+.toggleIcon {
+  font-size: var(--text-xl);
+  line-height: 1;
+}
+
+.instructionsContent {
+  padding: var(--space-4) 0;
+}
+
+.tournamentSteps {
+  list-style: none;
+  padding: 0;
+  margin: var(--space-4) 0;
+  counter-reset: step;
+}
+
+.tournamentSteps li {
+  position: relative;
+  padding-left: var(--space-8);
+  margin-bottom: var(--space-3);
+  counter-increment: step;
+}
+
+.tournamentSteps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* Name Selection */
+.nameSelection {
+  margin-bottom: var(--space-6);
+}
+
+.heading {
+  composes: heading3 from '../../styles/base.css';
+  margin-bottom: var(--space-2);
+}
+
+.selectionGuide {
+  composes: text from '../../styles/base.css';
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.cardsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+/* Name Counter */
+.nameCount {
+  composes: cardInteractive from '../../styles/base.css';
+  padding: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+.countAndSelect {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.countText {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.selectAllButton {
+  composes: btnSecondary from '../../styles/base.css';
+}
+
+.helperText {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--primary-500);
+  font-size: var(--text-sm);
+  animation: pulse 2s infinite;
+}
+
+/* Start Button */
+.startSection {
+  text-align: center;
+  margin: var(--space-6) 0;
+}
+
+.startButton {
+  composes: btnPrimary from '../../styles/base.css';
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.buttonText {
+  font-size: var(--text-xl);
+  font-weight: 600;
+}
+
+.buttonSubtext {
+  font-size: var(--text-sm);
+  opacity: 0.9;
+}
+
+/* Photo Sidebar */
+.photoSidebar {
+  position: sticky;
+  top: var(--space-4);
+}
+
+.photoSidebarContent {
+  composes: cardInteractive from '../../styles/base.css';
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.photoThumbnail {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.photoThumbnail:hover {
+  transform: scale(1.05);
+}
+
+.photoThumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Suggestion Section */
+.suggestionSection {
+  composes: cardInteractive from '../../styles/base.css';
+  padding: var(--space-4);
+}
+
+.suggestionCard {
+  text-align: center;
+}
+
+.suggestionIntro {
+  color: var(--text-secondary);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.suggestionForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formGroup {
+  text-align: left;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: var(--space-2);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  border-color: var(--primary-400);
+  box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.2);
+  outline: none;
+}
+
+.formGroup textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.submitButton {
+  composes: btnPrimary from '../../styles/base.css';
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* Image Overlay */
+.overlayBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(var(--black-rgb) / 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+}
+
+.overlayContent {
+  position: fixed;
+  inset: var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.enlargedImage {
+  position: absolute;
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  cursor: grab;
+}
+
+.enlargedImage:active {
+  cursor: grabbing;
+}
+
+.closeButton {
+  composes: btnIcon from '../../styles/base.css';
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 40px;
+  height: 40px;
+  font-size: var(--text-2xl);
+  color: var(--white);
+  background: rgb(var(--black-rgb) / 0.5);
+  border: none;
+  border-radius: var(--radius-full);
+  z-index: 1002;
+}
+
+.imageInstructions {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-4);
+  color: var(--white);
+  background: rgb(var(--black-rgb) / 0.5);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* Messages */
+.errorMessage {
+  color: var(--error-500);
+  margin: var(--space-2) 0;
+}
+
+.successMessage {
+  color: var(--success-500);
+  margin: var(--space-2) 0;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .tournamentSteps li::before {
+    background: var(--primary-900);
+    color: var(--primary-200);
+  }
+
+  .formGroup input,
+  .formGroup textarea {
+    background: var(--surface-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-primary-dark);
+  }
+
+  .formGroup input:focus,
+  .formGroup textarea:focus {
+    border-color: var(--primary-400);
+    box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.3);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .tournamentLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .photoSidebar {
+    position: static;
+    order: -1;
+  }
+
+  .photoGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: var(--space-2);
+  }
+
+  .cardsContainer {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--space-2);
+  }
+
+  .countAndSelect {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .selectAllButton {
+    width: 100%;
+  }
+
+  .photoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .welcomeText,
+  .photoThumbnail,
+  .formGroup input,
+  .formGroup textarea {
+    transition: none;
+  }
+
+  .helperText {
+    animation: none;
+  }
+} 

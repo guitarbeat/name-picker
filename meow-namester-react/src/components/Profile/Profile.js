@@ -1,9 +1,92 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import useSupabaseStorage from '../../supabase/useSupabaseStorage';
 import { supabase, deleteName } from '../../supabase/supabaseClient';
-import CalendarButton from '../CalendarButton/CalendarButton';
+import { 
+  SortControls,
+  DeleteConfirmationModal,
+  BarChart,
+  PieChart,
+  VisibilityToggle,
+  RatingStats,
+  DeleteButton,
+  AdminUserCard,
+  SortIndicator
+} from './components';
+import { 
+  formatDate,
+  getWinRate,
+  isUserActive
+} from './utils/profileUtils';
+import { 
+  SORT_CONFIG,
+  INITIAL_CHART_OPTIONS
+} from './constants';
+import styles from './Profile.module.css';
+import { Line, Bar, Pie, Radar } from 'react-chartjs-2';
+import { 
+  Chart as ChartJS, 
+  LineController, 
+  LineElement, 
+  PointElement, 
+  LinearScale, 
+  CategoryScale,
+  Title,
+  BarController,
+  BarElement,
+  PieController,
+  ArcElement,
+  RadarController,
+  RadialLinearScale
+} from 'chart.js';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
-import './Profile.css';
+import CalendarButton from '../CalendarButton/CalendarButton';
+import ProfileStats from './components/ProfileStats';
+import AdminUserCardComponent from './components/AdminUserCard';
+
+// Register Chart.js components
+ChartJS.register(
+  LineController,
+  LineElement,
+  BarController,
+  BarElement,
+  PieController,
+  ArcElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Title,
+  RadarController,
+  RadialLinearScale
+);
+
+const getChartOptions = (title) => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: true },
+    title: { 
+      display: true, 
+      text: title,
+      padding: { top: 10, bottom: 15 }
+    }
+  },
+  scales: {
+    y: {
+      beginAtZero: false,
+      title: { display: true, text: 'Value' },
+      min: 1000,
+      max: 3000,
+      ticks: { stepSize: 500 }
+    },
+    x: {
+      ticks: {
+        autoSkip: true,
+        maxRotation: 45,
+        minRotation: 45
+      }
+    }
+  }
+});
 
 function Profile({ userName, onStartNewTournament }) {
   const [ratings, setRatings, { loading, error }] = useSupabaseStorage('cat_name_ratings', [], userName);
@@ -24,13 +107,60 @@ function Profile({ userName, onStartNewTournament }) {
   const [nameToDelete, setNameToDelete] = useState(null);
   const [deleteNameStatus, setDeleteNameStatus] = useState({ loading: false, error: null });
   const [userLastActivity, setUserLastActivity] = useState({});
+  const [sortUsersConfig, setSortUsersConfig] = useState({ 
+    key: 'username', 
+    direction: 'desc' 
+  });
+  const [isAdminPanelMinimized, setIsAdminPanelMinimized] = useState(false);
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: []
+  });
+  const [chartOptions, setChartOptions] = useState({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      },
+      title: {
+        display: true,
+        text: 'Rating Comparison'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: false,
+        title: {
+          display: true,
+          text: 'Rating'
+        }
+      }
+    }
+  });
+  const [activeCharts, setActiveCharts] = useState({
+    ratingComparison: true,
+    winLossRatio: true,
+    ratingDistribution: false
+  });
+
+  const USER_SORT_OPTIONS = [
+    { key: 'username', label: 'Username' },
+    { key: 'lastActive', label: 'Last Active' },
+    { key: 'ratingCount', label: 'Ratings Count' }
+  ];
+
+  const chartToggles = [
+    { key: 'ratingComparison', label: 'Rating Comparison' },
+    { key: 'winLossRatio', label: 'Win/Loss Ratio' },
+    { key: 'ratingDistribution', label: 'Rating Distribution' }
+  ];
 
   const fetchAllUsersRatings = useCallback(async () => {
     try {
       setLoadingAllUsers(true);
-      console.log('Fetching all users ratings...'); // Debug log
       
-      const { data, error: fetchError } = await supabase
+      const { data, error } = await supabase
         .from('cat_name_ratings')
         .select(`
           rating,
@@ -38,16 +168,11 @@ function Profile({ userName, onStartNewTournament }) {
           losses,
           user_name,
           updated_at,
-          name_options (
-            id,
-            name,
-            description
-          )
-        `);
+          name_options!inner(id, name, description)
+        `)
+        .not('name_options.id', 'is', null);
 
-      if (fetchError) throw fetchError;
-
-      console.log('Raw data from database:', data); // Debug log
+      if (error) throw error;
 
       // Track last activity per user
       const lastActivity = {};
@@ -77,13 +202,9 @@ function Profile({ userName, onStartNewTournament }) {
           updated_at: item.updated_at // Ensure we're including the timestamp
         };
         
-        console.log(`Processing rating for ${ratingEntry.name}:`, ratingEntry); // Debug log
-        
         acc[userName].push(ratingEntry);
         return acc;
       }, {});
-
-      console.log('Processed ratings by user:', ratingsByUser); // Debug log
 
       // Calculate aggregated statistics
       const aggregatedStats = {};
@@ -137,146 +258,64 @@ function Profile({ userName, onStartNewTournament }) {
 
   useEffect(() => {
     setIsAdmin(userName.toLowerCase() === 'aaron');
-  }, [userName]);
-
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAllUsersRatings();
-      fetchHiddenNames();
-    }
-  }, [isAdmin, fetchAllUsersRatings]);
+    if (isAdmin) fetchAllUsersRatings();
+  }, [userName, isAdmin, fetchAllUsersRatings]);
 
   const fetchHiddenNames = async () => {
-    try {
-      const { data: hiddenData, error: hiddenError } = await supabase
-        .from('hidden_names')
-        .select('name_id');
-
-      if (hiddenError) throw hiddenError;
-
-      // Create Set of UUIDs
-      const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
-      setHiddenNames(newHiddenNames);
-    } catch (err) {
-      console.error('Error in fetchHiddenNames:', err);
-      setToast({
-        show: true,
-        message: `Error fetching hidden names: ${err.message}`,
-        type: 'error'
-      });
+    const { data, error } = await supabase.from('hidden_names').select('name_id');
+    if (error) {
+      setToast({ show: true, message: `Error fetching hidden names: ${error.message}`, type: 'error' });
+    } else {
+      setHiddenNames(new Set(data?.map(item => item.name_id) || []));
     }
   };
 
-  const handleToggleNameVisibility = async (nameId, name) => {
-    try {
-      const isHidden = hiddenNames.has(nameId);
-      const action = isHidden ? 'show' : 'hide';
-      
-      if (!window.confirm(`Are you sure you want to ${action} the name "${name}"?`)) {
-        return;
-      }
+  const handleToggleNameVisibility = async (nameId) => {
+    const isHidden = hiddenNames.has(nameId);
+    if (!window.confirm(`Are you sure you want to ${isHidden ? 'show' : 'hide'} this name?`)) return;
 
-      if (isHidden) {
-        // Unhide name - using proper UUID comparison
-        const { error: unhideError } = await supabase
-          .from('hidden_names')
-          .delete()
-          .eq('name_id', nameId); // UUID comparison
-        
-        if (unhideError) throw unhideError;
-        
-        const newHiddenNames = new Set(hiddenNames);
-        newHiddenNames.delete(nameId);
-        setHiddenNames(newHiddenNames);
-      } else {
-        // Hide name - using UUID for insertion
-        const { error: hideError } = await supabase
-          .from('hidden_names')
-          .insert([{ 
-            id: crypto.randomUUID(), // Generate new UUID for hidden_names entry
-            name_id: nameId 
-          }]);
-        
-        if (hideError) throw hideError;
-        
-        const newHiddenNames = new Set(hiddenNames);
-        newHiddenNames.add(nameId);
-        setHiddenNames(newHiddenNames);
-      }
+    const { error } = isHidden 
+      ? await supabase.from('hidden_names').delete().eq('name_id', nameId)
+      : await supabase.from('hidden_names').insert([{ name_id: nameId }]);
 
-      setToast({
-        show: true,
-        message: `Name ${isHidden ? 'shown' : 'hidden'} successfully`,
-        type: 'success'
+    if (error) {
+      setToast({ show: true, message: `Error toggling name visibility: ${error.message}`, type: 'error' });
+    } else {
+      setHiddenNames(prev => {
+        const newHiddenNames = new Set(prev);
+        isHidden ? newHiddenNames.delete(nameId) : newHiddenNames.add(nameId);
+        return newHiddenNames;
       });
-
-      // Refresh data
-      await Promise.all([
-        fetchAllUsersRatings(),
-        fetchHiddenNames()
-      ]);
-    } catch (err) {
-      console.error('Error toggling name visibility:', err);
-      setToast({
-        show: true,
-        message: `Error ${hiddenNames.has(nameId) ? 'showing' : 'hiding'} name: ${err.message}`,
-        type: 'error'
-      });
+      setToast({ show: true, message: `Name ${isHidden ? 'shown' : 'hidden'} successfully`, type: 'success' });
     }
   };
 
-  const handleSort = (key) => {
-    setSortConfig(prevConfig => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === 'desc' ? 'asc' : 'desc'
-    }));
+  const handleSort = (type, key) => {
+    const isSameKey = sortConfig.key === key;
+    const direction = isSameKey && sortConfig.direction === 'desc' ? 'asc' : 'desc';
+    setSortConfig({ key, direction });
   };
 
-  const getSortedAggregatedStats = () => {
-    const stats = Object.values(aggregatedStats);
-    const sortedStats = stats.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+  const getSortedAggregatedStats = useMemo(() => {
+    const stats = Object.values(aggregatedStats).sort((a, b) => {
+      const aValue = a[sortConfig.key] || '';
+      const bValue = b[sortConfig.key] || '';
       const modifier = sortConfig.direction === 'asc' ? 1 : -1;
-      
-      if (typeof aValue === 'number') {
+
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
         return (aValue - bValue) * modifier;
       }
-      return aValue.localeCompare(bValue) * modifier;
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return aValue.localeCompare(bValue) * modifier;
+      }
+      return 0;
     });
 
-    // Separate hidden and active names
     return {
-      active: sortedStats.filter(stat => !hiddenNames.has(stat.id)),
-      hidden: sortedStats.filter(stat => hiddenNames.has(stat.id))
+      active: stats.filter(stat => !hiddenNames.has(stat.id)),
+      hidden: stats.filter(stat => hiddenNames.has(stat.id))
     };
-  };
-
-  // Add a helper function to format dates
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      // Parse the UTC timestamp from Supabase
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'N/A';
-      
-      // Format the date using Intl.DateTimeFormat with local timezone
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZoneName: 'short'
-      });
-      
-      return formatter.format(date);
-    } catch (error) {
-      console.error('Error formatting date:', error, 'for dateString:', dateString);
-      return 'N/A';
-    }
-  };
+  }, [aggregatedStats, sortConfig, hiddenNames]);
 
   const handleDeleteUser = async (userNameToDelete) => {
     if (!isAdmin) return;
@@ -319,7 +358,7 @@ function Profile({ userName, onStartNewTournament }) {
   };
 
   const copyResultsToClipboard = () => {
-    const sortedNames = [...currentRatings]
+    const sortedNames = [...ratings]
       .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
       .map(name => name.name)
       .join('\n');
@@ -344,75 +383,37 @@ function Profile({ userName, onStartNewTournament }) {
   };
 
   const handleDeleteName = async (nameId, name) => {
-    if (!isAdmin) return;
-    
     try {
       setDeleteNameStatus({ loading: true, error: null });
       
-      // Call the deleteName function from supabaseClient
-      const { error: deleteError, success } = await deleteName(nameId);
-      
-      if (deleteError) throw deleteError;
-      if (!success) throw new Error('Delete operation failed');
+      const { error } = await deleteName(nameId);
+      if (error) throw error;
 
-      // Only update state if deletion was successful
-      if (success) {
-        // Update local state
-        setAllUsersRatings(prev => {
-          const updated = { ...prev };
-          Object.keys(updated).forEach(user => {
-            updated[user] = updated[user].filter(rating => rating.id !== nameId);
-          });
-          return updated;
-        });
+      // Refresh both user data and ratings
+      await Promise.all([
+        fetchAllUsersRatings(),
+        fetchHiddenNames(),
+        setRatings(prev => prev.filter(r => r.id !== nameId))
+      ]);
 
-        // Remove from hidden names if it was hidden
-        const newHiddenNames = new Set(hiddenNames);
-        newHiddenNames.delete(nameId);
-        setHiddenNames(newHiddenNames);
-
-        // Show success message and cleanup
-        setShowDeleteNameConfirm(false);
-        setNameToDelete(null);
-        setDeleteNameStatus({ loading: false, error: null });
-        
-        setToast({
-          show: true,
-          message: `Successfully deleted "${name}"`,
-          type: 'success'
-        });
-
-        // Refresh data
-        await Promise.all([
-          fetchAllUsersRatings(),
-          fetchHiddenNames()
-        ]);
-      }
+      setDeleteNameStatus({ loading: false, error: null });
+      setShowDeleteNameConfirm(false);
     } catch (err) {
-      console.error('Error deleting name:', err);
       setDeleteNameStatus({ loading: false, error: err.message });
-      
-      setToast({
-        show: true,
-        message: `Error deleting name: ${err.message}`,
-        type: 'error'
-      });
     }
   };
 
-  if (loading || loadingAllUsers) return (
-    <div className="profile container">
-      <LoadingSpinner size="large" />
-      <p className="subtitle">Loading profile data...</p>
-    </div>
-  );
-  
-  if (error) return (
-    <div className="profile container">
-      <span className="error-icon">⚠️</span>
-      <p className="subtitle">Error loading profile: {error.message}</p>
-    </div>
-  );
+  const formatLastActive = (timestamp) => {
+    if (!timestamp) return 'Never active';
+    
+    const diff = Date.now() - new Date(timestamp).getTime();
+    const minutes = Math.floor(diff / 1000 / 60);
+    return minutes < 60 ? `${minutes}m ago` : `${Math.floor(minutes/60)}h ago`;
+  };
+
+  const isAdminUser = (user) => {
+    return user === 'admin' || user.endsWith('@admin'); // Update with your admin check
+  };
 
   const currentRatings = isAdmin && selectedUser !== userName 
     ? allUsersRatings[selectedUser] || []
@@ -424,48 +425,287 @@ function Profile({ userName, onStartNewTournament }) {
     : 0;
   const totalMatches = currentRatings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
   
-  return (
-    <div className="profile-container">
-      <header className="profile-header">
-        <div className="profile-title">
-          <h2>
-            <span className="profile-emoji">😺</span>
-            {isAdmin ? 'Admin Dashboard' : `${userName}'s Profile`}
-          </h2>
-          {!isAdmin && (
-            <p className="profile-subtitle">Cat Name Connoisseur</p>
-          )}
-        </div>
+  const sortedCurrentRatings = useMemo(() => {
+    if (!currentRatings || currentRatings.length === 0) return [];
+    
+    return [...currentRatings].sort((a, b) => {
+      const aValue = a[sortConfig.key] || '';
+      const bValue = b[sortConfig.key] || '';
+      const modifier = sortConfig.direction === 'asc' ? 1 : -1;
 
-        <button 
-          onClick={onStartNewTournament}
-          className="start-tournament-button"
+      // Handle different data types
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return (aValue - bValue) * modifier;
+      }
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return aValue.localeCompare(bValue) * modifier;
+      }
+      // Handle dates
+      if (sortConfig.key === 'updated_at') {
+        const dateA = new Date(aValue || 0);
+        const dateB = new Date(bValue || 0);
+        return (dateA - dateB) * modifier;
+      }
+      return 0;
+    });
+  }, [currentRatings, sortConfig]);
+
+  useEffect(() => {
+    setSortConfig({
+      key: viewMode === 'individual' ? 'rating' : 'avgRating',
+      direction: 'desc'
+    });
+  }, [viewMode]);
+
+  const getSortValue = (user) => {
+    switch(sortUsersConfig.key) {
+      case 'lastActive': 
+        return new Date(userLastActivity[user]).getTime();
+      case 'ratingCount':
+        return allUsersRatings[user]?.length || 0;
+      default: 
+        return user.toLowerCase();
+    }
+  };
+
+  const sortedUsers = useMemo(() => {
+    return Object.keys(allUsersRatings).sort((a, b) => {
+      const aVal = getSortValue(a);
+      const bVal = getSortValue(b);
+      return sortUsersConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [allUsersRatings, sortUsersConfig, userLastActivity]);
+
+  const handleUserSort = (key) => {
+    setSortUsersConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const toggleAdminPanel = () => {
+    setIsAdminPanelMinimized(prev => !prev);
+  };
+
+  // Add useEffect to initialize user sorting
+  useEffect(() => {
+    if (isAdmin) {
+      setSortUsersConfig({ key: 'lastActive', direction: 'desc' });
+    }
+  }, [isAdmin]);
+
+  // Update chart data effect
+  useEffect(() => {
+    if (viewMode === 'individual') {
+      const visibleRatings = currentRatings
+        .filter(r => !hiddenNames.has(r.id))
+        .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
+        .slice(0, 15); // Limit to top 15 names
+
+      setChartData({
+        labels: visibleRatings.map(r => r.name),
+        datasets: [{
+          label: 'Rating',
+          data: visibleRatings.map(r => r.rating || 1500),
+          backgroundColor: '#4BC0C0',
+          borderColor: '#4BC0C0',
+          borderWidth: 1
+        }]
+      });
+    } else {
+      const sortedStats = Object.values(aggregatedStats)
+        .sort((a, b) => b.avgRating - a.avgRating)
+        .slice(0, 15);
+
+      setChartData({
+        labels: sortedStats.map(stat => stat.name),
+        datasets: [{
+          label: 'Average Rating',
+          data: sortedStats.map(stat => stat.avgRating),
+          backgroundColor: '#9966FF',
+          borderColor: '#9966FF',
+          borderWidth: 1
+        }]
+      });
+    }
+  }, [currentRatings, hiddenNames, viewMode, aggregatedStats]);
+
+  // Add new chart data generators
+  const getWinLossData = useCallback(() => {
+    const data = viewMode === 'individual' ? 
+      currentRatings.map(r => ({ wins: r.wins || 0, losses: r.losses || 0 })) :
+      Object.values(aggregatedStats).map(s => ({ wins: s.totalWins, losses: s.totalLosses }));
+      
+    return {
+      labels: viewMode === 'individual' ? 
+        currentRatings.map(r => r.name) :
+        Object.values(aggregatedStats).map(s => s.name),
+      datasets: [{
+        label: 'Wins',
+        data: data.map(d => d.wins),
+        backgroundColor: 'rgba(75, 192, 192, 0.6)'
+      }, {
+        label: 'Losses',
+        data: data.map(d => d.losses),
+        backgroundColor: 'rgba(255, 99, 132, 0.6)'
+      }]
+    };
+  }, [currentRatings, aggregatedStats, viewMode]);
+
+  const getRatingDistributionData = useCallback(() => {
+    const ratings = viewMode === 'individual' ?
+      currentRatings.map(r => r.rating) :
+      Object.values(aggregatedStats).flatMap(s => 
+        Array(s.totalRatings).fill(s.avgRating)
+      );
+      
+    const ranges = Array.from({ length: 5 }, (_, i) => {
+      const min = 1000 + i * 200;
+      const max = 1200 + i * 200;
+      return {
+        label: `${min}-${max}`,
+        count: ratings.filter(r => r >= min && r < max).length
+      };
+    });
+
+    return {
+      labels: ranges.map(r => r.label),
+      datasets: [{
+        data: ranges.map(r => r.count),
+        backgroundColor: [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+        ]
+      }]
+    };
+  }, [currentRatings, aggregatedStats, viewMode]);
+
+  // Reusable data formatting
+  const formatChartData = (labels, dataset) => ({
+    labels,
+    datasets: [{
+      ...chartOptions.datasets[0],
+      data: dataset
+    }]
+  });
+
+  // Generic list renderers
+  const renderSortControls = (type) => (
+    <div className={styles.sortControls}>
+      {SORT_CONFIG[type].map(({ key, label }) => (
+        <SortControls
+          key={key}
+          label={label}
+          active={sortConfig.key === key}
+          direction={sortConfig.direction}
+          onClick={() => handleSort(type, key)}
+        />
+      ))}
+    </div>
+  );
+
+  const renderChartToggles = () => (
+    <div className={styles.chartControls}>
+      {chartToggles.map(({ key, label }) => (
+        <div
+          key={key}
+          className={`${styles.chartToggle} ${activeCharts[key] ? styles.active : ''}`}
+          onClick={() => setActiveCharts(prev => ({ ...prev, [key]: !prev[key] }))}
+          role="button"
+          tabIndex={0}
+          onKeyPress={(e) => e.key === 'Enter' && setActiveCharts(prev => ({ ...prev, [key]: !prev[key] }))}
         >
-          <span className="button-icon">🏆</span>
-          Start New Tournament
-        </button>
+          {label}
+        </div>
+      ))}
+    </div>
+  );
 
-        {isAdmin && (
-          <div className="admin-controls">
-            <div className="view-controls">
-              <button 
-                className={`view-button ${viewMode === 'individual' ? 'active' : ''}`}
-                onClick={() => setViewMode('individual')}
-              >
-                Individual View
-              </button>
-              <button 
-                className={`view-button ${viewMode === 'aggregated' ? 'active' : ''}`}
-                onClick={() => setViewMode('aggregated')}
-              >
-                Aggregated View
-              </button>
-            </div>
+  // Simplified data preparation using existing utils
+  const { activeStats, hiddenStats } = useMemo(() => ({
+    activeStats: Object.values(aggregatedStats).filter(stat => !hiddenNames.has(stat.id)),
+    hiddenStats: Object.values(aggregatedStats).filter(stat => hiddenNames.has(stat.id))
+  }), [aggregatedStats, hiddenNames]);
+
+  // Unified card renderer using existing component patterns
+  const renderRatingCards = (names) => (
+    <div className={styles.ratingsGrid}>
+      {names.map(name => (
+        <div key={name.id} className={styles.ratingCard}>
+          <div className={styles.ratingCardHeader}>
+            <h4 className={styles.name}>{name.name}</h4>
+            <VisibilityToggle name={name} hiddenNames={hiddenNames} onToggle={handleToggleNameVisibility} />
+          </div>
+          <RatingStats rating={name.rating} wins={name.wins} losses={name.losses} />
+          <DeleteButton onDelete={() => { setNameToDelete(name); setShowDeleteNameConfirm(true); }} />
+        </div>
+      ))}
+    </div>
+  );
+
+  // Aggregated stats renderer using existing constants
+  const renderAggregatedStats = (stats) => (
+    <div className={styles.aggregatedStatsGrid}>
+      {stats.map(stat => (
+        <AggregatedStatCard
+          key={stat.id}
+          stat={stat}
+          hiddenNames={hiddenNames}
+          onToggleVisibility={handleToggleNameVisibility}
+        />
+      ))}
+    </div>
+  );
+
+  // Unified chart section using existing chart components
+  const renderChartSection = () => (
+    <div className={styles.chartGrid}>
+      {activeCharts.ratingComparison && (
+        <BarChart data={chartData} options={chartOptions} />
+      )}
+      {activeCharts.winLossRatio && (
+        <BarChart 
+          data={getWinLossData()} 
+          options={getChartOptions('Win/Loss Comparison')} 
+        />
+      )}
+      {activeCharts.ratingDistribution && (
+        <PieChart 
+          data={getRatingDistributionData()} 
+          options={getChartOptions('Rating Distribution')} 
+        />
+      )}
+    </div>
+  );
+
+  // Admin panel section using existing user utils
+  const renderAdminPanel = () => (
+    <aside className={styles.adminPanel}>
+      <div className={`${styles.adminPanelHeader} ${isAdminPanelMinimized ? styles.minimized : ''}`}>
+        <button 
+          onClick={toggleAdminPanel}
+          className={styles.minimizeButton}
+          aria-label={isAdminPanelMinimized ? 'Expand admin panel' : 'Collapse admin panel'}
+        />
+      </div>
+      
+      {!isAdminPanelMinimized && (
+        <>
+          <div className={styles.viewControls}>
             <button 
-              onClick={copyResultsToClipboard}
-              className="action-button secondary-button"
-              title="Copy ranked names to clipboard"
+              className={`${styles.viewButton} ${viewMode === 'individual' ? styles.active : ''}`}
+              onClick={() => setViewMode('individual')}
             >
+              Individual View
+            </button>
+            <button 
+              className={`${styles.viewButton} ${viewMode === 'aggregated' ? styles.active : ''}`}
+              onClick={() => setViewMode('aggregated')}
+            >
+              Aggregated View
+            </button>
+          </div>
+          <div className={styles.adminToolbar}>
+            <button onClick={copyResultsToClipboard} className={styles.actionButton}>
               📋 Copy Results
             </button>
             <CalendarButton 
@@ -473,456 +713,127 @@ function Profile({ userName, onStartNewTournament }) {
               userName={userName}
               hiddenNames={hiddenNames}
             />
-            <button 
-              onClick={fetchAllUsersRatings} 
-              className="action-button secondary-button"
-            >
+            <button onClick={fetchAllUsersRatings} className={styles.actionButton}>
               🔄 Refresh Data
             </button>
-            {showCopyToast && (
-              <div className="toast success">
-                Results copied to clipboard!
-              </div>
-            )}
-            {viewMode === 'individual' && (
-              <>
-                <div className="user-switcher">
+          </div>
+
+          {viewMode === 'individual' && (
+            <div className={styles.userControls}>
+              <div className={styles.sortControls}>
+                <span>Sort users by:</span>
+                {USER_SORT_OPTIONS.map(({ key, label }) => (
                   <button
-                    className={`user-avatar ${selectedUser === userName ? 'active' : ''}`}
-                    onClick={() => setSelectedUser(userName)}
-                    title="Your Profile"
+                    key={key}
+                    onClick={() => handleUserSort(key)}
+                    className={sortUsersConfig.key === key ? styles.activeSort : ''}
                   >
-                    👤 You
+                    {label}
+                    {sortUsersConfig.key === key && (
+                      <SortIndicator direction={sortUsersConfig.direction} />
+                    )}
                   </button>
-                  {Object.keys(allUsersRatings)
-                    .filter(user => user !== userName)
-                    .sort((a, b) => {
-                      // Sort by most recent activity
-                      const dateA = new Date(userLastActivity[a] || 0);
-                      const dateB = new Date(userLastActivity[b] || 0);
-                      return dateB - dateA;
-                    })
-                    .map(user => (
-                      <button
-                        key={user}
-                        className={`user-avatar ${selectedUser === user ? 'active' : ''}`}
-                        onClick={() => setSelectedUser(user)}
-                        title={`View ${user}'s profile - Last active: ${formatDate(userLastActivity[user])}`}
-                      >
-                        👤 {user}
-                        <small className="last-active">
-                          {formatDate(userLastActivity[user])}
-                        </small>
-                      </button>
-                    ))
-                  }
-                </div>
-                <div className="user-controls">
-                  {selectedUser !== userName && (
-                    <button
-                      onClick={() => {
-                        setUserToDelete(selectedUser);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="action-button danger-button"
-                      title="Delete this user's data"
-                    >
-                      🗑️ Delete User Data
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-              <div className="modal-overlay">
-                <div className="modal-content">
-                  <h3>⚠️ Delete User Data</h3>
-                  <p>Are you sure you want to delete all data for user <strong>{userToDelete}</strong>?</p>
-                  <p className="warning-text">This action cannot be undone!</p>
-                  
-                  {deleteStatus.error && (
-                    <div className="error-message">
-                      Error: {deleteStatus.error}
-                    </div>
-                  )}
-                  
-                  <div className="modal-actions">
-                    <button
-                      onClick={() => handleDeleteUser(userToDelete)}
-                      className="action-button danger-button"
-                      disabled={deleteStatus.loading}
-                    >
-                      {deleteStatus.loading ? 'Deleting...' : 'Yes, Delete User Data'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowDeleteConfirm(false);
-                        setUserToDelete(null);
-                        setDeleteStatus({ loading: false, error: null });
-                      }}
-                      className="action-button secondary-button"
-                      disabled={deleteStatus.loading}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </header>
-
-      {viewMode === 'individual' ? (
-        <>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <h3>
-                <span className="card-icon">📊</span>
-                Overview
-              </h3>
-              <div className="stat-grid">
-                <div className="stat-item">
-                  <span className="stat-label">Names Rated</span>
-                  <span className="stat-value">{totalNames}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Total Matches</span>
-                  <span className="stat-value">{totalMatches}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Average Rating</span>
-                  <span className="stat-value">{averageRating}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="ratings-sections">
-            <section className="active-names-section">
-              <h3 className="section-title">
-                <span className="section-icon">🎯</span>
-                Active Names
-              </h3>
-              <div className="ratings-grid">
-                {currentRatings
-                  .sort((a, b) => (b.rating || 1500) - (a.rating || 1500))
-                  .filter(name => !hiddenNames.has(name.id))
-                  .map((name, index) => (
-                    <div key={name.id} className="rating-card">
-                      <div className="rating-card-header">
-                        <div className="name-rank">#{index + 1}</div>
-                        <h4 className="name">{name.name}</h4>
-                        <button
-                          onClick={() => handleToggleNameVisibility(name.id, name.name)}
-                          className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
-                          title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
-                        >
-                          <span className="visibility-icon">
-                            {hiddenNames.has(name.id) ? '🔒' : '🔓'}
-                          </span>
-                          <span className="visibility-text">
-                            {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
-                          </span>
-                        </button>
-                      </div>
-                      <div className="rating-info">
-                        <div className="rating-value">Rating: {Math.round(name.rating || 1500)}</div>
-                        <div className="record">
-                          <span className="wins">🏆 Wins: {name.wins || 0}</span>
-                          <span className="losses">❌ Losses: {name.losses || 0}</span>
-                        </div>
-                      </div>
-                      <div className="rating-card-actions">
-                        <div className="timestamps">
-                          <div className="timestamp">
-                            <span className="timestamp-label">Last Updated:</span>
-                            <span className="timestamp-value">
-                              {formatDate(name.updated_at)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </section>
-
-            {currentRatings.some(name => hiddenNames.has(name.id)) && (
-              <section className="hidden-names-section">
-                <h3 className="section-title">
-                  <span className="section-icon">🚫</span>
-                  Hidden Names
-                </h3>
-                <div className="ratings-grid">
-                  {currentRatings
-                    .filter(name => hiddenNames.has(name.id))
-                    .map(name => (
-                      <div key={name.id} className="rating-card is-hidden">
-                        <div className="rating-card-header">
-                          <h4 className="name">{name.name}</h4>
-                          <div className="card-actions">
-                            <button
-                              onClick={() => handleToggleNameVisibility(name.id, name.name)}
-                              className={`visibility-toggle ${hiddenNames.has(name.id) ? 'hidden' : ''}`}
-                              title={`Click to ${hiddenNames.has(name.id) ? 'show' : 'hide'} this name ${hiddenNames.has(name.id) ? 'in' : 'from'} tournaments`}
-                            >
-                              <span className="visibility-icon">
-                                {hiddenNames.has(name.id) ? '🔒' : '🔓'}
-                              </span>
-                              <span className="visibility-text">
-                                {hiddenNames.has(name.id) ? 'Hidden' : 'Visible'}
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setNameToDelete(name);
-                                setShowDeleteNameConfirm(true);
-                              }}
-                              className="delete-button"
-                              title="Delete this name permanently"
-                            >
-                              <span className="delete-icon">🗑️</span>
-                            </button>
-                          </div>
-                        </div>
-                        <div className="rating-info">
-                          <div className="rating-value">Rating: {Math.round(name.rating || 1500)}</div>
-                          <div className="record">
-                            <span className="wins">🏆 Wins: {name.wins || 0}</span>
-                            <span className="losses">❌ Losses: {name.losses || 0}</span>
-                          </div>
-                        </div>
-                        <div className="rating-card-actions">
-                          <div className="timestamps">
-                            <div className="timestamp">
-                              <span className="timestamp-label">Last Updated:</span>
-                              <span className="timestamp-value">
-                                {formatDate(name.updated_at)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="hidden-status">
-                          <p className="hidden-text">This name is hidden from tournaments</p>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </section>
-            )}
-          </div>
-        </>
-      ) : (
-        <div className="aggregated-view">
-          <div className="aggregated-stats-header">
-            <h3>Aggregated Name Statistics</h3>
-            <div className="sort-controls">
-              <span>Sort by:</span>
-              <button 
-                onClick={() => handleSort('avgRating')}
-                className={sortConfig.key === 'avgRating' ? 'active' : ''}
-              >
-                Average Rating {sortConfig.key === 'avgRating' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-              </button>
-              <button 
-                onClick={() => handleSort('totalRatings')}
-                className={sortConfig.key === 'totalRatings' ? 'active' : ''}
-              >
-                Times Rated {sortConfig.key === 'totalRatings' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-              </button>
-              <button 
-                onClick={() => handleSort('name')}
-                className={sortConfig.key === 'name' ? 'active' : ''}
-              >
-                Name {sortConfig.key === 'name' && (sortConfig.direction === 'desc' ? '↓' : '↑')}
-              </button>
-            </div>
-          </div>
-          
-          <div className="aggregated-sections">
-            <section className="active-names-section">
-              <h3 className="section-title">
-                <span className="section-icon">🎯</span>
-                Active Names
-              </h3>
-              <div className="aggregated-stats-grid">
-                {getSortedAggregatedStats().active.map(stat => (
-                  <div key={stat.id} className="aggregated-stat-card">
-                    <div className="stat-card-header">
-                      <h4 className="name">{stat.name}</h4>
-                      {stat.description && (
-                        <div className="name-description" title={stat.description}>
-                          ℹ️
-                        </div>
-                      )}
-                      <button
-                        onClick={() => handleToggleNameVisibility(stat.id, stat.name)}
-                        className={`visibility-toggle ${hiddenNames.has(stat.id) ? 'hidden' : ''}`}
-                        title={`Click to ${hiddenNames.has(stat.id) ? 'show' : 'hide'} this name ${hiddenNames.has(stat.id) ? 'in' : 'from'} tournaments`}
-                      >
-                        <span className="visibility-icon">
-                          {hiddenNames.has(stat.id) ? '🔒' : '🔓'}
-                        </span>
-                        <span className="visibility-text">
-                          {hiddenNames.has(stat.id) ? 'Hidden' : 'Visible'}
-                        </span>
-                      </button>
-                    </div>
-                    <div className="aggregated-stats">
-                      <div className="stat-row">
-                        <div className="stat">
-                          <span className="stat-label">Avg Rating</span>
-                          <span className="stat-value">{stat.avgRating}</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-label">Times Rated</span>
-                          <span className="stat-value">{stat.totalRatings}</span>
-                        </div>
-                      </div>
-                      <div className="stat-row">
-                        <div className="stat">
-                          <span className="stat-label">Rating Range</span>
-                          <span className="stat-value">{stat.minRating} - {stat.maxRating}</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-label">Unique Users</span>
-                          <span className="stat-value">{stat.uniqueUsers}</span>
-                        </div>
-                      </div>
-                      <div className="stat-row">
-                        <div className="stat">
-                          <span className="stat-label">Total W/L</span>
-                          <span className="stat-value">
-                            {stat.totalWins}/{stat.totalLosses}
-                          </span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-label">Win Rate</span>
-                          <span className="stat-value">
-                            {Math.round((stat.totalWins / (stat.totalWins + stat.totalLosses || 1)) * 100)}%
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 ))}
               </div>
-            </section>
-
-            {getSortedAggregatedStats().hidden.length > 0 && (
-              <section className="hidden-names-section">
-                <h3 className="section-title">
-                  <span className="section-icon">🚫</span>
-                  Hidden Names
-                </h3>
-                <div className="aggregated-stats-grid">
-                  {getSortedAggregatedStats().hidden.map(stat => (
-                    <div key={stat.id} className="aggregated-stat-card is-hidden">
-                      <div className="stat-card-header">
-                        <h4 className="name">{stat.name}</h4>
-                        {stat.description && (
-                          <div className="name-description" title={stat.description}>
-                            ℹ️
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleToggleNameVisibility(stat.id, stat.name)}
-                          className={`visibility-toggle ${hiddenNames.has(stat.id) ? 'hidden' : ''}`}
-                          title={`Click to ${hiddenNames.has(stat.id) ? 'show' : 'hide'} this name ${hiddenNames.has(stat.id) ? 'in' : 'from'} tournaments`}
-                        >
-                          <span className="visibility-icon">
-                            {hiddenNames.has(stat.id) ? '🔒' : '🔓'}
-                          </span>
-                          <span className="visibility-text">
-                            {hiddenNames.has(stat.id) ? 'Hidden' : 'Visible'}
-                          </span>
-                        </button>
-                      </div>
-                      <div className="aggregated-stats">
-                        <div className="stat-row">
-                          <div className="stat">
-                            <span className="stat-label">Avg Rating</span>
-                            <span className="stat-value">{stat.avgRating}</span>
-                          </div>
-                          <div className="stat">
-                            <span className="stat-label">Times Rated</span>
-                            <span className="stat-value">{stat.totalRatings}</span>
-                          </div>
-                        </div>
-                        <div className="stat-row">
-                          <div className="stat">
-                            <span className="stat-label">Rating Range</span>
-                            <span className="stat-value">{stat.minRating} - {stat.maxRating}</span>
-                          </div>
-                          <div className="stat">
-                            <span className="stat-label">Unique Users</span>
-                            <span className="stat-value">{stat.uniqueUsers}</span>
-                          </div>
-                        </div>
-                        <div className="stat-row">
-                          <div className="stat">
-                            <span className="stat-label">Total W/L</span>
-                            <span className="stat-value">
-                              {stat.totalWins}/{stat.totalLosses}
-                            </span>
-                          </div>
-                          <div className="stat">
-                            <span className="stat-label">Win Rate</span>
-                            <span className="stat-value">
-                              {Math.round((stat.totalWins / (stat.totalWins + stat.totalLosses || 1)) * 100)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hidden-status">
-                        <p className="hidden-text">This name is hidden from tournaments</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        </div>
-      )}
-      {/* Delete Name Confirmation Modal */}
-      {showDeleteNameConfirm && nameToDelete && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>⚠️ Delete Name</h3>
-            <p>Are you sure you want to permanently delete the name <strong>{nameToDelete.name}</strong>?</p>
-            <p className="warning-text">This action cannot be undone!</p>
-            
-            {deleteNameStatus.error && (
-              <div className="error-message">
-                Error: {deleteNameStatus.error}
-              </div>
-            )}
-            
-            <div className="modal-actions">
-              <button
-                onClick={() => handleDeleteName(nameToDelete.id, nameToDelete.name)}
-                className="action-button danger-button"
-                disabled={deleteNameStatus.loading}
-              >
-                {deleteNameStatus.loading ? 'Deleting...' : 'Yes, Delete Name'}
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteNameConfirm(false);
-                  setNameToDelete(null);
-                  setDeleteNameStatus({ loading: false, error: null });
-                }}
-                className="action-button secondary-button"
-                disabled={deleteNameStatus.loading}
-              >
-                Cancel
-              </button>
             </div>
+          )}
+
+          <div className={styles.userGrid}>
+            {sortedUsers.map(user => (
+              <AdminUserCardComponent
+                key={user}
+                user={user}
+                userData={allUsersRatings[user]}
+                lastActive={userLastActivity[user]}
+                isCurrentUser={user === userName}
+                onDelete={() => {
+                  setUserToDelete(user);
+                  setShowDeleteConfirm(true);
+                }}
+              />
+            ))}
           </div>
+        </>
+      )}
+    </aside>
+  );
+
+  console.log('sortConfig:', sortConfig);
+  console.log('SORT_CONFIG:', SORT_CONFIG);
+
+  if (loading || loadingAllUsers) return (
+    <div className={styles.profileContainer}>
+      <LoadingSpinner size="large" />
+      <p className={styles.subtitle}>Loading profile data...</p>
+    </div>
+  );
+  
+  if (error) return (
+    <div className={styles.profileContainer}>
+      <span className={styles.errorIcon}>⚠️</span>
+      <p className={styles.subtitle}>Error loading profile: {error.message}</p>
+    </div>
+  );
+
+  return (
+    <div className={styles.profileContainer}>
+      <header className={styles.profileHeader}>
+        <div className={styles.profileTitle}>
+          <h2>
+            <span className={styles.profileEmoji}>🐈‍⬛</span>
+            {isAdmin ? 'Admin Dashboard' : `${userName}'s Profile`}
+          </h2>
+          {!isAdmin && (
+            <p className={styles.profileSubtitle}>Cat Name Connoisseur</p>
+          )}
         </div>
+
+        <button 
+          onClick={onStartNewTournament}
+          className={styles.startTournamentButton}
+        >
+          <span className={styles.buttonIcon}>🏆</span>
+          Start New Tournament
+        </button>
+      </header>
+
+      <div className={styles.contentWrapper}>
+        {viewMode === 'individual' ? (
+          <>
+            <SortControls 
+              type="individual" 
+              sortConfig={sortConfig} 
+              handleSort={handleSort} 
+            />
+            <ProfileStats 
+              totalNames={totalNames}
+              totalMatches={totalMatches}
+              averageRating={averageRating}
+            />
+            {renderRatingCards(ratings.filter(r => !hiddenNames.has(r.id)))}
+          </>
+        ) : (
+          <AggregatedView
+            activeStats={activeStats}
+            hiddenStats={hiddenStats}
+            sortConfig={sortConfig}
+            renderStats={renderAggregatedStats}
+          />
+        )}
+      </div>
+
+      {renderChartSection()}
+      {isAdmin && renderAdminPanel()}
+
+      {/* Delete Name Confirmation Modal */}
+      {showDeleteNameConfirm && (
+        <DeleteConfirmationModal
+          itemType="Name"
+          itemName={nameToDelete?.name}
+          onConfirm={() => handleDeleteName(nameToDelete.id, nameToDelete.name)}
+          onCancel={() => setShowDeleteNameConfirm(false)}
+          status={deleteNameStatus}
+        />
       )}
     </div>
   );

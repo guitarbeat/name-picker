@@ -6,12 +6,17 @@
 
 export class PreferenceSorter {
     constructor(items) {
+        if (!Array.isArray(items)) {
+            throw new Error('PreferenceSorter requires an array of items');
+        }
         this.items = items;
         this.preferences = new Map();
         this.currentRankings = [...items];
         this.ranks = [];
         this.rec = new Array(items.length).fill(0);
         this.preferenceCache = new Map();
+        // Consider adding: this.maxCacheSize = 1000;
+        // Implement LRU eviction when cache exceeds max size
     }
 
     getName(item) {
@@ -83,20 +88,25 @@ export class PreferenceSorter {
         const merged = [];
 
         while (i <= mid && j <= right) {
-            const result = await compareCallback(this.items[i], this.items[j]);
+            try {
+                const result = await compareCallback(this.items[i], this.items[j]);
 
-            if (result <= -0.5) {
-                merged.push(this.items[i++]);
-            } else if (result >= 0.5) {
-                merged.push(this.items[j++]);
-            } else {
-                if (result < 0) {
+                if (result <= -0.5) {
                     merged.push(this.items[i++]);
+                } else if (result >= 0.5) {
                     merged.push(this.items[j++]);
                 } else {
-                    merged.push(this.items[j++]);
-                    merged.push(this.items[i++]);
+                    if (result < 0) {
+                        merged.push(this.items[i++]);
+                        merged.push(this.items[j++]);
+                    } else {
+                        merged.push(this.items[j++]);
+                        merged.push(this.items[i++]);
+                    }
                 }
+            } catch (error) {
+                console.error('Comparison failed:', error);
+                // Handle cancellation or fallback strategy
             }
         }
 

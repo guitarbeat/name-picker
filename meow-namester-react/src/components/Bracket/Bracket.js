@@ -21,7 +21,7 @@
  */
 
 import React from 'react';
-import './Bracket.css';
+import styles from './Bracket.module.css';
 
 function Bracket({ matches }) {
   const getMatchStatus = (match) => {
@@ -32,13 +32,13 @@ function Bracket({ matches }) {
     return 'skip';
   };
 
-  const getCardVariant = (match, isFirst) => {
-    if (!match.winner) return 'default';
+  const getPlayerClass = (match, isFirst) => {
+    if (!match.winner) return styles.player;
     const status = getMatchStatus(match);
-    if (status === 'first') return isFirst ? 'winner' : 'loser';
-    if (status === 'second') return isFirst ? 'loser' : 'winner';
-    if (status === 'both') return 'winner';
-    return 'default';
+    if (status === 'first') return isFirst ? styles.playerWinner : styles.playerLoser;
+    if (status === 'second') return isFirst ? styles.playerLoser : styles.playerWinner;
+    if (status === 'both') return styles.playerWinner;
+    return styles.player;
   };
 
   // Group matches into a proper tournament tree structure
@@ -62,43 +62,51 @@ function Bracket({ matches }) {
   const tree = organizeMatchesIntoTree(matches);
 
   return (
-    <div className="bracket-container">
-      <div className="bracket">
+    <div className={styles.container}>
+      <div className={styles.bracket}>
         {tree.map((round, roundIndex) => (
-          <div key={roundIndex} className="bracket-round">
-            <div className="round-header">
-              <span className="round-title">Round {roundIndex + 1}</span>
-              <span className="round-matches">{round.length} {round.length === 1 ? 'match' : 'matches'}</span>
+          <div key={roundIndex} className={styles.round}>
+            <div className={styles.roundHeader}>
+              <span className={styles.roundTitle}>Round {roundIndex + 1}</span>
+              <span className={styles.roundMatches}>
+                {round.length} {round.length === 1 ? 'match' : 'matches'}
+              </span>
             </div>
-            <div className="bracket-matches">
+            <div className={styles.matches}>
               {round.map((match) => (
                 <div 
                   key={match.id} 
-                  className="bracket-match"
+                  className={styles.match}
                 >
-                  <div className="match-content">
-                    <div className={`bracket-player ${getCardVariant(match, true)}`}>
-                      <span className="player-name">{match.name1}</span>
-                      {getMatchStatus(match) === 'first' && <span className="winner-badge">✓</span>}
-                      {getMatchStatus(match) === 'both' && <span className="tie-badge">≈</span>}
+                  <div className={styles.matchContent}>
+                    <div className={getPlayerClass(match, true)}>
+                      <span className={styles.playerName}>{match.name1}</span>
+                      {getMatchStatus(match) === 'first' && (
+                        <span className={styles.winnerBadge}>✓</span>
+                      )}
+                      {getMatchStatus(match) === 'both' && (
+                        <span className={styles.tieBadge}>≈</span>
+                      )}
                     </div>
-                    <div className="vs-divider">vs</div>
+                    <div className={styles.vsDivider}>vs</div>
                     {match.name2 ? (
-                      <div className={`bracket-player ${getCardVariant(match, false)}`}>
-                        <span className="player-name">{match.name2}</span>
-                        {getMatchStatus(match) === 'second' && <span className="winner-badge">✓</span>}
-                        {getMatchStatus(match) === 'both' && <span className="tie-badge">≈</span>}
+                      <div className={getPlayerClass(match, false)}>
+                        <span className={styles.playerName}>{match.name2}</span>
+                        {getMatchStatus(match) === 'second' && (
+                          <span className={styles.winnerBadge}>✓</span>
+                        )}
+                        {getMatchStatus(match) === 'both' && (
+                          <span className={styles.tieBadge}>≈</span>
+                        )}
                       </div>
                     ) : (
-                      <div className="bracket-player bye">
-                        <span className="bye-text">Bye</span>
+                      <div className={styles.playerBye}>
+                        <span className={styles.byeText}>Bye</span>
                       </div>
                     )}
                   </div>
                   {roundIndex < tree.length - 1 && (
-                    <div className="match-connector">
-                      <div className="connector-line"></div>
-                    </div>
+                    <div className={styles.matchConnector} />
                   )}
                 </div>
               ))}

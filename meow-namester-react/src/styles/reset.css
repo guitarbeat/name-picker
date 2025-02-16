@@ -1,0 +1,59 @@
+/* Reset and Base Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--background-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove default styles */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Remove list styles */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Remove text decoration */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Make images responsive */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Remove outline on focused elements */
+:focus {
+  outline: none;
+}
+
+/* Add focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+} 

@@ -1,0 +1,18 @@
+@media (prefers-color-scheme: dark) {
+  .cardBase {
+    background: var(--surface-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .statCard:hover {
+    background: var(--card-hover-dark);
+  }
+
+  .resultsHeader {
+    background: linear-gradient(to right, var(--primary-900), var(--primary-800));
+  }
+
+  .rankingItem:hover {
+    background: var(--card-hover-dark);
+  }
+} 

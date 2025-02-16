@@ -11,174 +11,171 @@ import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
 import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import NameCard from '../NameCard/NameCard';
 import Bracket from '../Bracket/Bracket';
-import './Tournament.css';
-
-const TournamentControls = ({ onEndEarly, isTransitioning, isMuted, onToggleMute }) => {
-  const [showConfirmation, setShowConfirmation] = useState(false);
-
-  const handleEndConfirm = async () => {
-    setShowConfirmation(false);
-    await onEndEarly();
-  };
-
-  return (
-    <div className="tournament-controls" role="group" aria-label="Tournament controls">
-      <button 
-        className={`sound-toggle-button ${isMuted ? 'muted' : ''}`}
-        onClick={onToggleMute}
-        aria-label={isMuted ? "Unmute tournament music" : "Mute tournament music"}
-      >
-        {isMuted ? '🔇' : '🔊'}
-      </button>
-      <button 
-        className="end-early-button"
-        onClick={() => setShowConfirmation(true)}
-        disabled={isTransitioning}
-        aria-label="End tournament early"
-      >
-        End Tournament Early
-      </button>
-
-      {showConfirmation && (
-        <div className="end-early-confirmation" role="alertdialog" aria-label="Confirm ending tournament">
-          <p>Are you sure you want to end the tournament early? Current progress will be saved and you can adjust rankings manually.</p>
-          <button 
-            className="confirm-end-button"
-            onClick={handleEndConfirm}
-            aria-label="Confirm end tournament"
-          >
-            Yes, End Now
-          </button>
-          <button 
-            className="cancel-end-button"
-            onClick={() => setShowConfirmation(false)}
-            aria-label="Continue tournament"
-          >
-            No, Continue
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+import TournamentControls from './TournamentControls';
+import styles from './Tournament.module.css';
+import { shuffleArray } from '../../utils/arrayUtils';
 
 function TournamentContent({ onComplete, existingRatings = {}, names = [], userName, onVote }) {
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [matchHistory, setMatchHistory] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
-  const audioRef = useRef(null);
-  const pluckSoundRef = useRef(null);
+  const [randomizedNames, setRandomizedNames] = useState([]);
+
+  useEffect(() => {
+    if (Array.isArray(names) && names.length > 0) {
+      setRandomizedNames(shuffleArray([...names]));
+    }
+  }, [names]);
 
   const {
     currentMatch,
-    isTransitioning,
+    handleVote,
+    progress,
     roundNumber,
     currentMatchNumber,
     totalMatches,
-    progress,
-    handleVote,
+    matchHistory = [],
     getCurrentRatings
-  } = useTournament({ names, existingRatings, onComplete });
+  } = useTournament({ 
+    names: randomizedNames.length > 0 ? randomizedNames : names,
+    existingRatings, 
+    onComplete 
+  });
 
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState({ music: 0.2, effects: 0.3 });
+  const [audioError, setAudioError] = useState(null);
+  const audioRef = useRef(null);
+  const musicRef = useRef(null);
+  const [currentTrack, setCurrentTrack] = useState(0);
+
+  const musicTracks = [
+    { path: '/sounds/AdhesiveWombat - Night Shade.mp3', name: 'Night Shade' },
+    { path: '/sounds/MiseryBusiness.mp3', name: 'Misery Business' },
+    { path: '/sounds/what-is-love.mp3', name: 'What is Love' }
+  ];
+
+  // Initialize audio only once
   useEffect(() => {
-    // Initialize audio with random song selection
-    const songs = [
-      '/sounds/AdhesiveWombat - Night Shade.mp3',
-      '/sounds/what-is-love.mp3',
-      '/sounds/MiseryBusiness.mp3'
-    ];
-    const randomSong = songs[Math.floor(Math.random() * songs.length)];
-    audioRef.current = new Audio(randomSong);
-    audioRef.current.volume = 0.3; // Set initial volume to 30%
-    audioRef.current.loop = true;
+    audioRef.current = new Audio('/sounds/gameboy-pluck.mp3');
+    audioRef.current.volume = volume.effects;
     
-    // Start playing
-    const playPromise = audioRef.current.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(error => {
-        console.log("Autoplay prevented:", error);
-      });
-    }
+    musicRef.current = new Audio(musicTracks[0].path);
+    musicRef.current.volume = volume.music;
+    musicRef.current.loop = true;
 
     return () => {
+      if (musicRef.current) {
+        musicRef.current.pause();
+        musicRef.current = null;
+      }
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+        audioRef.current = null;
       }
     };
   }, []);
 
+  // Handle track changes
   useEffect(() => {
-    if (audioRef.current) {
-      if (isMuted) {
-        audioRef.current.pause();
-      } else {
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.log("Playback prevented:", error);
-          });
+    const playNewTrack = async () => {
+      try {
+        if (musicRef.current) {
+          musicRef.current.pause();
+          musicRef.current.src = musicTracks[currentTrack].path;
+          musicRef.current.volume = volume.music;
+          musicRef.current.loop = true;
+          
+          if (!isMuted) {
+            await musicRef.current.play();
+          }
         }
-      }
-    }
-  }, [isMuted]);
-
-  useEffect(() => {
-    // Initialize pluck sound
-    pluckSoundRef.current = new Audio('/sounds/gameboy-pluck.mp3');
-    pluckSoundRef.current.volume = 0.5; // Set pluck volume to 50%
-    
-    return () => {
-      if (pluckSoundRef.current) {
-        pluckSoundRef.current.pause();
-        pluckSoundRef.current.currentTime = 0;
+        setAudioError(null);
+      } catch (error) {
+        console.error('Error playing audio:', error);
+        setAudioError('Unable to play background music. Click to try again.');
       }
     };
-  }, []);
 
-  const playPluckSound = useCallback(() => {
-    if (!isMuted && pluckSoundRef.current) {
-      pluckSoundRef.current.currentTime = 0; // Reset to start
-      pluckSoundRef.current.play().catch(error => {
-        console.log("Pluck sound playback prevented:", error);
+    playNewTrack();
+  }, [currentTrack, isMuted, volume.music]);
+
+  const playSound = useCallback(() => {
+    if (!isMuted && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = volume.effects;
+      audioRef.current.play().catch(error => {
+        console.error('Error playing sound effect:', error);
       });
     }
-  }, [isMuted]);
+  }, [isMuted, volume.effects]);
 
-  const handleVoteWithAnimation = useCallback(async (result) => {
+  const handleToggleMute = useCallback(() => {
+    setIsMuted(prev => {
+      const newMuted = !prev;
+      try {
+        if (newMuted) {
+          if (musicRef.current) musicRef.current.pause();
+          if (audioRef.current) audioRef.current.pause();
+        } else if (musicRef.current) {
+          musicRef.current.play().catch(() => {
+            setAudioError('Unable to play audio. Click to try again.');
+          });
+        }
+      } catch (error) {
+        console.error('Error toggling mute:', error);
+      }
+      return newMuted;
+    });
+  }, []);
+
+  const handleNextTrack = useCallback(() => {
+    setCurrentTrack(prev => (prev + 1) % musicTracks.length);
+  }, []);
+
+  const retryAudio = useCallback(() => {
+    if (audioError && !isMuted && musicRef.current) {
+      musicRef.current.play()
+        .then(() => setAudioError(null))
+        .catch(error => {
+          console.error('Error retrying audio:', error);
+          setAudioError('Unable to play audio. Click to try again.');
+        });
+    }
+  }, [audioError, isMuted]);
+
+  const handleVoteWithAnimation = async (option) => {
     if (isProcessing || isTransitioning) return;
     
+    setIsProcessing(true);
+    setSelectedOption(option);
+    playSound();
+    setIsTransitioning(true);
+    
     try {
-      setIsProcessing(true);
-      setSelectedOption(result);
-      
-      // Play pluck sound
-      playPluckSound();
-      
-      // Convert string result to numeric value
-      let numericResult;
-      switch (result) {
+      // Convert option to numeric value for the vote
+      let voteValue;
+      switch (option) {
         case 'left':
-          numericResult = -1;
+          voteValue = -1;
           break;
         case 'right':
-          numericResult = 1;
+          voteValue = 1;
           break;
         case 'both':
-          numericResult = 0;
+          voteValue = 0;
           break;
         case 'none':
-          numericResult = 0;
+          voteValue = 0;
           break;
         default:
-          numericResult = 0;
+          voteValue = 0;
       }
       
-      // Create vote data with the numeric result
+      // Create vote data
       const voteData = {
         matchNumber: currentMatchNumber,
-        result: numericResult,
+        result: voteValue,
         timestamp: Date.now(),
         match: {
           left: { ...currentMatch.left },
@@ -186,42 +183,27 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
         }
       };
 
-      // Add match to history
-      setMatchHistory(prev => [...prev, {
-        id: currentMatchNumber,
-        name1: currentMatch.left.name,
-        name2: currentMatch.right.name,
-        winner: numericResult
-      }]);
-      
-      // Call the onVote callback first to ensure vote is recorded
+      // Call onVote if provided
       if (onVote) {
         await onVote(voteData);
       }
-      
-      // Then handle the tournament logic
-      await handleVote(result);
+
+      await handleVote(option);
     } catch (error) {
       console.error('Error processing vote:', error);
     } finally {
+      setSelectedOption(null);
+      setIsTransitioning(false);
       setIsProcessing(false);
     }
-  }, [handleVote, currentMatch, currentMatchNumber, onVote, isTransitioning, playPluckSound, isMuted]);
+  };
 
   const handleEndEarly = useCallback(async () => {
     try {
       setIsProcessing(true);
-      // Stop the music when ending early
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
       const currentRatings = getCurrentRatings();
-      // Pass the current ratings to onComplete
       if (currentRatings && Object.keys(currentRatings).length > 0) {
         await onComplete(currentRatings);
-      } else {
-        console.error('No ratings available to end tournament');
       }
     } catch (error) {
       console.error('Error ending tournament:', error);
@@ -230,79 +212,49 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     }
   }, [getCurrentRatings, onComplete]);
 
-  const handleToggleMute = useCallback(() => {
-    setIsMuted(prev => !prev);
-  }, []);
-
-  useEffect(() => {
-    if (selectedOption) {
-      // Add RGB shift effect when a selection is made
-      const nameCard = document.querySelector(`.name-container.${selectedOption} .name-card`);
-      if (nameCard && window.vfx) {
-        window.vfx.add(nameCard, { shader: "rgbShift", intensity: 0.5 });
-        setTimeout(() => {
-          window.vfx.remove(nameCard);
-        }, 500);
-      }
-      const timer = setTimeout(() => setSelectedOption(null), 500);
-      return () => clearTimeout(timer);
+  const handleRandomize = useCallback(() => {
+    if (!isTransitioning && !isProcessing && Array.isArray(names) && names.length > 0) {
+      setIsTransitioning(true);
+      setRandomizedNames(shuffleArray([...names]));
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 500);
     }
-  }, [selectedOption]);
-
-  useEffect(() => {
-    // Add glitch effect to VS text
-    const vsText = document.querySelector('.vs-text');
-    if (vsText && window.vfx) {
-      window.vfx.add(vsText, { shader: "glitch", intensity: 0.3 });
-    }
-    return () => {
-      if (vsText && window.vfx) {
-        window.vfx.remove(vsText);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Add wave effect to progress info
-    const progressInfo = document.querySelector('.progress-info');
-    if (progressInfo && window.vfx) {
-      window.vfx.add(progressInfo, { shader: "wave", frequency: 3, amplitude: 0.02 });
-    }
-    return () => {
-      if (progressInfo && window.vfx) {
-        window.vfx.remove(progressInfo);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    // Cleanup function
-    return () => {
-      setSelectedOption(null);
-      setIsProcessing(false);
-    };
-  }, []);
+  }, [names, isTransitioning, isProcessing]);
 
   useKeyboardControls({
-    onLeft: () => !isProcessing && !isTransitioning && handleVoteWithAnimation('left'),
-    onRight: () => !isProcessing && !isTransitioning && handleVoteWithAnimation('right'),
-    onBoth: () => !isProcessing && !isTransitioning && handleVoteWithAnimation('both'),
-    onNone: () => !isProcessing && !isTransitioning && handleVoteWithAnimation('none'),
-    isDisabled: isProcessing || isTransitioning
-  });
+    ArrowLeft: () => handleVoteWithAnimation('left'),
+    ArrowRight: () => handleVoteWithAnimation('right'),
+    Space: () => handleVoteWithAnimation('both'),
+    Escape: () => handleVoteWithAnimation('none'),
+  }, !isProcessing && !isTransitioning);
 
   if (!currentMatch) {
     return <LoadingSpinner />;
   }
 
   return (
-    <div className="tournament" role="main">
-      <div className="progress-info" role="status" aria-live="polite">
-        <div className="round-info">
-          <span className="round-number">Round {roundNumber}</span>
-          <span className="match-count">Match {currentMatchNumber} of {totalMatches}</span>
+    <div 
+      className={styles.tournament} 
+      role="main"
+      aria-live="polite"
+    >
+      <div 
+        className={styles.progressInfo} 
+        role="status" 
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <div className={styles.roundInfo}>
+          <span className={styles.roundNumber}>Round {roundNumber}</span>
+          <span className={styles.matchCount}>Match {currentMatchNumber} of {totalMatches}</span>
         </div>
-        <div className="percentage-info" aria-label={`${progress}% Complete`}>{progress}% Complete</div>
+        <div 
+          className={styles.percentageInfo} 
+          aria-label={`Tournament is ${progress}% complete`}
+        >
+          {progress}% Complete
+        </div>
       </div>
 
       <TournamentControls 
@@ -310,72 +262,93 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
         isTransitioning={isTransitioning || isProcessing}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
+        onNextTrack={handleNextTrack}
+        currentTrack={currentTrack}
+        trackInfo={musicTracks[currentTrack]}
+        audioError={audioError}
+        onRetryAudio={retryAudio}
+        onRandomize={handleRandomize}
       />
 
-      <div className="tournament-layout">
-        <div className="matchup" role="region" aria-label="Current matchup">
-          <div className="names-row">
-            <div className="name-container left">
+      <div className={styles.tournamentLayout}>
+        <div 
+          className={styles.matchup} 
+          role="region" 
+          aria-label="Current matchup"
+          aria-busy={isTransitioning || isProcessing}
+        >
+          <div className={styles.namesRow}>
+            <div 
+              className={`${styles.nameContainer} ${selectedOption === 'left' ? styles.selected : ''}`}
+              role="group"
+              aria-label="Left name option"
+            >
               <NameCard
                 name={currentMatch.left.name}
                 description={currentMatch.left.description}
-                isSelected={selectedOption === 'left'}
-                onClick={() => !isProcessing && !isTransitioning && handleVoteWithAnimation('left')}
+                onClick={() => handleVoteWithAnimation('left')}
+                selected={selectedOption === 'left'}
                 disabled={isProcessing || isTransitioning}
                 shortcutHint="Press ← arrow key"
                 size="large"
-                aria-label={`Left option: ${currentMatch.left.name}`}
               />
             </div>
 
-            <div className="vs-section" aria-hidden="true">
-              <div className="vs-text">vs</div>
+            <div 
+              className={styles.vsSection}
+              aria-hidden="true"
+            >
+              <span className={styles.vsText}>vs</span>
             </div>
 
-            <div className="name-container right">
+            <div 
+              className={`${styles.nameContainer} ${selectedOption === 'right' ? styles.selected : ''}`}
+              role="group"
+              aria-label="Right name option"
+            >
               <NameCard
                 name={currentMatch.right.name}
                 description={currentMatch.right.description}
-                isSelected={selectedOption === 'right'}
-                onClick={() => !isProcessing && !isTransitioning && handleVoteWithAnimation('right')}
+                onClick={() => handleVoteWithAnimation('right')}
+                selected={selectedOption === 'right'}
                 disabled={isProcessing || isTransitioning}
                 shortcutHint="Press → arrow key"
                 size="large"
-                aria-label={`Right option: ${currentMatch.right.name}`}
               />
             </div>
           </div>
 
-          <div className="center-options" role="group" aria-label="Additional voting options">
+          <div 
+            className={styles.extraOptions}
+            role="group"
+            aria-label="Additional voting options"
+          >
             <button
-              className={`extra-options-button ${selectedOption === 'both' ? 'selected' : ''}`}
-              onClick={() => !isProcessing && !isTransitioning && handleVoteWithAnimation('both')}
+              className={`${styles.extraOptionsButton} ${selectedOption === 'both' ? styles.selected : ''}`}
+              onClick={() => handleVoteWithAnimation('both')}
               disabled={isProcessing || isTransitioning}
-              aria-label="Like both names"
+              aria-pressed={selectedOption === 'both'}
             >
-              Like Both
+              I Like Both! <span className={styles.shortcutHint}>(Space)</span>
             </button>
+            
             <button
-              className={`extra-options-button ${selectedOption === 'none' ? 'selected' : ''}`}
-              onClick={() => !isProcessing && !isTransitioning && handleVoteWithAnimation('none')}
+              className={`${styles.extraOptionsButton} ${selectedOption === 'none' ? styles.selected : ''}`}
+              onClick={() => handleVoteWithAnimation('none')}
               disabled={isProcessing || isTransitioning}
-              aria-label="No opinion"
+              aria-pressed={selectedOption === 'none'}
             >
-              No Opinion
+              Skip <span className={styles.shortcutHint}>(Esc)</span>
             </button>
           </div>
         </div>
 
-        <div className="tournament-instructions" role="note">
-          <p>Click on a name to choose it, or select an option below</p>
-        </div>
-
-        <div className="keyboard-hints" role="note">
-          <p>Keyboard shortcuts: ← Left, → Right, B (Both), N (No Opinion)</p>
-        </div>
-
-        <div className="bracket-view">
-          <Bracket matches={matchHistory} />
+        <div 
+          className={styles.bracketView}
+          role="complementary"
+          aria-label="Tournament bracket history"
+        >
+          <Bracket matches={matchHistory || []} />
         </div>
       </div>
     </div>

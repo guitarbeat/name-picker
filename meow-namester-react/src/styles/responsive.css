@@ -1,0 +1,28 @@
+@media (max-width: 768px) {
+  .statsGrid,
+  .resultsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .chartsContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .actionsContainer {
+    flex-direction: column;
+  }
+
+  .actionButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .cardBase {
+    padding: var(--space-3);
+  }
+
+  .statCard {
+    padding: var(--space-2);
+  }
+} 

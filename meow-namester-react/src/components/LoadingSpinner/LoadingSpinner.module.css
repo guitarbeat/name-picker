@@ -1,0 +1,118 @@
+.container {
+  composes: container from '../../styles/base.css';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: rgb(var(--black-rgb) / 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.core {
+  --spinner-size: 120px;
+  --dot-size: calc(var(--spinner-size) * 0.15);
+  position: relative;
+  width: var(--spinner-size);
+  height: var(--spinner-size);
+}
+
+.orbit {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  animation: orbit 2.4s linear infinite;
+}
+
+.dot {
+  position: absolute;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  background: var(--primary-500);
+  border-radius: 50%;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dot:nth-child(2) { 
+  animation-delay: -0.8s; 
+  background: var(--primary-600); 
+}
+
+.dot:nth-child(3) { 
+  animation-delay: -1.6s; 
+  background: var(--primary-400); 
+}
+
+.center {
+  position: absolute;
+  inset: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(var(--white-rgb) / 0.1);
+  border-radius: 50%;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0 20px rgb(var(--primary-rgb) / 0.3);
+}
+
+.cat {
+  font-size: calc(var(--spinner-size) * 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Size variants */
+.small { --spinner-size: 80px; }
+.medium { --spinner-size: 120px; }
+.large { --spinner-size: 160px; }
+
+.text {
+  composes: text from '../../styles/base.css';
+  color: rgb(var(--white-rgb) / 0.9);
+  margin-top: var(--space-6);
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 4px rgb(var(--black-rgb) / 0.2);
+}
+
+/* Accessibility */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: rgb(var(--black-rgb) / 0.9);
+  }
+  
+  .center {
+    background: rgb(var(--black-rgb) / 0.2);
+  }
+  
+  .text {
+    color: rgb(var(--white-rgb) / 0.95);
+  }
+} 

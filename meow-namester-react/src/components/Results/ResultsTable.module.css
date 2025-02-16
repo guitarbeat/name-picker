@@ -1,0 +1,124 @@
+.ratingsList {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.ratingsHeader {
+  background: var(--primary-50);
+  font-weight: 600;
+  color: var(--primary-700);
+  padding: 1rem 1.5rem;
+}
+
+.ratingItem {
+  padding: 1rem 1.5rem;
+  transition: background-color 0.2s ease;
+}
+
+.ratingItem:nth-child(even) {
+  background: var(--card-background);
+}
+
+.ratingItem:last-child {
+  border-bottom: none;
+}
+
+.ratingItem:hover {
+  background: var(--card-hover);
+}
+
+.rank {
+  font-weight: 600;
+  color: var(--primary-500);
+}
+
+.name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.rating {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.noResults {
+  composes: cardInteractive from '../../styles/base.css';
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.helpText {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .ratingsList {
+    background: var(--card-background-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .ratingsHeader {
+    background: var(--primary-800);
+    color: var(--primary-200);
+  }
+
+  .ratingItem:nth-child(even) {
+    background: var(--surface-dark);
+  }
+
+  .ratingItem:hover {
+    background: var(--card-hover-dark);
+  }
+
+  .rank {
+    color: var(--primary-400);
+  }
+
+  .name {
+    color: var(--text-primary-dark);
+  }
+
+  .rating {
+    color: var(--text-secondary-dark);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ratingsHeader {
+    grid-template-columns: 60px 1fr 100px;
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+  }
+
+  .ratingItem {
+    grid-template-columns: 60px 1fr 100px;
+    padding: var(--space-3);
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .ratingsHeader {
+    grid-template-columns: 50px 1fr 80px;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .ratingItem {
+    grid-template-columns: 50px 1fr 80px;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+} 

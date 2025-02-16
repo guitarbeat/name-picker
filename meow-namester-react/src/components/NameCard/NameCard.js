@@ -4,9 +4,9 @@
  * with consistent styling and behavior across the application.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import './NameCard.css';
+import styles from './NameCard.module.css';
 
 /**
  * NameCard Component
@@ -30,28 +30,58 @@ function NameCard({
   className = '',
   size = 'medium'
 }) {
-  const handleKeyPress = (event) => {
-    if (!disabled && (event.key === 'Enter' || event.key === ' ')) {
+  const [rippleStyle, setRippleStyle] = useState({});
+  const [isRippling, setIsRippling] = useState(false);
+
+  useEffect(() => {
+    if (isRippling) {
+      const timer = setTimeout(() => setIsRippling(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [isRippling]);
+
+  const handleInteraction = (event) => {
+    if (disabled) return;
+
+    if (event.type === 'click' || (event.type === 'keydown' && (event.key === 'Enter' || event.key === ' '))) {
       event.preventDefault();
+      
+      // Create ripple effect
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX ? event.clientX - rect.left : rect.width / 2;
+      const y = event.clientY ? event.clientY - rect.top : rect.height / 2;
+      
+      setRippleStyle({
+        left: `${x}px`,
+        top: `${y}px`
+      });
+      
+      setIsRippling(true);
       onClick?.();
     }
   };
 
+  const cardClasses = [
+    styles.card,
+    styles[size],
+    isSelected && styles.selected,
+    disabled && styles.disabled,
+    className
+  ].filter(Boolean).join(' ');
+
   return (
-    <div 
-      className={`name-card ${isSelected ? 'selected' : ''} ${size} ${className}`.trim()}
-      onClick={() => !disabled && onClick?.()}
-      onKeyPress={handleKeyPress}
-      role="button"
-      tabIndex={disabled ? -1 : 0}
-      title={shortcutHint}
-      aria-pressed={isSelected}
-      aria-disabled={disabled}
-    >
-      <h3 className="name-text">{name}</h3>
-      {description && <p className="name-description">{description}</p>}
+    <div className={cardClasses}>
+      <h3 className={styles.name}>{name}</h3>
+      {description && <p className={styles.description}>{description}</p>}
       {isSelected && (
-        <span className="check-mark" aria-hidden="true">✓</span>
+        <span className={styles.checkMark} aria-hidden="true">✓</span>
+      )}
+      {isRippling && (
+        <span 
+          className={styles.rippleEffect}
+          style={rippleStyle}
+          aria-hidden="true"
+        />
       )}
     </div>
   );

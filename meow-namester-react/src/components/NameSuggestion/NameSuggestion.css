@@ -1,53 +1,49 @@
 .name-suggestion {
   max-width: 600px;
-  padding: 0 1rem;
   margin: 2rem auto;
 }
 
 .suggestion-card {
-  padding: 2rem;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgb(0 0 0 / 10%);
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
 }
 
 .suggestion-card h2 {
-  margin: 0 0 1rem;
-  font-size: 1.8rem;
-  color: #2d3748;
-  text-align: center;
+  margin-bottom: var(--space-4);
+  color: var(--text-primary);
 }
 
 .suggestion-intro {
-  margin-bottom: 2rem;
-  color: #4a5568;
-  text-align: center;
+  margin-bottom: var(--space-6);
+  color: var(--text-secondary);
 }
 
 .suggestion-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-4);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 .form-group label {
-  font-weight: 600;
-  color: #4a5568;
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
 }
 
 .form-group input,
 .form-group textarea {
-  padding: 0.75rem;
-  font-size: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  transition: border-color 0.2s ease;
+  padding: var(--space-3);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
 }
 
 .form-group textarea {
@@ -57,49 +53,45 @@
 
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #805ad5;
+  border-color: var(--primary-color);
   outline: none;
-  box-shadow: 0 0 0 3px rgb(128 90 213 / 10%);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
 }
 
 .form-group input:disabled,
 .form-group textarea:disabled {
   cursor: not-allowed;
-  background-color: #f7fafc;
+  color: var(--text-tertiary);
+  background-color: var(--card-background);
 }
 
 .error-message {
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
-  color: #e53e3e;
+  color: var(--error-500);
 }
 
 .success-message {
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
-  color: #38a169;
+  color: var(--success-500);
 }
 
 .submit-button {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--font-semibold);
   color: white;
   cursor: pointer;
-  background: #805ad5;
+  background: var(--primary-color);
   border: none;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #6b46c1;
+  background: var(--primary-dark);
   transform: translateY(-1px);
 }
 
 .submit-button:disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -151,4 +143,45 @@
     background: var(--primary-color);
     opacity: 0.5;
   }
+}
+
+.name-suggestion h3 {
+  color: var(--text-primary);
+}
+
+.name-suggestion p {
+  color: var(--text-secondary);
+}
+
+.name-suggestion .description {
+  color: var(--text-secondary);
+}
+
+.name-suggestion input[type="text"] {
+  border: 1px solid var(--border-color);
+}
+
+.name-suggestion input[type="text"]:focus {
+  border-color: var(--purple-500);
+  box-shadow: 0 0 0 3px rgba(var(--purple-rgb), 0.1);
+}
+
+.name-suggestion .error {
+  background-color: var(--gray-50);
+}
+
+.name-suggestion .error-message {
+  color: var(--error-500);
+}
+
+.name-suggestion .success-message {
+  color: var(--success-500);
+}
+
+.name-suggestion .submit-button {
+  background: var(--purple-500);
+}
+
+.name-suggestion .submit-button:hover {
+  background: var(--purple-600);
 } 

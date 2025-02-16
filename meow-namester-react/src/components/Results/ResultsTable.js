@@ -5,16 +5,17 @@
  */
 
 import React, { useMemo, memo } from 'react';
+import styles from './ResultsTable.module.css';
 
 const RatingItem = memo(({ name, rating, rank }) => (
   <div 
-    className="rating-item"
+    className={styles.ratingItem}
     role="row"
     aria-label={`Rank ${rank}: ${name} with rating ${rating}`}
   >
-    <span className="rank" aria-hidden="true">{rank}</span>
-    <span className="name">{name}</span>
-    <span className="rating" aria-label={`Rating: ${rating}`}>
+    <span className={styles.rank} aria-hidden="true">{rank}</span>
+    <span className={styles.name}>{name}</span>
+    <span className={styles.rating} aria-label={`Rating: ${rating}`}>
       {rating.toLocaleString()}
     </span>
   </div>
@@ -59,23 +60,23 @@ function ResultsTable({ ratings = {}, orderedNames }) {
   if (!sortedRatings.length) {
     return (
       <div 
-        className="no-results" 
+        className={styles.noResults} 
         role="status" 
         aria-label="No ratings available"
       >
         <p>No ratings available yet.</p>
-        <p className="help-text">Complete a tournament to see rankings here.</p>
+        <p className={styles.helpText}>Complete a tournament to see rankings here.</p>
       </div>
     );
   }
 
   return (
     <div 
-      className="ratings-list"
+      className={styles.ratingsList}
       role="table"
       aria-label="Name Rankings"
     >
-      <div className="ratings-header" role="row">
+      <div className={styles.ratingsHeader} role="row">
         <span role="columnheader" aria-sort="ascending">Rank</span>
         <span role="columnheader">Name</span>
         <span role="columnheader">Rating</span>

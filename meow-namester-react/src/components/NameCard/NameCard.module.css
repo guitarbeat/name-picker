@@ -1,0 +1,169 @@
+.card {
+  composes: cardInteractive from '../../styles/base.css';
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  cursor: pointer;
+  overflow: hidden;
+  height: 100%;
+  min-height: 120px;
+  max-height: 200px;
+  will-change: transform;
+}
+
+.small {
+  min-height: 100px;
+  max-height: 160px;
+}
+
+.medium {
+  min-height: 120px;
+  max-height: 200px;
+}
+
+.name {
+  composes: heading3 from '../../styles/base.css';
+  margin: 0;
+  line-height: 1.2;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.description {
+  composes: text from '../../styles/base.css';
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
+  opacity: 0.8;
+  flex: 1;
+}
+
+.small .description {
+  -webkit-line-clamp: 2;
+  font-size: var(--text-xs);
+}
+
+.card:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: var(--card-hover);
+  border-color: var(--primary-300);
+  box-shadow: var(--shadow-lg);
+}
+
+.selected {
+  background: var(--primary-50);
+  border-color: var(--primary-300);
+}
+
+.checkMark {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  color: var(--primary-500);
+  font-size: var(--text-xl);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.selected .checkMark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.rippleEffect {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--primary-200);
+  transform: scale(0);
+  animation: ripple 0.6s linear;
+  pointer-events: none;
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: var(--card-background-dark);
+    border-color: var(--border-color-dark);
+  }
+
+  .card:hover {
+    background: var(--card-hover-dark);
+    border-color: var(--primary-400);
+  }
+
+  .selected {
+    background: var(--primary-900);
+    border-color: var(--primary-400);
+  }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .card {
+    min-height: 140px;
+    padding: var(--space-3);
+  }
+
+  .name {
+    font-size: var(--text-lg);
+  }
+
+  .description {
+    font-size: var(--text-sm);
+  }
+
+  .small {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    min-height: 120px;
+    padding: var(--space-2);
+  }
+
+  .name {
+    font-size: var(--text-base);
+  }
+
+  .description {
+    font-size: var(--text-xs);
+  }
+
+  .checkMark {
+    top: var(--space-2);
+    right: var(--space-2);
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .checkMark,
+  .description {
+    transition: none;
+  }
+} 

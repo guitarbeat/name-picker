@@ -16,7 +16,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Tournament, 
   Results, 
   ErrorBoundary,
   Login,
@@ -27,6 +26,8 @@ import Sidebar from './components/Sidebar/Sidebar';
 import useUserSession from './hooks/useUserSession';
 import useSupabaseStorage from './supabase/useSupabaseStorage';
 import { supabase, getNamesWithDescriptions } from './supabase/supabaseClient';
+import Tournament from './components/Tournament/Tournament';
+import LoadingSpinner from './components/LoadingSpinner/LoadingSpinner';
 
 function App() {
   const { userName, isLoggedIn, login, logout, session } = useUserSession();
@@ -37,6 +38,7 @@ function App() {
   const [names, setNames] = useState([]);
   const [voteHistory, setVoteHistory] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTournamentLoading, setIsTournamentLoading] = useState(false);
 
   console.log('App - Current ratings:', ratings);
   console.log('App - Tournament names:', tournamentNames);
@@ -210,7 +212,15 @@ function App() {
 
   const handleTournamentSetup = (names) => {
     console.log('App - Setting up tournament with names:', names);
-    setTournamentNames(names);
+    setIsTournamentLoading(true);
+    
+    // Set names directly without delay
+    setTournamentNames(names.map(n => ({
+      id: n.id,
+      name: n.name,
+      description: n.description,
+      rating: ratings[n.name]?.rating || 1500
+    })));
   };
 
   // Simplified ratings update logic
@@ -276,50 +286,78 @@ function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  // Add effect to handle authentication state
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setView('tournament');
+      setTournamentComplete(false);
+      setTournamentNames(null);
+      setVoteHistory([]);
+    }
+  }, [isLoggedIn]);
+
+  // Update loading state effect
+  useEffect(() => {
+    if (tournamentNames === null) {
+      setIsTournamentLoading(false);
+    } else {
+      setIsTournamentLoading(tournamentNames.length === 0);
+    }
+  }, [tournamentNames]);
+
   const renderMainContent = () => {
-    if (view === 'profile') {
-      return (
-        <Profile 
-          userName={userName}
-          onStartNewTournament={handleStartNewTournament}
-          ratings={ratings}
-          onUpdateRatings={handleUpdateRatings}
-        />
-      );
+    if (!isLoggedIn) {
+      return <Login onLogin={login} />;
     }
 
-    if (tournamentComplete) {
-      return (
-        <Results 
-          ratings={ratings}
-          onStartNew={handleStartNewTournament}
-          userName={userName}
-          onUpdateRatings={handleUpdateRatings}
-          currentTournamentNames={tournamentNames}
-          voteHistory={voteHistory}
-        />
-      );
-    }
+    switch (view) {
+      case 'profile':
+        return (
+          <Profile 
+            userName={userName}
+            onStartNewTournament={handleStartNewTournament}
+            ratings={ratings}
+            onUpdateRatings={handleUpdateRatings}
+          />
+        );
+      case 'tournament':
+        if (tournamentComplete) {
+          return (
+            <Results 
+              ratings={ratings}
+              onStartNew={handleStartNewTournament}
+              userName={userName}
+              onUpdateRatings={handleUpdateRatings}
+              currentTournamentNames={tournamentNames}
+              voteHistory={voteHistory}
+            />
+          );
+        }
+        
+        if (tournamentNames === null) {
+          return (
+            <TournamentSetup 
+              onStart={handleTournamentSetup}
+              userName={userName}
+              existingRatings={ratings}
+            />
+          );
+        }
 
-    if (!tournamentNames) {
-      return (
-        <TournamentSetup 
-          onStart={handleTournamentSetup}
-          userName={userName}
-          existingRatings={ratings}
-        />
-      );
+        return (
+          <ErrorBoundary>
+            <Tournament 
+              names={tournamentNames}
+              existingRatings={ratings}
+              onComplete={handleTournamentComplete}
+              userName={userName}
+              onVote={handleVoteHistoryUpdate}
+            />
+          </ErrorBoundary>
+        );
+      default:
+        return null;
     }
-
-    return (
-      <Tournament 
-        names={tournamentNames}
-        existingRatings={ratings}
-        onComplete={handleTournamentComplete}
-        userName={userName}
-        onVote={handleVoteHistoryUpdate}
-      />
-    );
   };
 
   return (
@@ -334,12 +372,14 @@ function App() {
         onToggle={toggleSidebar}
       />
       <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''}`}>
-        {!isLoggedIn ? (
-          <Login onLogin={login} />
-        ) : (
-          renderMainContent()
-        )}
+        {renderMainContent()}
       </div>
+      
+      {isTournamentLoading && (
+        <div className="global-loading-overlay">
+          <LoadingSpinner text="Initializing Tournament..." />
+        </div>
+      )}
     </div>
   );
 }

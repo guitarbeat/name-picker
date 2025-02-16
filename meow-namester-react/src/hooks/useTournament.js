@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PreferenceSorter } from '../components/Tournament/PreferenceSorter';
 import EloRating from '../components/Tournament/EloRating';
 
@@ -11,9 +11,28 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
   const [sorter, setSorter] = useState(null);
   const [elo] = useState(() => new EloRating());
   const [resolveVote, setResolveVote] = useState(null);
-  const [voteHistory, setVoteHistory] = useState([]);
+  const [matchHistory, setMatchHistory] = useState([]);
   const [canUndo, setCanUndo] = useState(false);
   const [currentRatings, setCurrentRatings] = useState(existingRatings);
+
+  // Add debug logging
+  console.log('useTournament initialized with names:', names);
+  
+  // Add validation check
+  if (!Array.isArray(names) || names.length < 2) {
+    console.error('Invalid names array:', names);
+    return { currentMatch: null };
+  }
+
+  // Add deep equality check for names
+  const prevNames = useRef([]);
+  useEffect(() => {
+    if (JSON.stringify(prevNames.current) !== JSON.stringify(names)) {
+      console.log('Names changed, reinitializing tournament');
+      prevNames.current = names;
+      // Add tournament initialization logic here
+    }
+  }, [names]);
 
   const getCurrentRatings = useCallback(() => {
     const ratingsArray = names.map(name => {
@@ -22,18 +41,18 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         : { rating: currentRatings[name.name] || 1500, wins: 0, losses: 0 };
 
       const totalNames = names.length;
-      const position = voteHistory.filter(vote => 
+      const position = matchHistory.filter(vote => 
         (vote.match.left.name === name.name && vote.result === 'left') ||
         (vote.match.right.name === name.name && vote.result === 'right')
       ).length;
 
       // Count wins and losses from vote history
-      const wins = voteHistory.filter(vote => 
+      const wins = matchHistory.filter(vote => 
         (vote.match.left.name === name.name && vote.result === 'left') ||
         (vote.match.right.name === name.name && vote.result === 'right')
       ).length;
 
-      const losses = voteHistory.filter(vote => 
+      const losses = matchHistory.filter(vote => 
         (vote.match.left.name === name.name && vote.result === 'right') ||
         (vote.match.right.name === name.name && vote.result === 'left')
       ).length;
@@ -62,7 +81,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     });
 
     return ratingsArray;
-  }, [names, currentRatings, voteHistory, currentMatchNumber, totalMatches]);
+  }, [names, currentRatings, matchHistory, currentMatchNumber, totalMatches]);
 
   useEffect(() => {
     if (!names || names.length === 0) {
@@ -76,13 +95,13 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     setSorter(newSorter);
     
     const n = names.length;
-    // For 2 names, we only need 1 match
-    const estimatedMatches = n === 2 ? 1 : Math.ceil((n * (n - 1)) / 2);
+    // Calculate matches based on merge sort complexity
+    const estimatedMatches = n <= 2 ? 1 : Math.ceil(n * Math.log2(n));
     console.log(`Tournament setup: ${n} names, ${estimatedMatches} matches`);
     setTotalMatches(estimatedMatches);
     setCurrentMatchNumber(1);
     setRoundNumber(1);
-    setVoteHistory([]);
+    setMatchHistory([]);
     setCanUndo(false);
     setCurrentRatings(existingRatings);
 
@@ -96,7 +115,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         existingRatings,
         currentMatchNumber: 1,
         roundNumber: 1,
-        voteHistory: []
+        matchHistory: []
       };
       localStorage.setItem('tournamentState', JSON.stringify(initialState));
 
@@ -148,7 +167,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
         const state = JSON.parse(savedState);
         setCurrentMatchNumber(state.currentMatchNumber);
         setRoundNumber(state.roundNumber);
-        setVoteHistory(state.voteHistory || []);
+        setMatchHistory(state.matchHistory || []);
       }
     }
   };
@@ -186,7 +205,7 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       }
     };
 
-    setVoteHistory(prev => [...prev, voteData]);
+    setMatchHistory(prev => [...prev, voteData]);
     setCanUndo(true);
     
     localStorage.setItem('lastVote', JSON.stringify(voteData));
@@ -217,14 +236,14 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
   }, [resolveVote, isTransitioning, currentMatchNumber, totalMatches, names.length, currentMatch, onComplete, getCurrentRatings]);
 
   const handleUndo = useCallback(() => {
-    if (isTransitioning || !canUndo || voteHistory.length === 0) return;
+    if (isTransitioning || !canUndo || matchHistory.length === 0) return;
 
     setIsTransitioning(true);
 
-    const lastVote = voteHistory[voteHistory.length - 1];
+    const lastVote = matchHistory[matchHistory.length - 1];
     setCurrentMatch(lastVote.match);
     setCurrentMatchNumber(lastVote.matchNumber);
-    setVoteHistory(prev => prev.slice(0, -1));
+    setMatchHistory(prev => prev.slice(0, -1));
     
     if (sorter) {
       sorter.undoLastPreference();
@@ -234,12 +253,12 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       setRoundNumber(prev => prev - 1);
     }
 
-    setCanUndo(voteHistory.length > 1);
+    setCanUndo(matchHistory.length > 1);
     
     setTimeout(() => {
       setIsTransitioning(false);
     }, 500);
-  }, [isTransitioning, canUndo, voteHistory, names.length, sorter]);
+  }, [isTransitioning, canUndo, matchHistory, names.length, sorter]);
 
   const progress = Math.round((currentMatchNumber / totalMatches) * 100);
 

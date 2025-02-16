@@ -4,17 +4,17 @@
  * Shows the tournament results with ratings and provides option to restart.
  */
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react';
 import ResultsTable from './ResultsTable';
 import RankingAdjustment from '../RankingAdjustment/RankingAdjustment';
 import Bracket from '../Bracket/Bracket';
-import './Results.css';
+import styles from './Results.module.css';
 
 // Memoized stats card component for better performance
 const StatsCard = memo(({ title, value }) => (
-  <div className="stat-card" role="status" aria-label={`${title}: ${value}`}>
+  <div className={styles.statCard} role="status" aria-label={`${title}: ${value}`}>
     <h3>{title}</h3>
-    <div className="stat-value">{value}</div>
+    <div className={styles.statValue}>{value}</div>
   </div>
 ));
 
@@ -22,7 +22,7 @@ const StatsCard = memo(({ title, value }) => (
 const Toast = memo(({ message, type, onClose }) => (
   <div 
     role="alert"
-    className={`toast ${type}`}
+    className={type === 'success' ? styles.toastSuccess : styles.toastError}
     onClick={onClose}
   >
     {message}
@@ -170,10 +170,36 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
     };
   }, []);
 
+  // Memoize processed rankings
+  const processedRankings = useMemo(() => 
+    processRankings(ratings), [ratings]
+  );
+
+  // Optimize vfx.js usage
+  useEffect(() => {
+    const vfxElements = [];
+    
+    const addVfx = (selector, config) => {
+      const el = document.querySelector(selector);
+      if (el && window.vfx) {
+        window.vfx.add(el, config);
+        vfxElements.push(el);
+      }
+    };
+
+    addVfx('.results-header', { shader: "wave", frequency: 2, amplitude: 0.01 });
+    addVfx('.stat-card', { shader: "glitch", intensity: 0.2 });
+    addVfx('.tournament-bracket', { shader: "rgbShift", intensity: 0.3 });
+
+    return () => {
+      vfxElements.forEach(el => window.vfx?.remove(el));
+    };
+  }, []);
+
   if (isLoading) {
     return (
-      <div className="results-loading" role="status" aria-label="Loading rankings">
-        <div className="loading-spinner" aria-hidden="true" />
+      <div className={styles.loading} role="status" aria-label="Loading rankings">
+        <div className={styles.loadingSpinner} aria-hidden="true" />
         <p>Processing rankings...</p>
       </div>
     );
@@ -182,17 +208,17 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
   const bracketMatches = getBracketMatches();
 
   return (
-    <div className="results-container">
-      <header className="results-header">
+    <div className={styles.container}>
+      <header className={styles.header}>
         <h2>Name Rankings</h2>
-        <p className="results-welcome">
-          Welcome back, <span className="user-name">{userName}</span>! 
+        <p className={styles.welcome}>
+          Welcome back, <span className={styles.userName}>{userName}</span>! 
           Here are your latest name rankings.
         </p>
       </header>
 
-      <div className="results-content">
-        <div className="rankings-stats">
+      <div className={styles.content}>
+        <div className={styles.statsGrid}>
           <StatsCard 
             title="Total Names" 
             value={currentRankings.length} 
@@ -205,10 +231,10 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
           onCancel={onStartNew}
         />
 
-        <div className="results-actions">
+        <div className={styles.actions}>
           <button 
             onClick={onStartNew} 
-            className="primary-button start-new-button"
+            className={styles.startNewButton}
             aria-label="Start new tournament"
           >
             <svg 
@@ -218,19 +244,20 @@ function Results({ ratings, onStartNew, userName, onUpdateRatings, currentTourna
               stroke="currentColor" 
               strokeWidth="2" 
               fill="none"
+              className={styles.buttonIcon}
               aria-hidden="true"
             >
               <path d="M12 4v16m8-8H4" />
             </svg>
             Start New Tournament
           </button>
-          <p className="results-tip" role="note">
+          <p className={styles.tip} role="note">
             Starting a new tournament will let you rate more names while keeping your current rankings.
           </p>
         </div>
 
         {bracketMatches.length > 0 && (
-          <div className="tournament-bracket">
+          <div className={styles.tournamentBracket}>
             <h3>Tournament Bracket</h3>
             <Bracket matches={bracketMatches} />
           </div>
