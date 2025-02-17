@@ -48,6 +48,10 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
   const audioRef = useRef(null);
   const musicRef = useRef(null);
   const [currentTrack, setCurrentTrack] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [lastVoteTime, setLastVoteTime] = useState(null);
+  const [showKeyHints, setShowKeyHints] = useState(true);
+  const comboTimeWindow = 2000; // 2 seconds to maintain combo
 
   const musicTracks = [
     { path: '/sounds/AdhesiveWombat - Night Shade.mp3', name: 'Night Shade' },
@@ -148,54 +152,35 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     if (isProcessing || isTransitioning) return;
     
     setIsProcessing(true);
-    setSelectedOption(option);
-    playSound();
     setIsTransitioning(true);
     
-    try {
-      // Convert option to numeric value for the vote
-      let voteValue;
-      switch (option) {
-        case 'left':
-          voteValue = -1;
-          break;
-        case 'right':
-          voteValue = 1;
-          break;
-        case 'both':
-          voteValue = 0;
-          break;
-        case 'none':
-          voteValue = 0;
-          break;
-        default:
-          voteValue = 0;
+    // Play different sound effects based on combo
+    if (audioRef.current && !isMuted) {
+      if (combo >= 5) {
+        audioRef.current.src = '/sounds/combo-special.mp3';
+      } else {
+        audioRef.current.src = '/sounds/gameboy-pluck.mp3';
       }
-      
-      // Create vote data
-      const voteData = {
-        matchNumber: currentMatchNumber,
-        result: voteValue,
-        timestamp: Date.now(),
-        match: {
-          left: { ...currentMatch.left },
-          right: { ...currentMatch.right }
-        }
-      };
-
-      // Call onVote if provided
-      if (onVote) {
-        await onVote(voteData);
-      }
-
-      await handleVote(option);
-    } catch (error) {
-      console.error('Error processing vote:', error);
-    } finally {
-      setSelectedOption(null);
-      setIsTransitioning(false);
-      setIsProcessing(false);
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
     }
+
+    updateCombo();
+    
+    // Calculate bonus points based on combo
+    const comboMultiplier = Math.min(combo, 10) * 0.1 + 1;
+    
+    await handleVote(option);
+    if (onVote) {
+      onVote(option, comboMultiplier);
+    }
+
+    setSelectedOption(null);
+    setIsProcessing(false);
+    
+    setTimeout(() => {
+      setIsTransitioning(false);
+    }, 300);
   };
 
   const handleEndEarly = useCallback(async () => {
@@ -222,12 +207,56 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     }
   }, [names, isTransitioning, isProcessing]);
 
-  useKeyboardControls({
-    ArrowLeft: () => handleVoteWithAnimation('left'),
-    ArrowRight: () => handleVoteWithAnimation('right'),
-    Space: () => handleVoteWithAnimation('both'),
-    Escape: () => handleVoteWithAnimation('none'),
-  }, !isProcessing && !isTransitioning);
+  // Add keyboard controls
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (isProcessing || isTransitioning) return;
+      
+      switch(e.key) {
+        case 'ArrowLeft':
+          setSelectedOption('left');
+          if (audioRef.current && !isMuted) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play();
+          }
+          break;
+        case 'ArrowRight':
+          setSelectedOption('right');
+          if (audioRef.current && !isMuted) {
+            audioRef.current.currentTime = 0;
+            audioRef.current.play();
+          }
+          break;
+        case ' ':
+          if (selectedOption) {
+            handleVoteWithAnimation(selectedOption);
+          }
+          break;
+        case 'ArrowUp':
+          handleVoteWithAnimation('both');
+          break;
+        case 'ArrowDown':
+          handleVoteWithAnimation('neither');
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectedOption, isProcessing, isTransitioning]);
+
+  // Handle combo system
+  const updateCombo = useCallback(() => {
+    const now = Date.now();
+    if (lastVoteTime && (now - lastVoteTime) < comboTimeWindow) {
+      setCombo(prev => prev + 1);
+    } else {
+      setCombo(1);
+    }
+    setLastVoteTime(now);
+  }, [lastVoteTime]);
 
   if (!currentMatch) {
     return <LoadingSpinner />;
@@ -333,10 +362,10 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
             </button>
             
             <button
-              className={`${styles.extraOptionsButton} ${selectedOption === 'none' ? styles.selected : ''}`}
-              onClick={() => handleVoteWithAnimation('none')}
+              className={`${styles.extraOptionsButton} ${selectedOption === 'neither' ? styles.selected : ''}`}
+              onClick={() => handleVoteWithAnimation('neither')}
               disabled={isProcessing || isTransitioning}
-              aria-pressed={selectedOption === 'none'}
+              aria-pressed={selectedOption === 'neither'}
             >
               Skip <span className={styles.shortcutHint}>(Esc)</span>
             </button>
@@ -351,6 +380,23 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
           <Bracket matches={matchHistory || []} />
         </div>
       </div>
+
+      {/* Add key hints overlay */}
+      {showKeyHints && (
+        <div className={styles.keyHints}>
+          <div className={styles.keyHint}>← →: Select</div>
+          <div className={styles.keyHint}>Space: Confirm</div>
+          <div className={styles.keyHint}>↑: Like Both</div>
+          <div className={styles.keyHint}>↓: Skip Both</div>
+        </div>
+      )}
+      
+      {/* Add combo display */}
+      {combo > 1 && (
+        <div className={`${styles.comboDisplay} ${combo >= 5 ? styles.superCombo : ''}`}>
+          {combo}x Combo!
+        </div>
+      )}
     </div>
   );
 }
