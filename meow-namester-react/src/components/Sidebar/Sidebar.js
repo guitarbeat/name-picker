@@ -18,32 +18,46 @@ const Sidebar = ({ view, setView, isLoggedIn, userName, onLogout, isOpen, onTogg
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  // Handle backdrop and animation states
+  // Handle backdrop and animation states with improved timing
   useEffect(() => {
     if (isOpen) {
+      // Show backdrop immediately when opening
       setShowBackdrop(true);
       setIsAnimating(true);
-      // Reset animation state after transition
-      const timer = setTimeout(() => setIsAnimating(false), 300);
+      
+      // Allow time for animation to complete
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 400); // Slightly longer than CSS transition
+      
       return () => clearTimeout(timer);
     } else {
       setIsAnimating(true);
-      // Keep backdrop visible during close animation
+      
+      // Delay hiding backdrop until close animation completes
       const timer = setTimeout(() => {
         setShowBackdrop(false);
         setIsAnimating(false);
-      }, 300);
+      }, 400);
+      
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  // Lock body scroll when sidebar is open on mobile
+  // Lock body scroll when sidebar is open
   useEffect(() => {
-    if (window.innerWidth <= 768) {
-      document.body.style.overflow = isOpen ? 'hidden' : '';
+    const body = document.body;
+    if (isOpen) {
+      const scrollbarWidth = window.innerWidth - body.clientWidth;
+      body.style.overflow = 'hidden';
+      body.style.paddingRight = `${scrollbarWidth}px`; // Prevent layout shift
+    } else {
+      body.style.overflow = '';
+      body.style.paddingRight = '';
     }
     return () => {
-      document.body.style.overflow = '';
+      body.style.overflow = '';
+      body.style.paddingRight = '';
     };
   }, [isOpen]);
 
@@ -55,6 +69,7 @@ const Sidebar = ({ view, setView, isLoggedIn, userName, onLogout, isOpen, onTogg
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-expanded={isOpen}
         aria-controls="sidebar-menu"
+        aria-haspopup="true"
       >
         <span className={styles.srOnly}>Toggle menu</span>
         <span aria-hidden="true"></span>
@@ -62,12 +77,13 @@ const Sidebar = ({ view, setView, isLoggedIn, userName, onLogout, isOpen, onTogg
         <span aria-hidden="true"></span>
       </button>
       
-      {/* Backdrop with animation support */}
+      {/* Backdrop with improved animation support */}
       {showBackdrop && (
         <div 
           className={`${styles.backdrop} ${isOpen ? styles.open : ''} ${isAnimating ? styles.animating : ''}`}
           onClick={onToggle}
           aria-hidden="true"
+          role="presentation"
         />
       )}
       
@@ -76,6 +92,7 @@ const Sidebar = ({ view, setView, isLoggedIn, userName, onLogout, isOpen, onTogg
         className={`${styles.sidebar} ${isOpen ? styles.open : ''} ${isAnimating ? styles.animating : ''}`}
         role="navigation"
         aria-label="Main menu"
+        aria-hidden={!isOpen}
       >
         <div className={styles.sidebarHeader}>
           <div className={styles.logoContainer}>
