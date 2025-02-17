@@ -182,6 +182,8 @@ const ProfileStats = memo(({ ratings, filterStatus }) => {
 
 const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }) => {
   const { name: nameText, rating = DEFAULT_RATING, wins = 0, losses = 0, updated_at } = name;
+  const totalMatches = wins + losses;
+  const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
   return (
     <Card className={`${styles.nameCard} ${isHidden ? styles.isHidden : ''}`}>
@@ -195,6 +197,17 @@ const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }
           <span className={styles.wins}>{wins} wins</span>
           <span className={styles.separator}>•</span>
           <span className={styles.losses}>{losses} losses</span>
+          {totalMatches > 0 && (
+            <>
+              <span className={styles.separator}>•</span>
+              <span className={styles.winRate}>{winRate}% win rate</span>
+            </>
+          )}
+        </div>
+        <div className={styles.matchInfo}>
+          <span className={styles.totalMatches}>
+            {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} played
+          </span>
         </div>
       </div>
 
@@ -275,7 +288,7 @@ const UserCard = memo(({ user, onUserAction, isActive }) => (
 ));
 
 const AdminPanel = ({ users, onRefresh }) => {
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(true);
   const [activeTimeFilter, setActiveTimeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('lastActive');
   const [sortOrder, setSortOrder] = useState('desc');

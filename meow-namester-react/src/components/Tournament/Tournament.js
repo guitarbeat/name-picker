@@ -4,7 +4,7 @@
  * Provides a UI for comparing two names, with options for liking both or neither.
  */
 
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react';
 import { useTournament } from '../../hooks/useTournament';
 import { useKeyboardControls } from '../../hooks/useKeyboardControls';
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner';
@@ -604,6 +604,62 @@ function TournamentContent({ onComplete, existingRatings = {}, names = [], userN
     </div>
   );
 }
+
+const MusicControls = memo(({ isMusicPlaying, volume, onVolumeChange, onToggleMusic, currentTrack }) => {
+  const [isMinimized, setIsMinimized] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMinimized(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return (
+    <div className={`${styles.musicControls} ${isMinimized ? styles.minimized : ''}`}>
+      <button 
+        className={styles.musicToggle}
+        onClick={onToggleMusic}
+        aria-label={isMusicPlaying ? 'Pause music' : 'Play music'}
+      >
+        {isMusicPlaying ? '⏸️' : '▶️'}
+      </button>
+
+      {!isMinimized && (
+        <>
+          <div className={styles.volumeControls}>
+            <span>🔊</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={volume}
+              onChange={onVolumeChange}
+              className={styles.volumeSlider}
+              aria-label="Volume control"
+            />
+          </div>
+
+          <div className={styles.trackInfo}>
+            <span>🎵</span>
+            <span>{currentTrack}</span>
+          </div>
+        </>
+      )}
+
+      <button
+        className={styles.minimizeButton}
+        onClick={() => setIsMinimized(!isMinimized)}
+        aria-label={isMinimized ? 'Expand music controls' : 'Minimize music controls'}
+      >
+        {isMinimized ? '▲' : '▼'}
+      </button>
+    </div>
+  );
+});
 
 function Tournament(props) {
   return (
