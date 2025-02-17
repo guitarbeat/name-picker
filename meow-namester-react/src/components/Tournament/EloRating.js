@@ -36,25 +36,36 @@ class EloRating {
    * @param {Object} stats - Player statistics
    * @param {number} [stats.winsA] - Wins for player A
    * @param {number} [stats.lossesA] - Losses for player A
-   * @returns {Object} New ratings for both items
+   * @returns {Object} New ratings and updated win/loss counts for both items
    */
   calculateNewRatings(ratingA, ratingB, outcome, stats = {}) {
     const expectedA = this.getExpectedScore(ratingA, ratingB);
     const expectedB = this.getExpectedScore(ratingB, ratingA);
     
     let actualA, actualB;
+    let winsA = stats.winsA || 0;
+    let lossesA = stats.lossesA || 0;
+    let winsB = stats.winsB || 0;
+    let lossesB = stats.lossesB || 0;
+
     switch(outcome) {
       case 'left':
         actualA = 1;
         actualB = 0;
+        winsA++;
+        lossesB++;
         break;
       case 'right':
         actualA = 0;
         actualB = 1;
+        lossesA++;
+        winsB++;
         break;
       case 'both':
         actualA = 0.8;
         actualB = 0.8;
+        winsA++;
+        winsB++;
         break;
       case 'none':
         actualA = 0.5;
@@ -65,12 +76,16 @@ class EloRating {
         actualB = 0.5;
     }
 
-    const gamesA = (stats.winsA || 0) + (stats.lossesA || 0);
-    const gamesB = (stats.winsB || 0) + (stats.lossesB || 0);
+    const gamesA = winsA + lossesA;
+    const gamesB = winsB + lossesB;
 
     return {
       newRatingA: this.updateRating(ratingA, expectedA, actualA, gamesA),
-      newRatingB: this.updateRating(ratingB, expectedB, actualB, gamesB)
+      newRatingB: this.updateRating(ratingB, expectedB, actualB, gamesB),
+      winsA,
+      lossesA,
+      winsB,
+      lossesB
     };
   }
 }

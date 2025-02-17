@@ -70,9 +70,22 @@ function NameCard({
   ].filter(Boolean).join(' ');
 
   return (
-    <div className={cardClasses}>
+    <div 
+      className={cardClasses}
+      onClick={handleInteraction}
+      onKeyDown={handleInteraction}
+      role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled}
+      aria-selected={isSelected}
+    >
       <h3 className={styles.name}>{name}</h3>
       {description && <p className={styles.description}>{description}</p>}
+      {shortcutHint && (
+        <span className={styles.shortcutHint} aria-hidden="true">
+          {shortcutHint}
+        </span>
+      )}
       {isSelected && (
         <span className={styles.checkMark} aria-hidden="true">✓</span>
       )}

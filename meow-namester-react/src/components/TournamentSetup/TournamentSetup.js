@@ -83,7 +83,7 @@ const NameSelection = ({ selectedNames, availableNames, onToggleName }) => (
           isSelected={selectedNames.some(n => n.id === nameObj.id)}
           onClick={() => onToggleName(nameObj)}
           size="small"
-          shortcutHint={`Press Enter to ${selectedNames.some(n => n.id === nameObj.id) ? 'deselect' : 'select'} ${nameObj.name}`}
+          // shortcutHint={`Press Enter to ${selectedNames.some(n => n.id === nameObj.id) ? 'deselect' : 'select'} ${nameObj.name}`}
         />
       ))}
     </div>

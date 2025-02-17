@@ -17,9 +17,12 @@ const TournamentControls = ({
   trackInfo,
   audioError,
   onRetryAudio,
-  onRandomize
+  onRandomize,
+  volume,
+  onVolumeChange
 }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showVolume, setShowVolume] = useState(false);
 
   const handleEndConfirm = () => {
     setShowConfirmation(false);
@@ -30,8 +33,8 @@ const TournamentControls = ({
     <div className={styles.tournamentControls} role="toolbar" aria-label="Tournament controls">
       <div className={styles.soundControls}>
         <button
-          onClick={onToggleMute}
-          className={`${styles.soundToggleButton} ${isMuted ? styles.muted : ''}`}
+          onClick={audioError ? onRetryAudio : onToggleMute}
+          className={`${styles.soundToggleButton} ${isMuted ? styles.muted : ''} ${audioError ? styles.error : ''}`}
           aria-label={isMuted ? "Unmute tournament sounds" : "Mute tournament sounds"}
           aria-pressed={isMuted}
           disabled={isTransitioning}
@@ -44,15 +47,52 @@ const TournamentControls = ({
           )}
         </button>
 
-        <button
-          onClick={onNextTrack}
-          className={styles.soundToggleButton}
-          aria-label="Next track"
-          disabled={isTransitioning}
-          title={`Now Playing: ${trackInfo.name}\nClick for next track`}
-        >
-          <MusicalNoteIcon className={styles.icon} aria-hidden="true" />
-        </button>
+        {!isMuted && (
+          <div 
+            className={styles.volumeContainer}
+            onMouseEnter={() => setShowVolume(true)}
+            onMouseLeave={() => setShowVolume(false)}
+          >
+            <div className={`${styles.volumeControls} ${showVolume ? styles.show : ''}`}>
+              <label className={styles.volumeLabel}>
+                🎵
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume.music}
+                  onChange={(e) => onVolumeChange('music', parseFloat(e.target.value))}
+                  className={styles.volumeSlider}
+                />
+              </label>
+              <label className={styles.volumeLabel}>
+                🎮
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={volume.effects}
+                  onChange={(e) => onVolumeChange('effects', parseFloat(e.target.value))}
+                  className={styles.volumeSlider}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {!isMuted && (
+          <button
+            onClick={onNextTrack}
+            className={styles.soundToggleButton}
+            aria-label="Next track"
+            disabled={isTransitioning}
+            title={`Now Playing: ${trackInfo.name}\nClick for next track`}
+          >
+            <MusicalNoteIcon className={styles.icon} aria-hidden="true" />
+          </button>
+        )}
 
         {audioError && (
           <button
@@ -65,9 +105,11 @@ const TournamentControls = ({
           </button>
         )}
 
-        <div className={styles.trackInfo} aria-live="polite">
-          <span className={styles.trackName}>{trackInfo.name}</span>
-        </div>
+        {!isMuted && trackInfo && (
+          <div className={styles.trackInfo} aria-live="polite">
+            <span className={styles.trackName}>{trackInfo.name}</span>
+          </div>
+        )}
       </div>
 
       <button

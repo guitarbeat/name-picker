@@ -49,8 +49,10 @@ body {
   padding: var(--space-6);
   margin-left: 0;
   background: var(--background-color);
-  transition: all var(--duration-normal) var(--ease-out);
+  transition: all 0.3s var(--ease-out);
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .main-content.sidebar-open {
@@ -73,6 +75,9 @@ body {
 @media (width >= 1024px) {
   .container {
     max-width: 1024px;
+  }
+  .main-content.sidebar-open {
+    width: calc(100% - 280px);
   }
 }
 
@@ -103,8 +108,10 @@ body {
   
   .main-content.sidebar-open {
     margin-left: 0;
-    opacity: 0.5;
+    transform: translateX(80px);
+    opacity: 0.85;
     pointer-events: none;
+    filter: blur(1px);
   }
 
   /* Improve touch targets */
@@ -112,13 +119,14 @@ body {
   .button-primary,
   .button-secondary,
   .nav-menu button {
-    min-height: 44px;
-    padding: 0.75rem 1rem;
+    min-height: 36px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
   }
 
   /* Better spacing for mobile content */
   .container {
-    padding: 0 var(--space-responsive-2);
+    padding: 0 var(--space-4);
   }
 
   .global-loading-overlay {
@@ -129,24 +137,24 @@ body {
 /* iPhone-specific adjustments */
 @media (width <= 430px) {
   .container {
-    padding: 0 var(--space-responsive-2);
+    padding: 0 var(--space-3);
   }
 
   .main-content {
-    padding: var(--space-responsive-2);
+    padding: var(--space-3);
+  }
+
+  .main-content.sidebar-open {
+    transform: translateX(60px);
   }
 
   header {
-    padding: var(--space-responsive-4) var(--space-responsive-2);
+    padding: var(--space-4) var(--space-3);
   }
 
   .header-image {
-    width: 100px;
-    height: 100px;
-  }
-
-  .main-content {
-    margin-left: 0;
+    width: 80px;
+    height: 80px;
   }
 }
 
@@ -163,6 +171,10 @@ body {
 
   .card-base:active {
     transform: scale(0.98);
+  }
+
+  .main-content.sidebar-open {
+    opacity: 0.75;
   }
 }
 
@@ -181,6 +193,12 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+
+  .main-content,
+  .main-content.sidebar-open {
+    transition: none;
+    filter: none;
   }
 }
 
@@ -207,4 +225,19 @@ body {
 
 .global-loading-overlay {
   z-index: 1000;
+}
+
+/* Safe area insets for modern mobile devices */
+@supports (padding: max(0px)) {
+  .main-content {
+    padding-left: max(var(--space-6), env(safe-area-inset-left));
+    padding-right: max(var(--space-6), env(safe-area-inset-right));
+  }
+
+  @media (width <= 768px) {
+    .main-content {
+      padding-left: max(var(--space-4), env(safe-area-inset-left));
+      padding-right: max(var(--space-4), env(safe-area-inset-right));
+    }
+  }
 }

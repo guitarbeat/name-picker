@@ -43,6 +43,21 @@ const TIME_FILTERS = ['All Time', 'Today', 'This Week', 'This Month'];
 const DEFAULT_RATING = 1500;
 const ACTIVE_THRESHOLD = 3600000; // 1 hour in milliseconds
 
+// Add new constants for filtering
+const FILTER_OPTIONS = {
+  STATUS: {
+    ALL: 'all',
+    ACTIVE: 'active',
+    HIDDEN: 'hidden'
+  },
+  SORT: {
+    RATING: 'rating',
+    NAME: 'name',
+    LAST_UPDATED: 'updated_at',
+    MATCHES: 'matches'
+  }
+};
+
 // Reusable Components
 const Button = memo(({ onClick, className, disabled, children, variant = 'default', ...props }) => (
   <button
@@ -83,11 +98,17 @@ const StatsCard = memo(({ label, value, emoji }) => (
 ));
 
 // Utility Functions
-const calculateStats = (ratings) => {
-  const totalNames = ratings.length;
-  const totalMatches = ratings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
+const calculateStats = (ratings, filterStatus = FILTER_OPTIONS.STATUS.ALL) => {
+  const filteredRatings = ratings.filter(r => {
+    if (filterStatus === FILTER_OPTIONS.STATUS.ACTIVE) return !r.isHidden;
+    if (filterStatus === FILTER_OPTIONS.STATUS.HIDDEN) return r.isHidden;
+    return true;
+  });
+
+  const totalNames = filteredRatings.length;
+  const totalMatches = filteredRatings.reduce((sum, r) => sum + (r.wins || 0) + (r.losses || 0), 0);
   const averageRating = totalNames > 0 
-    ? Math.round(ratings.reduce((sum, r) => sum + (r.rating || DEFAULT_RATING), 0) / totalNames) 
+    ? Math.round(filteredRatings.reduce((sum, r) => sum + (r.rating || DEFAULT_RATING), 0) / totalNames) 
     : 0;
   
   return {
@@ -95,8 +116,10 @@ const calculateStats = (ratings) => {
     averageRating,
     totalMatches,
     winRate: totalMatches > 0 
-      ? Math.round((ratings.reduce((sum, r) => sum + (r.wins || 0), 0) / totalMatches) * 100)
-      : 0
+      ? Math.round((filteredRatings.reduce((sum, r) => sum + (r.wins || 0), 0) / totalMatches) * 100)
+      : 0,
+    activeNames: ratings.filter(r => !r.isHidden).length,
+    hiddenNames: ratings.filter(r => r.isHidden).length
   };
 };
 
@@ -134,15 +157,25 @@ const processUserRatings = (data) => {
 };
 
 // Subcomponents
-const ProfileStats = memo(({ ratings }) => {
-  const stats = useMemo(() => calculateStats(ratings), [ratings]);
+const ProfileStats = memo(({ ratings, filterStatus }) => {
+  const stats = useMemo(() => calculateStats(ratings, filterStatus), [ratings, filterStatus]);
 
   return (
     <div className={styles.statsContainer}>
-      <StatsCard label="Total Names" value={stats.totalNames} emoji="📝" />
+      <StatsCard 
+        label={filterStatus === FILTER_OPTIONS.STATUS.ALL ? "Total Names" : "Filtered Names"} 
+        value={stats.totalNames} 
+        emoji="📝" 
+      />
       <StatsCard label="Average Rating" value={stats.averageRating} emoji="⭐" />
       <StatsCard label="Total Matches" value={stats.totalMatches} emoji="🎮" />
       <StatsCard label="Win Rate" value={`${stats.winRate}%`} emoji="🏆" />
+      {filterStatus === FILTER_OPTIONS.STATUS.ALL && (
+        <>
+          <StatsCard label="Active Names" value={stats.activeNames} emoji="✅" />
+          <StatsCard label="Hidden Names" value={stats.hiddenNames} emoji="🔒" />
+        </>
+      )}
     </div>
   );
 });
@@ -198,8 +231,11 @@ const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }
   );
 });
 
-const UserCard = memo(({ user, onUserAction }) => (
-  <Card className={styles.userCard}>
+const UserCard = memo(({ user, onUserAction, isActive }) => (
+  <Card 
+    className={`${styles.userCard} ${isActive ? styles.active : ''}`}
+    onClick={() => onUserAction('view', user)}
+  >
     <div className={styles.userInfo}>
       <span className={styles.userName}>{user.name}</span>
       <div className={styles.userStats}>
@@ -214,43 +250,227 @@ const UserCard = memo(({ user, onUserAction }) => (
       </div>
       <span className={styles.lastActive}>{formatTimestamp(user.lastActive)}</span>
     </div>
-    <div className={styles.userActions}>
-      {['view', 'export', 'delete'].map(action => (
+    {isActive && (
+      <div className={styles.userActions}>
         <Button
-          key={action}
-          onClick={() => onUserAction(action, user)}
-          variant={action === 'delete' ? 'delete' : 'default'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUserAction('export', user);
+          }}
         >
-          {action.charAt(0).toUpperCase() + action.slice(1)}
+          Export
         </Button>
-      ))}
-    </div>
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onUserAction('delete', user);
+          }}
+          variant="delete"
+        >
+          Delete
+        </Button>
+      </div>
+    )}
   </Card>
 ));
 
-const AdminPanel = memo(({ users, onUserAction, onRefreshData }) => (
-  <div className={styles.adminPanel}>
-    <div className={styles.adminHeader}>
-      <h2>Admin Dashboard</h2>
-      <Button onClick={onRefreshData}>Refresh</Button>
+const AdminPanel = ({ users, onRefresh }) => {
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [activeTimeFilter, setActiveTimeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('lastActive');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const filteredAndSortedUsers = useMemo(() => {
+    // First apply time filter
+    let filtered = users;
+    if (activeTimeFilter !== 'all') {
+      const now = new Date();
+      const filterDate = new Date();
+
+      switch (activeTimeFilter) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0);
+          break;
+        case 'thisWeek':
+          filterDate.setDate(now.getDate() - 7);
+          break;
+        case 'thisMonth':
+          filterDate.setMonth(now.getMonth() - 1);
+          break;
+        default:
+          break;
+      }
+
+      filtered = users.filter(user => {
+        const lastActiveDate = new Date(user.lastActive);
+        return lastActiveDate >= filterDate;
+      });
+    }
+
+    // Then sort
+    return [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'ratingsCount':
+          comparison = b.ratingsCount - a.ratingsCount;
+          break;
+        case 'averageRating':
+          comparison = b.averageRating - a.averageRating;
+          break;
+        case 'lastActive':
+          comparison = new Date(b.lastActive) - new Date(a.lastActive);
+          break;
+        default:
+          return 0;
+      }
+      return sortOrder === 'asc' ? -comparison : comparison;
+    });
+  }, [users, activeTimeFilter, sortBy, sortOrder]);
+
+  return (
+    <div className={`${styles.adminPanel} ${isMinimized ? styles.minimized : ''}`}>
+      <div className={styles.adminHeader}>
+        <h2>
+          Admin Dashboard
+          <span className={styles.sectionSubtitle}>
+            {users.length} users registered
+          </span>
+        </h2>
+        <div className={styles.headerControls}>
+          <button
+            className={`${styles.minimizeButton} ${isMinimized ? styles.minimized : ''}`}
+            onClick={() => setIsMinimized(!isMinimized)}
+            title={isMinimized ? "Expand dashboard" : "Minimize dashboard"}
+          >
+            {isMinimized ? "▼" : "▲"}
+          </button>
+        </div>
+      </div>
+      
+      <div className={styles.adminControls}>
+        <div className={styles.controls}>
+          {TIME_FILTERS.map(filter => (
+            <Button 
+              key={filter}
+              onClick={() => setActiveTimeFilter(filter.toLowerCase())}
+              variant={filter.toLowerCase() === activeTimeFilter ? 'primary' : 'default'}
+            >
+              {filter}
+            </Button>
+          ))}
+        </div>
+        <div className={styles.sortControls}>
+          <span className={styles.sortLabel}>Sort by:</span>
+          <select 
+            className={styles.sortSelect}
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="lastActive">Last Active</option>
+            <option value="name">Name</option>
+            <option value="ratingsCount">Names Rated</option>
+            <option value="averageRating">Average Rating</option>
+          </select>
+          <Button
+            onClick={() => setSortOrder(order => order === 'asc' ? 'desc' : 'asc')}
+            variant="default"
+          >
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.userList}>
+        {filteredAndSortedUsers.map(user => (
+          <UserCard 
+            key={user.id} 
+            user={user} 
+            onUserAction={onRefresh}
+            isActive={user.name === activeTimeFilter}
+          />
+        ))}
+      </div>
     </div>
-    <div className={styles.controls}>
-      {TIME_FILTERS.map(filter => (
-        <Button key={filter}>{filter}</Button>
+  );
+};
+
+const CHART_METRICS = {
+  RATING: {
+    key: 'rating',
+    label: 'Rating',
+    field: 'averageRating',
+    color: 'rgba(75, 192, 192, 0.6)',
+    borderColor: 'rgba(75, 192, 192, 1)'
+  },
+  WIN_RATE: {
+    key: 'winRate',
+    label: 'Win Rate %',
+    field: 'winRate',
+    color: 'rgba(16, 185, 129, 0.6)',
+    borderColor: 'rgb(16, 185, 129)'
+  },
+  TOTAL_MATCHES: {
+    key: 'matches',
+    label: 'Total Matches',
+    field: 'totalMatches',
+    color: 'rgba(99, 102, 241, 0.6)',
+    borderColor: 'rgb(99, 102, 241)'
+  },
+  TIMES_RATED: {
+    key: 'timesRated',
+    label: 'Times Rated',
+    field: 'totalVotes',
+    color: 'rgba(244, 114, 182, 0.6)',
+    borderColor: 'rgb(244, 114, 182)'
+  }
+};
+
+const ChartControls = memo(({ onMetricChange, currentMetric }) => (
+  <div className={styles.chartControls}>
+    <label className={styles.chartLabel}>Metric:</label>
+    <select 
+      value={currentMetric}
+      onChange={(e) => onMetricChange(e.target.value)}
+      className={styles.chartSelect}
+    >
+      {Object.values(CHART_METRICS).map(metric => (
+        <option key={metric.key} value={metric.key}>
+          {metric.label}
+        </option>
       ))}
-    </div>
-    <div className={styles.userList}>
-      {users.map(user => (
-        <UserCard key={user.id} user={user} onUserAction={onUserAction} />
-      ))}
-    </div>
+    </select>
   </div>
 ));
 
-const ChartSection = memo(({ aggregatedNames }) => {
-  const topNames = useMemo(() => {
-    return aggregatedNames.slice(0, 10);
-  }, [aggregatedNames]);
+const ChartSection = memo(({ aggregatedNames, filterStatus }) => {
+  const [metric, setMetric] = useState(CHART_METRICS.RATING.key);
+  const currentMetric = CHART_METRICS[Object.keys(CHART_METRICS).find(k => 
+    CHART_METRICS[k].key === metric
+  )];
+
+  const chartData = useMemo(() => {
+    const topNames = aggregatedNames.slice(0, 10);
+
+    return {
+      labels: topNames.map(n => n.name),
+      datasets: [
+        {
+          label: currentMetric.label,
+          data: topNames.map(n => n[currentMetric.field]),
+          backgroundColor: topNames.map(n => 
+            n.isHidden ? 'rgba(156, 156, 156, 0.6)' : currentMetric.color
+          ),
+          borderColor: topNames.map(n => 
+            n.isHidden ? 'rgba(156, 156, 156, 1)' : currentMetric.borderColor
+          ),
+          borderWidth: 1,
+        }
+      ]
+    };
+  }, [aggregatedNames, currentMetric]);
 
   // Calculate rating distribution for pie chart
   const ratingDistribution = useMemo(() => {
@@ -270,84 +490,39 @@ const ChartSection = memo(({ aggregatedNames }) => {
       else distribution['Developing (<1350)']++;
     });
 
-    return distribution;
+    return {
+      labels: Object.keys(distribution),
+      datasets: [{
+        data: Object.values(distribution),
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.8)',   // Elite - Indigo
+          'rgba(16, 185, 129, 0.8)',   // Strong - Green
+          'rgba(245, 158, 11, 0.8)',   // Good - Amber
+          'rgba(59, 130, 246, 0.8)',   // Average - Blue
+          'rgba(156, 163, 175, 0.8)',  // Developing - Gray
+        ],
+        borderColor: [
+          'rgb(99, 102, 241)',
+          'rgb(16, 185, 129)',
+          'rgb(245, 158, 11)',
+          'rgb(59, 130, 246)',
+          'rgb(156, 163, 175)',
+        ],
+        borderWidth: 1
+      }]
+    };
   }, [aggregatedNames]);
 
-  const pieChartData = {
-    labels: Object.keys(ratingDistribution),
-    datasets: [{
-      data: Object.values(ratingDistribution),
-      backgroundColor: [
-        'rgba(99, 102, 241, 0.8)',   // Elite - Indigo
-        'rgba(16, 185, 129, 0.8)',   // Strong - Green
-        'rgba(245, 158, 11, 0.8)',   // Good - Amber
-        'rgba(59, 130, 246, 0.8)',   // Average - Blue
-        'rgba(156, 163, 175, 0.8)',  // Developing - Gray
-      ],
-      borderColor: [
-        'rgb(99, 102, 241)',
-        'rgb(16, 185, 129)',
-        'rgb(245, 158, 11)',
-        'rgb(59, 130, 246)',
-        'rgb(156, 163, 175)',
-      ],
-      borderWidth: 1
-    }]
-  };
-
-  const pieChartOptions = {
+  const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       title: {
         display: true,
-        text: 'Rating Distribution',
-        color: 'var(--text-primary)',
-        font: {
-          size: 16,
-          weight: 'bold'
-        }
-      },
-      legend: {
-        position: 'right',
-        labels: {
-          color: 'var(--text-primary)',
-          padding: 20,
-          font: {
-            size: 12
-          }
-        }
-      }
-    }
-  };
-
-  const chartData = {
-    labels: topNames.map(n => n.name),
-    datasets: [
-      {
-        label: 'Average Rating',
-        data: topNames.map(n => n.averageRating),
-        backgroundColor: 'rgba(99, 102, 241, 0.5)',
-        borderColor: 'rgb(99, 102, 241)',
-        borderWidth: 1,
-      },
-      {
-        label: 'Win Rate %',
-        data: topNames.map(n => n.winRate),
-        backgroundColor: 'rgba(16, 185, 129, 0.5)',
-        borderColor: 'rgb(16, 185, 129)',
-        borderWidth: 1,
-      }
-    ]
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Top 10 Cat Names - Rating & Win Rate',
+        text: `Top 10 Cat Names by ${currentMetric.label} - ${
+          filterStatus === FILTER_OPTIONS.STATUS.ALL ? 'All' : 
+          filterStatus === FILTER_OPTIONS.STATUS.ACTIVE ? 'Active' : 'Hidden'
+        } Names`,
         color: 'var(--text-primary)',
         font: {
           size: 16,
@@ -359,6 +534,19 @@ const ChartSection = memo(({ aggregatedNames }) => {
         labels: {
           color: 'var(--text-primary)'
         }
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const name = context.chart.data.labels[context.dataIndex];
+            const value = context.raw;
+            const nameData = aggregatedNames.find(n => n.name === name);
+            const label = `${currentMetric.label}: ${value}${
+              currentMetric.key === 'winRate' ? '%' : ''
+            }`;
+            return `${label}${nameData?.isHidden ? ' (Hidden)' : ''}`;
+          }
+        }
       }
     },
     scales: {
@@ -368,7 +556,13 @@ const ChartSection = memo(({ aggregatedNames }) => {
           color: 'var(--border-color)'
         },
         ticks: {
-          color: 'var(--text-secondary)'
+          color: 'var(--text-secondary)',
+          callback: (value) => currentMetric.key === 'winRate' ? `${value}%` : value
+        },
+        title: {
+          display: true,
+          text: currentMetric.label,
+          color: 'var(--text-primary)'
         }
       },
       x: {
@@ -384,61 +578,89 @@ const ChartSection = memo(({ aggregatedNames }) => {
     }
   };
 
-  const popularityData = {
-    labels: topNames.map(n => n.name),
-    datasets: [{
-      label: 'Times Rated',
-      data: topNames.map(n => n.totalVotes),
-      backgroundColor: 'rgba(239, 68, 68, 0.5)',
-      borderColor: 'rgb(239, 68, 68)',
-      borderWidth: 1
-    }]
-  };
-
-  const popularityOptions = {
-    ...options,
-    plugins: {
-      ...options.plugins,
-      title: {
-        ...options.plugins.title,
-        text: 'Most Rated Cat Names'
-      }
-    }
-  };
-
   return (
     <div className={styles.chartsContainer}>
+      <div className={styles.chartHeader}>
+        <ChartControls 
+          onMetricChange={setMetric}
+          currentMetric={metric}
+        />
+      </div>
       <div className={styles.chartRow}>
         <div className={styles.chartWrapper}>
-          <Bar data={chartData} options={options} />
+          <Bar data={chartData} options={chartOptions} />
         </div>
         <div className={styles.pieChartWrapper}>
-          <Pie data={pieChartData} options={pieChartOptions} />
+          <Pie 
+            data={ratingDistribution} 
+            options={{
+              ...chartOptions,
+              plugins: {
+                ...chartOptions.plugins,
+                title: {
+                  ...chartOptions.plugins.title,
+                  text: `Rating Distribution - ${
+                    filterStatus === FILTER_OPTIONS.STATUS.ALL ? 'All' : 
+                    filterStatus === FILTER_OPTIONS.STATUS.ACTIVE ? 'Active' : 'Hidden'
+                  } Names`
+                }
+              }
+            }} 
+          />
         </div>
-      </div>
-      <div className={styles.chartWrapper}>
-        <Bar data={popularityData} options={popularityOptions} />
       </div>
     </div>
   );
 });
 
 const AggregatedStats = memo(({ allUsersRatings }) => {
+  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ALL);
+  const [sortBy, setSortBy] = useState(FILTER_OPTIONS.SORT.RATING);
+  const [hiddenNames, setHiddenNames] = useState(new Set());
+
+  // Fetch hidden names from database
+  useEffect(() => {
+    const fetchHiddenNames = async () => {
+      try {
+        const { data: hiddenData, error: hiddenError } = await supabase
+          .from('hidden_names')
+          .select('name_id');
+
+        if (hiddenError) throw hiddenError;
+
+        const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
+        setHiddenNames(newHiddenNames);
+      } catch (err) {
+        console.error('Error fetching hidden names:', err);
+      }
+    };
+
+    fetchHiddenNames();
+  }, []);
+
   const aggregatedNames = useMemo(() => {
     const nameMap = new Map();
 
     // Combine ratings for each name across all users
     Object.values(allUsersRatings).forEach(userRatings => {
       userRatings.forEach(rating => {
+        const isHidden = hiddenNames.has(rating.id);
+        
+        // Apply filter
+        if (filterStatus === FILTER_OPTIONS.STATUS.ACTIVE && isHidden) return;
+        if (filterStatus === FILTER_OPTIONS.STATUS.HIDDEN && !isHidden) return;
+
         if (!nameMap.has(rating.name)) {
           nameMap.set(rating.name, {
+            id: rating.id,
             name: rating.name,
             description: rating.description,
             totalRating: 0,
             totalVotes: 0,
             wins: 0,
             losses: 0,
-            users: new Set()
+            users: new Set(),
+            isHidden
           });
         }
         
@@ -459,23 +681,85 @@ const AggregatedStats = memo(({ allUsersRatings }) => {
         userCount: stats.users.size,
         winRate: stats.wins + stats.losses > 0 
           ? Math.round((stats.wins / (stats.wins + stats.losses)) * 100) 
-          : 0
+          : 0,
+        totalMatches: stats.wins + stats.losses
       }))
-      .sort((a, b) => b.averageRating - a.averageRating);
-  }, [allUsersRatings]);
+      .sort((a, b) => {
+        switch (sortBy) {
+          case FILTER_OPTIONS.SORT.RATING:
+            return b.averageRating - a.averageRating;
+          case FILTER_OPTIONS.SORT.NAME:
+            return a.name.localeCompare(b.name);
+          case FILTER_OPTIONS.SORT.MATCHES:
+            return b.totalMatches - a.totalMatches;
+          default:
+            return b.averageRating - a.averageRating;
+        }
+      });
+  }, [allUsersRatings, filterStatus, sortBy, hiddenNames]);
+
+  const stats = useMemo(() => {
+    const totalNames = aggregatedNames.length;
+    const activeNames = aggregatedNames.filter(n => !n.isHidden).length;
+    const hiddenNames = aggregatedNames.filter(n => n.isHidden).length;
+    const totalMatches = aggregatedNames.reduce((sum, n) => sum + n.totalMatches, 0);
+    const averageRating = totalNames > 0 ? Math.round(
+      aggregatedNames.reduce((sum, n) => sum + n.averageRating, 0) / totalNames
+    ) : 0;
+    const winRate = totalMatches > 0 ? Math.round(
+      (aggregatedNames.reduce((sum, n) => sum + n.wins, 0) / totalMatches) * 100
+    ) : 0;
+
+    return {
+      totalNames,
+      activeNames,
+      hiddenNames,
+      totalMatches,
+      averageRating,
+      winRate
+    };
+  }, [aggregatedNames]);
 
   return (
     <section className={styles.aggregatedSection}>
-      <h2 className={styles.sectionTitle}>
-        <span className={styles.sectionIcon}>📊</span>
-        Overall Cat Name Rankings
-      </h2>
+      <header className={styles.aggregatedHeader}>
+        <h2 className={styles.sectionTitle}>
+          <span className={styles.sectionIcon}>📊</span>
+          Overall Cat Name Rankings
+          <span className={styles.sectionSubtitle}>
+            {stats.activeNames} active, {stats.hiddenNames} hidden
+          </span>
+        </h2>
+        <FilterControls 
+          onFilterChange={setFilterStatus}
+          onSortChange={setSortBy}
+          currentFilter={filterStatus}
+          currentSort={sortBy}
+        />
+      </header>
+
+      <div className={styles.statsContainer}>
+        <StatsCard 
+          label={filterStatus === FILTER_OPTIONS.STATUS.ALL ? "Total Names" : "Filtered Names"} 
+          value={stats.totalNames} 
+          emoji="📝" 
+        />
+        <StatsCard label="Average Rating" value={stats.averageRating} emoji="⭐" />
+        <StatsCard label="Total Matches" value={stats.totalMatches} emoji="🎮" />
+        <StatsCard label="Win Rate" value={`${stats.winRate}%`} emoji="🏆" />
+        {filterStatus === FILTER_OPTIONS.STATUS.ALL && (
+          <>
+            <StatsCard label="Active Names" value={stats.activeNames} emoji="✅" />
+            <StatsCard label="Hidden Names" value={stats.hiddenNames} emoji="🔒" />
+          </>
+        )}
+      </div>
       
-      <ChartSection aggregatedNames={aggregatedNames} />
+      <ChartSection aggregatedNames={aggregatedNames} filterStatus={filterStatus} />
 
       <div className={styles.ratingsGrid}>
         {aggregatedNames.map(name => (
-          <Card key={name.name} className={styles.aggregatedCard}>
+          <Card key={name.name} className={`${styles.aggregatedCard} ${name.isHidden ? styles.isHidden : ''}`}>
             <div className={styles.nameHeader}>
               <h3 className={styles.nameTitle}>{name.name}</h3>
               <div className={styles.rating}>{name.averageRating.toLocaleString()}</div>
@@ -501,12 +785,76 @@ const AggregatedStats = memo(({ allUsersRatings }) => {
                 <span className={styles.statValue}>{name.userCount}</span>
               </div>
             </div>
+            {name.isHidden && (
+              <div className={styles.hiddenStatus}>
+                <p className={styles.hiddenText}>This name is hidden from tournaments</p>
+              </div>
+            )}
           </Card>
         ))}
       </div>
     </section>
   );
 });
+
+// New FilterControls component
+const FilterControls = memo(({ onFilterChange, onSortChange, currentFilter, currentSort }) => (
+  <div className={styles.filterControls}>
+    <div className={styles.filterGroup}>
+      <label className={styles.filterLabel}>Status:</label>
+      <select 
+        value={currentFilter} 
+        onChange={(e) => onFilterChange(e.target.value)}
+        className={styles.filterSelect}
+      >
+        <option value={FILTER_OPTIONS.STATUS.ALL}>All Names</option>
+        <option value={FILTER_OPTIONS.STATUS.ACTIVE}>Active Names</option>
+        <option value={FILTER_OPTIONS.STATUS.HIDDEN}>Hidden Names</option>
+      </select>
+    </div>
+    <div className={styles.filterGroup}>
+      <label className={styles.filterLabel}>Sort by:</label>
+      <select 
+        value={currentSort} 
+        onChange={(e) => onSortChange(e.target.value)}
+        className={styles.filterSelect}
+      >
+        <option value={FILTER_OPTIONS.SORT.RATING}>Rating</option>
+        <option value={FILTER_OPTIONS.SORT.NAME}>Name</option>
+        <option value={FILTER_OPTIONS.SORT.MATCHES}>Total Matches</option>
+      </select>
+    </div>
+  </div>
+));
+
+// Enhanced chart data preparation
+const prepareChartData = (ratings, filterStatus, hiddenNames) => {
+  const filteredRatings = ratings.filter(r => {
+    const isHidden = hiddenNames.has(r.id);
+    if (filterStatus === FILTER_OPTIONS.STATUS.ACTIVE) return !isHidden;
+    if (filterStatus === FILTER_OPTIONS.STATUS.HIDDEN) return isHidden;
+    return true;
+  });
+
+  const sortedRatings = [...filteredRatings].sort((a, b) => b.rating - a.rating);
+
+  return {
+    labels: sortedRatings.map(r => r.name),
+    datasets: [
+      {
+        label: 'Rating',
+        data: sortedRatings.map(r => r.rating),
+        backgroundColor: sortedRatings.map(r => 
+          hiddenNames.has(r.id) ? 'rgba(156, 156, 156, 0.6)' : 'rgba(75, 192, 192, 0.6)'
+        ),
+        borderColor: sortedRatings.map(r => 
+          hiddenNames.has(r.id) ? 'rgba(156, 156, 156, 1)' : 'rgba(75, 192, 192, 1)'
+        ),
+        borderWidth: 1
+      }
+    ]
+  };
+};
 
 // Main Component
 const Profile = ({ userName, onStartNewTournament }) => {
@@ -523,9 +871,13 @@ const Profile = ({ userName, onStartNewTournament }) => {
   const [currentUserRatings, setCurrentUserRatings] = useState([]);
   const [currentlyViewedUser, setCurrentlyViewedUser] = useState(userName);
   const [showAggregated, setShowAggregated] = useState(false);
+  const [ratings, setRatings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ALL);
+  const [sortBy, setSortBy] = useState(FILTER_OPTIONS.SORT.RATING);
 
   // Data fetching
-  const [ratings, setRatings, { loading, error }] = useSupabaseStorage('cat_name_ratings', [], userName);
+  const [ratingsData, setRatingsData, { loading: ratingsLoading, error: ratingsError }] = useSupabaseStorage('cat_name_ratings', [], userName);
 
   const fetchUserRatings = useCallback(async (targetUserName) => {
     try {
@@ -673,8 +1025,39 @@ const Profile = ({ userName, onStartNewTournament }) => {
     }
   }, [setRatings]);
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <div>Error: {error.message}</div>;
+  const sortedRatings = useMemo(() => {
+    return [...ratingsData].sort((a, b) => {
+      switch (sortBy) {
+        case FILTER_OPTIONS.SORT.RATING:
+          return b.rating - a.rating;
+        case FILTER_OPTIONS.SORT.NAME:
+          return a.name.localeCompare(b.name);
+        case FILTER_OPTIONS.SORT.LAST_UPDATED:
+          return new Date(b.updated_at) - new Date(a.updated_at);
+        case FILTER_OPTIONS.SORT.MATCHES:
+          return (b.wins + b.losses) - (a.wins + a.losses);
+        default:
+          return 0;
+      }
+    });
+  }, [ratingsData, sortBy]);
+
+  const filteredRatings = useMemo(() => {
+    if (filterStatus === FILTER_OPTIONS.STATUS.ALL) return sortedRatings;
+    return sortedRatings.filter(r => 
+      filterStatus === FILTER_OPTIONS.STATUS.ACTIVE 
+        ? !hiddenNames.has(r.id) 
+        : hiddenNames.has(r.id)
+    );
+  }, [sortedRatings, filterStatus, hiddenNames]);
+
+  const chartData = useMemo(() => 
+    prepareChartData(ratingsData, filterStatus, hiddenNames), 
+    [ratingsData, filterStatus, hiddenNames]
+  );
+
+  if (ratingsLoading) return <LoadingSpinner />;
+  if (ratingsError) return <div>Error: {ratingsError.message}</div>;
 
   const users = Object.entries(allUsersRatings).map(([name, ratings]) => ({
     id: name,
@@ -707,8 +1090,7 @@ const Profile = ({ userName, onStartNewTournament }) => {
       {isAdmin && !showAggregated && (
         <AdminPanel
           users={users}
-          onUserAction={handleUserAction}
-          onRefreshData={fetchAllUsersRatings}
+          onRefresh={handleUserAction}
         />
       )}
 
@@ -717,61 +1099,60 @@ const Profile = ({ userName, onStartNewTournament }) => {
           <AggregatedStats allUsersRatings={allUsersRatings} />
         ) : (
           <>
-            <ProfileStats ratings={currentUserRatings} />
+            <FilterControls 
+              onFilterChange={setFilterStatus}
+              onSortChange={setSortBy}
+              currentFilter={filterStatus}
+              currentSort={sortBy}
+            />
 
-            <div className={styles.ratingSections}>
-              <section>
-                <h2 className={styles.sectionTitle}>
-                  <span className={styles.sectionIcon}>🎯</span>
-                  {currentlyViewedUser}'s Active Names
-                </h2>
-                <div className={styles.ratingsGrid}>
-                  {currentUserRatings
-                    .filter(name => !hiddenNames.has(name.id))
-                    .sort((a, b) => (b.rating || DEFAULT_RATING) - (a.rating || DEFAULT_RATING))
-                    .map(name => (
-                      <NameCard
-                        key={name.id}
-                        name={name}
-                        isHidden={false}
-                        onToggleVisibility={handleToggleNameVisibility}
-                        onDelete={(name) => {
-                          setNameToDelete(name);
-                          setShowDeleteNameConfirm(true);
-                        }}
-                        isAdmin={isAdmin}
-                      />
-                    ))}
-                </div>
-              </section>
+            <ProfileStats ratings={ratingsData} filterStatus={filterStatus} />
 
-              {currentUserRatings.some(name => hiddenNames.has(name.id)) && (
-                <section className={styles.hiddenNamesSection}>
-                  <h2 className={styles.sectionTitle}>
-                    <span className={styles.sectionIcon}>🔒</span>
-                    {currentlyViewedUser}'s Hidden Names
-                    <span className={styles.sectionSubtitle}>(Names must be hidden before deletion)</span>
-                  </h2>
-                  <div className={styles.ratingsGrid}>
-                    {currentUserRatings
-                      .filter(name => hiddenNames.has(name.id))
-                      .sort((a, b) => (b.rating || DEFAULT_RATING) - (a.rating || DEFAULT_RATING))
-                      .map(name => (
-                        <NameCard
-                          key={name.id}
-                          name={name}
-                          isHidden={true}
-                          onToggleVisibility={handleToggleNameVisibility}
-                          onDelete={(name) => {
-                            setNameToDelete(name);
-                            setShowDeleteNameConfirm(true);
-                          }}
-                          isAdmin={isAdmin}
-                        />
-                      ))}
-                  </div>
-                </section>
-              )}
+            <div className={styles.chartContainer}>
+              <Bar 
+                data={chartData}
+                options={{
+                  responsive: true,
+                  plugins: {
+                    legend: {
+                      display: false
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const rating = context.raw;
+                          const name = context.label;
+                          const isHidden = ratingsData.find(r => r.name === name)?.isHidden;
+                          return `${name}: ${rating} ${isHidden ? '(Hidden)' : ''}`;
+                        }
+                      }
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: false,
+                      min: Math.min(...ratingsData.map(r => r.rating)) - 100,
+                      title: {
+                        display: true,
+                        text: 'Rating'
+                      }
+                    }
+                  }
+                }}
+              />
+            </div>
+
+            <div className={styles.namesGrid}>
+              {filteredRatings.map(name => (
+                <NameCard
+                  key={name.id}
+                  name={name}
+                  isHidden={name.isHidden}
+                  onToggleVisibility={handleToggleNameVisibility}
+                  onDelete={handleDeleteName}
+                  isAdmin={true}
+                />
+              ))}
             </div>
           </>
         )}

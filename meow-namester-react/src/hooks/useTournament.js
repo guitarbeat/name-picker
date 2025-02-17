@@ -1,8 +1,20 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { PreferenceSorter } from '../components/Tournament/PreferenceSorter';
 import EloRating from '../components/Tournament/EloRating';
+import useLocalStorage from './useLocalStorage';
+import useUserSession from './useUserSession';
 
 export function useTournament({ names = [], existingRatings = {}, onComplete }) {
+  const { userName, isLoggedIn } = useUserSession();
+
+  // Create a stable storage key using the names array and user name
+  const tournamentId = useMemo(() => {
+    const sortedNames = [...names].map(n => n.name).sort().join('-');
+    const userPrefix = userName || 'anonymous';
+    return `tournament-${userPrefix}-${sortedNames}`;
+  }, [names, userName]);
+
+  // Core tournament state
   const [currentMatch, setCurrentMatch] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [roundNumber, setRoundNumber] = useState(1);
@@ -11,29 +23,103 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
   const [sorter, setSorter] = useState(null);
   const [elo] = useState(() => new EloRating());
   const [resolveVote, setResolveVote] = useState(null);
-  const [matchHistory, setMatchHistory] = useState([]);
   const [canUndo, setCanUndo] = useState(false);
   const [currentRatings, setCurrentRatings] = useState(existingRatings);
+  const [isError, setIsError] = useState(false);
 
-  // Add debug logging
-  console.log('useTournament initialized with names:', names);
-  
-  // Add validation check
-  if (!Array.isArray(names) || names.length < 2) {
-    console.error('Invalid names array:', names);
-    return { currentMatch: null };
-  }
+  // Use useLocalStorage for persistent tournament state
+  const [tournamentState, setTournamentState] = useLocalStorage(tournamentId, {
+    matchHistory: [],
+    currentRound: 1,
+    currentMatch: 1,
+    totalMatches: 0,
+    userName: userName || 'anonymous', // Store user context with tournament
+    lastUpdated: Date.now()
+  });
 
-  // Add deep equality check for names
-  const prevNames = useRef([]);
+  // Destructure match history from tournament state
+  const { matchHistory } = tournamentState;
+
+  // Update tournament state helper
+  const updateTournamentState = useCallback((updates) => {
+    setTournamentState(prev => ({
+      ...prev,
+      ...updates,
+      lastUpdated: Date.now(),
+      userName: userName || 'anonymous'
+    }));
+  }, [setTournamentState, userName]);
+
+  // Reset tournament state when user changes
   useEffect(() => {
-    if (JSON.stringify(prevNames.current) !== JSON.stringify(names)) {
-      console.log('Names changed, reinitializing tournament');
-      prevNames.current = names;
-      // Add tournament initialization logic here
+    if (tournamentState.userName !== (userName || 'anonymous')) {
+      console.log('User changed, resetting tournament state');
+      updateTournamentState({
+        matchHistory: [],
+        currentRound: 1,
+        currentMatch: 1,
+        totalMatches: 0,
+        userName: userName || 'anonymous'
+      });
     }
+  }, [userName, tournamentState.userName, updateTournamentState]);
+
+  // Reset error state when names change
+  useEffect(() => {
+    setIsError(false);
   }, [names]);
 
+  // Add validation check with early return
+  if (!Array.isArray(names) || names.length < 2) {
+    console.error('Invalid names array:', names);
+    setIsError(true);
+    return {
+      currentMatch: null,
+      handleVote: () => {},
+      progress: 0,
+      roundNumber: 0,
+      currentMatchNumber: 0,
+      totalMatches: 0,
+      matchHistory: [],
+      getCurrentRatings: () => [],
+      isError: true
+    };
+  }
+
+  // Reset tournament state when names change
+  useEffect(() => {
+    if (!names || names.length === 0) {
+      console.log('No names provided for tournament');
+      return;
+    }
+
+    console.log('Starting new tournament with names:', names);
+    const nameStrings = names.map(n => n.name);
+    const newSorter = new PreferenceSorter(nameStrings);
+    setSorter(newSorter);
+    
+    const n = names.length;
+    const estimatedMatches = n <= 2 ? 1 : Math.ceil(n * Math.log2(n));
+    console.log(`Tournament setup: ${n} names, ${estimatedMatches} matches`);
+    
+    // Reset tournament state
+    updateTournamentState({
+      matchHistory: [],
+      currentRound: 1,
+      currentMatch: 1,
+      totalMatches: estimatedMatches
+    });
+
+    setTotalMatches(estimatedMatches);
+    setCurrentMatchNumber(1);
+    setRoundNumber(1);
+    setCanUndo(false);
+    setCurrentRatings(existingRatings);
+
+    runTournament(newSorter);
+  }, [names, updateTournamentState]);
+
+  // Define getCurrentRatings first since it's used in handleVote
   const getCurrentRatings = useCallback(() => {
     const ratingsArray = names.map(name => {
       const existingData = typeof currentRatings[name.name] === 'object'
@@ -83,30 +169,164 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     return ratingsArray;
   }, [names, currentRatings, matchHistory, currentMatchNumber, totalMatches]);
 
-  useEffect(() => {
-    if (!names || names.length === 0) {
-      console.log('No names provided for tournament');
-      return;
+  const handleVote = useCallback((result) => {
+    if (isTransitioning || !resolveVote || isError) return;
+
+    try {
+      console.log('Handling vote:', result, 'by user:', userName);
+      setIsTransitioning(true);
+      
+      // Convert vote to preference value for PreferenceSorter
+      let voteValue;
+      let eloOutcome;
+      switch (result) {
+        case 'left':
+          voteValue = -1;
+          eloOutcome = 'left';
+          break;
+        case 'right':
+          voteValue = 1;
+          eloOutcome = 'right';
+          break;
+        case 'both':
+          voteValue = Math.random() * 0.2 - 0.1;
+          eloOutcome = 'both';
+          break;
+        case 'none':
+          voteValue = Math.random() * 0.1 - 0.05;
+          eloOutcome = 'none';
+          break;
+        default:
+          voteValue = 0;
+          eloOutcome = 'none';
+      }
+      
+      console.log('Vote value:', voteValue, 'Elo outcome:', eloOutcome);
+      
+      // Update Elo ratings
+      const leftName = currentMatch.left.name;
+      const rightName = currentMatch.right.name;
+      
+      const leftRating = currentRatings[leftName]?.rating || 1500;
+      const rightRating = currentRatings[rightName]?.rating || 1500;
+      
+      const leftStats = {
+        winsA: currentRatings[leftName]?.wins || 0,
+        lossesA: currentRatings[leftName]?.losses || 0,
+        winsB: currentRatings[rightName]?.wins || 0,
+        lossesB: currentRatings[rightName]?.losses || 0
+      };
+
+      const { 
+        newRatingA: updatedLeftRating, 
+        newRatingB: updatedRightRating,
+        winsA: newLeftWins,
+        lossesA: newLeftLosses,
+        winsB: newRightWins,
+        lossesB: newRightLosses
+      } = elo.calculateNewRatings(leftRating, rightRating, eloOutcome, leftStats);
+      
+      // Update PreferenceSorter
+      if (sorter) {
+        sorter.addPreference(leftName, rightName, voteValue);
+      }
+      
+      const voteData = {
+        matchNumber: currentMatchNumber,
+        result: voteValue,
+        timestamp: Date.now(),
+        userName: userName || 'anonymous',
+        match: {
+          left: {
+            name: leftName,
+            description: currentMatch.left.description || '',
+            won: eloOutcome === 'left' || eloOutcome === 'both'
+          },
+          right: {
+            name: rightName,
+            description: currentMatch.right.description || '',
+            won: eloOutcome === 'right' || eloOutcome === 'both'
+          }
+        },
+        ratings: {
+          before: {
+            left: leftRating,
+            right: rightRating
+          },
+          after: {
+            left: updatedLeftRating,
+            right: updatedRightRating
+          }
+        }
+      };
+
+      console.log('Vote data:', voteData);
+
+      // Update tournament state with new vote and ratings
+      updateTournamentState(prev => ({
+        ...prev,
+        matchHistory: [...prev.matchHistory, voteData],
+        currentMatch: currentMatchNumber + 1
+      }));
+
+      // Update current ratings with new ratings and win/loss counts
+      setCurrentRatings(prev => ({
+        ...prev,
+        [leftName]: {
+          ...prev[leftName],
+          rating: updatedLeftRating,
+          wins: newLeftWins,
+          losses: newLeftLosses
+        },
+        [rightName]: {
+          ...prev[rightName],
+          rating: updatedRightRating,
+          wins: newRightWins,
+          losses: newRightLosses
+        }
+      }));
+      
+      setCanUndo(true);
+      resolveVote(voteValue);
+      
+      if (currentMatchNumber >= totalMatches) {
+        console.log('Tournament complete:', { 
+          currentMatchNumber, 
+          totalMatches, 
+          userName,
+          finalRatings: getCurrentRatings()
+        });
+        const finalRatings = getCurrentRatings();
+        onComplete(finalRatings);
+        return;
+      }
+
+      setCurrentMatchNumber(prev => prev + 1);
+      
+      if (names.length > 2) {
+        const matchesPerRound = Math.ceil(names.length / 2);
+        if (currentMatchNumber % matchesPerRound === 0) {
+          const newRound = roundNumber + 1;
+          setRoundNumber(newRound);
+          updateTournamentState(prev => ({
+            ...prev,
+            currentRound: newRound
+          }));
+        }
+      }
+      
+      // Ensure transition state is cleared
+      const timeoutId = setTimeout(() => {
+        setIsTransitioning(false);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    } catch (error) {
+      console.error('Vote handling error:', error);
+      setIsError(true);
+      setIsTransitioning(false);
     }
-
-    console.log('Starting new tournament with names:', names);
-    const nameStrings = names.map(n => n.name);
-    const newSorter = new PreferenceSorter(nameStrings);
-    setSorter(newSorter);
-    
-    const n = names.length;
-    // Calculate matches based on merge sort complexity
-    const estimatedMatches = n <= 2 ? 1 : Math.ceil(n * Math.log2(n));
-    console.log(`Tournament setup: ${n} names, ${estimatedMatches} matches`);
-    setTotalMatches(estimatedMatches);
-    setCurrentMatchNumber(1);
-    setRoundNumber(1);
-    setMatchHistory([]);
-    setCanUndo(false);
-    setCurrentRatings(existingRatings);
-
-    runTournament(newSorter);
-  }, [names]);
+  }, [resolveVote, isTransitioning, currentMatchNumber, totalMatches, names.length, currentMatch, onComplete, getCurrentRatings, isError, roundNumber, updateTournamentState, userName, currentRatings, elo, sorter]);
 
   const runTournament = async (tournamentSorter) => {
     try {
@@ -119,14 +339,23 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       };
       localStorage.setItem('tournamentState', JSON.stringify(initialState));
 
-      const sortedResults = await tournamentSorter.sort(async (leftName, rightName) => {
-        const left = names.find(n => n.name === leftName);
-        const right = names.find(n => n.name === rightName);
-        setCurrentMatch({ left, right });
-        return new Promise((resolve) => {
-          setResolveVote(() => resolve);
-        });
-      });
+      // Add timeout to prevent infinite waiting
+      const sortedResults = await Promise.race([
+        tournamentSorter.sort(async (leftName, rightName) => {
+          const left = names.find(n => n.name === leftName);
+          const right = names.find(n => n.name === rightName);
+          if (!left || !right) {
+            throw new Error('Invalid match pair');
+          }
+          setCurrentMatch({ left, right });
+          return new Promise((resolve) => {
+            setResolveVote(() => resolve);
+          });
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Tournament timeout')), 300000) // 5 minute timeout
+        )
+      ]);
 
       const ratingsArray = sortedResults.map((name, index) => {
         const existingData = typeof existingRatings[name] === 'object'
@@ -162,78 +391,19 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
       onComplete(ratingsArray);
     } catch (error) {
       console.error('Tournament error:', error);
-      const savedState = localStorage.getItem('tournamentState');
-      if (savedState) {
-        const state = JSON.parse(savedState);
-        setCurrentMatchNumber(state.currentMatchNumber);
-        setRoundNumber(state.roundNumber);
-        setMatchHistory(state.matchHistory || []);
-      }
+      setIsError(true);
+      // Clear tournament state on error
+      localStorage.removeItem('tournamentState');
+      // Reset all state
+      setCurrentMatch(null);
+      setIsTransitioning(false);
+      setRoundNumber(1);
+      setCurrentMatchNumber(1);
+      setMatchHistory([]);
+      setCanUndo(false);
+      throw error; // Propagate error to parent
     }
   };
-
-  const handleVote = useCallback((result) => {
-    if (isTransitioning || !resolveVote) return;
-
-    setIsTransitioning(true);
-    
-    let voteValue;
-    switch (result) {
-      case 'left':
-        voteValue = -1;
-        break;
-      case 'right':
-        voteValue = 1;
-        break;
-      case 'both':
-        voteValue = Math.random() * 0.2 - 0.1;
-        break;
-      case 'none':
-        voteValue = Math.random() * 0.1 - 0.05;
-        break;
-      default:
-        voteValue = 0;
-    }
-    
-    const voteData = {
-      matchNumber: currentMatchNumber,
-      result: voteValue, // Store the numeric result
-      timestamp: Date.now(),
-      match: {
-        left: currentMatch.left,
-        right: currentMatch.right
-      }
-    };
-
-    setMatchHistory(prev => [...prev, voteData]);
-    setCanUndo(true);
-    
-    localStorage.setItem('lastVote', JSON.stringify(voteData));
-
-    resolveVote(voteValue);
-    
-    // Check if this was the last match
-    if (currentMatchNumber >= totalMatches) {
-      console.log('Tournament complete:', { currentMatchNumber, totalMatches });
-      const finalRatings = getCurrentRatings();
-      onComplete(finalRatings);
-      return;
-    }
-
-    setCurrentMatchNumber(prev => prev + 1);
-    
-    // For 2 names, we stay in round 1
-    if (names.length > 2) {
-      const matchesPerRound = Math.ceil(names.length / 2);
-      if (currentMatchNumber % matchesPerRound === 0) {
-        setRoundNumber(prev => prev + 1);
-      }
-    }
-    
-    setTimeout(() => {
-      setIsTransitioning(false);
-    }, 500);
-  }, [resolveVote, isTransitioning, currentMatchNumber, totalMatches, names.length, currentMatch, onComplete, getCurrentRatings]);
 
   const handleUndo = useCallback(() => {
     if (isTransitioning || !canUndo || matchHistory.length === 0) return;
@@ -272,6 +442,9 @@ export function useTournament({ names = [], existingRatings = {}, onComplete }) 
     handleVote,
     handleUndo,
     canUndo,
-    getCurrentRatings
+    getCurrentRatings,
+    isError,
+    matchHistory: tournamentState.matchHistory,
+    userName: tournamentState.userName
   };
 } 
