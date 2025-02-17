@@ -28,24 +28,49 @@ const MatchResult = {
   FIRST_WIN: 'first',
   SECOND_WIN: 'second',
   BOTH_ADVANCE: 'both',
-  SKIPPED: 'skip'
+  SKIPPED: 'skip',
+  NEITHER: 'neither'
 };
 
 function Match({ match, isLastRound }) {
   const status = useMemo(() => {
-    if (!match.winner) return MatchResult.PENDING;
+    if (!match.winner && match.winner !== 0) return MatchResult.PENDING;
     if (match.winner === -1) return MatchResult.FIRST_WIN;
     if (match.winner === 1) return MatchResult.SECOND_WIN;
     if (match.winner === 0) return MatchResult.BOTH_ADVANCE;
+    if (match.winner === 2) return MatchResult.NEITHER;
     return MatchResult.SKIPPED;
   }, [match.winner]);
 
   const getPlayerClass = (isFirst) => {
-    if (!match.winner) return styles.player;
-    if (status === MatchResult.FIRST_WIN) return isFirst ? styles.playerWinner : styles.playerLoser;
-    if (status === MatchResult.SECOND_WIN) return isFirst ? styles.playerLoser : styles.playerWinner;
-    if (status === MatchResult.BOTH_ADVANCE) return styles.playerWinner;
-    return styles.player;
+    if (!match.winner && match.winner !== 0) return styles.player;
+    switch (status) {
+      case MatchResult.FIRST_WIN:
+        return isFirst ? styles.playerWinner : styles.playerLoser;
+      case MatchResult.SECOND_WIN:
+        return isFirst ? styles.playerLoser : styles.playerWinner;
+      case MatchResult.BOTH_ADVANCE:
+        return styles.playerBothWin;
+      case MatchResult.NEITHER:
+        return styles.playerNeither;
+      default:
+        return styles.player;
+    }
+  };
+
+  const getResultBadge = (isFirst) => {
+    switch (status) {
+      case MatchResult.FIRST_WIN:
+        return isFirst && <span className={styles.winnerBadge} title="Winner">✓</span>;
+      case MatchResult.SECOND_WIN:
+        return !isFirst && <span className={styles.winnerBadge} title="Winner">✓</span>;
+      case MatchResult.BOTH_ADVANCE:
+        return <span className={styles.tieBadge} title="Both Liked">♥</span>;
+      case MatchResult.NEITHER:
+        return <span className={styles.skipBadge} title="Skipped">⊘</span>;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -53,23 +78,13 @@ function Match({ match, isLastRound }) {
       <div className={styles.matchContent}>
         <div className={getPlayerClass(true)}>
           <span className={styles.playerName}>{match.name1}</span>
-          {status === MatchResult.FIRST_WIN && (
-            <span className={styles.winnerBadge} title="Winner">✓</span>
-          )}
-          {status === MatchResult.BOTH_ADVANCE && (
-            <span className={styles.tieBadge} title="Both Advance">≈</span>
-          )}
+          {getResultBadge(true)}
         </div>
         <div className={styles.vsDivider}>vs</div>
         {match.name2 ? (
           <div className={getPlayerClass(false)}>
             <span className={styles.playerName}>{match.name2}</span>
-            {status === MatchResult.SECOND_WIN && (
-              <span className={styles.winnerBadge} title="Winner">✓</span>
-            )}
-            {status === MatchResult.BOTH_ADVANCE && (
-              <span className={styles.tieBadge} title="Both Advance">≈</span>
-            )}
+            {getResultBadge(false)}
           </div>
         ) : (
           <div className={styles.playerBye}>
@@ -106,12 +121,16 @@ function Round({ matches, roundNumber, isLastRound }) {
 
 function Bracket({ matches }) {
   const tree = useMemo(() => {
+    if (!matches || matches.length === 0) return [];
+    
     const totalRounds = Math.ceil(Math.log2(matches.length + 1));
     const rounds = Array(totalRounds).fill().map(() => []);
     
     matches.forEach(match => {
       const roundIndex = Math.floor(Math.log2(match.id));
-      rounds[roundIndex].push(match);
+      if (roundIndex >= 0 && roundIndex < totalRounds) {
+        rounds[roundIndex].push(match);
+      }
     });
 
     // Sort matches within each round
@@ -120,7 +139,7 @@ function Bracket({ matches }) {
     return rounds;
   }, [matches]);
 
-  if (matches.length === 0) {
+  if (!matches || matches.length === 0) {
     return (
       <div className={styles.emptyState}>
         No matches to display yet

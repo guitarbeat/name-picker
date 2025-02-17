@@ -43,6 +43,9 @@
   margin-bottom: var(--space-4);
   text-align: center;
   border-color: var(--primary-200);
+  background: var(--surface-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .roundTitle {
@@ -93,7 +96,7 @@
   background: var(--primary-200);
   transform: translateY(-50%);
   opacity: 0.6;
-  transition: opacity var(--duration-normal) var(--ease-out);
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .match:hover .matchConnector {
@@ -111,6 +114,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   transition: all var(--duration-normal) var(--ease-out);
+  box-shadow: var(--shadow-sm);
 }
 
 .matchContent:hover {
@@ -140,24 +144,45 @@
   background: rgb(var(--primary-rgb) / 0.1);
   border-color: var(--primary-300);
   color: var(--primary-700);
+  font-weight: 500;
 }
 
 .playerLoser {
   composes: player;
   opacity: 0.6;
   background: var(--surface-color);
+  color: var(--text-secondary);
+}
+
+.playerBothWin {
+  composes: player;
+  background: rgb(var(--success-rgb) / 0.1);
+  border-color: var(--success-300);
+  color: var(--success-700);
+  font-weight: 500;
+}
+
+.playerNeither {
+  composes: player;
+  background: rgb(var(--warning-rgb) / 0.05);
+  border-color: var(--warning-200);
+  color: var(--warning-700);
+  opacity: 0.8;
 }
 
 .playerBye {
   composes: player;
   opacity: 0.5;
   font-style: italic;
+  background: var(--surface-color);
+  border-style: dashed;
 }
 
 .playerName {
   font-weight: 500;
-  color: var(--text-primary);
+  color: inherit;
   margin-right: var(--space-2);
+  transition: color var(--duration-normal) var(--ease-out);
 }
 
 .winnerBadge {
@@ -167,9 +192,16 @@
   color: var(--primary-500);
   background: var(--primary-50);
   border-radius: var(--radius-full);
+  transition: all var(--duration-normal) var(--ease-out);
 }
 
 .tieBadge {
+  composes: winnerBadge;
+  color: var(--success-500);
+  background: var(--success-50);
+}
+
+.skipBadge {
   composes: winnerBadge;
   color: var(--warning-500);
   background: var(--warning-50);
@@ -180,6 +212,7 @@
   font-size: var(--text-xs);
   color: var(--text-secondary);
   margin: var(--space-1) 0;
+  opacity: 0.6;
 }
 
 .byeText {
@@ -241,14 +274,14 @@
     background: var(--surface-dark);
   }
 
-  .emptyState {
+  .roundHeader {
     background: var(--surface-dark);
     border-color: var(--border-color-dark);
-    color: var(--text-secondary-dark);
   }
 
   .matchContent {
     background: var(--surface-dark);
+    border-color: var(--border-color-dark);
   }
 
   .player {
@@ -257,27 +290,49 @@
   }
 
   .playerWinner {
-    background: rgb(var(--primary-rgb) / 0.15);
+    background: rgb(var(--primary-rgb) / 0.2);
     border-color: var(--primary-400);
-    color: var(--primary-300);
+  }
+
+  .playerBothWin {
+    background: rgb(var(--success-rgb) / 0.2);
+    border-color: var(--success-400);
+  }
+
+  .playerNeither {
+    background: rgb(var(--warning-rgb) / 0.1);
+    border-color: var(--warning-300);
+  }
+
+  .playerBye {
+    background: var(--surface-dark);
+    border-color: var(--border-color-dark);
   }
 
   .matchConnector {
-    background: rgb(var(--primary-rgb) / 0.3);
+    background: var(--primary-300);
   }
 
   .match:hover .matchConnector {
-    background: var(--primary-400);
+    background: var(--primary-500);
   }
 
   .winnerBadge {
     background: rgb(var(--primary-rgb) / 0.2);
-    color: var(--primary-300);
   }
 
   .tieBadge {
+    background: rgb(var(--success-rgb) / 0.2);
+  }
+
+  .skipBadge {
     background: rgb(var(--warning-rgb) / 0.2);
-    color: var(--warning-300);
+  }
+
+  .emptyState {
+    background: var(--surface-dark);
+    border-color: var(--border-color-dark);
+    color: var(--text-secondary-dark);
   }
 }
 
@@ -296,7 +351,7 @@
 @keyframes slideIn {
   from {
     opacity: 0;
-    transform: translateX(10px);
+    transform: translateX(-10px);
   }
   to {
     opacity: 1;
