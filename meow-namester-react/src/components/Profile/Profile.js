@@ -52,6 +52,7 @@ const FILTER_OPTIONS = {
   },
   SORT: {
     RATING: 'rating',
+    WORST_RATING: 'worst_rating',
     NAME: 'name',
     LAST_UPDATED: 'updated_at',
     MATCHES: 'matches'
@@ -180,8 +181,27 @@ const ProfileStats = memo(({ ratings, filterStatus }) => {
   );
 });
 
-const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }) => {
-  const { name: nameText, rating = DEFAULT_RATING, wins = 0, losses = 0, updated_at } = name;
+const NameCard = memo(({ 
+  name, 
+  isHidden, 
+  onToggleVisibility, 
+  onDelete, 
+  isAdmin, 
+  isAggregated = false 
+}) => {
+  const {
+    id,
+    name: nameText,
+    rating = DEFAULT_RATING,
+    wins = 0,
+    losses = 0,
+    averageRating,
+    totalVotes,
+    userCount,
+    updated_at
+  } = name;
+
+  const displayRating = isAggregated ? averageRating : rating;
   const totalMatches = wins + losses;
   const winRate = totalMatches > 0 ? Math.round((wins / totalMatches) * 100) : 0;
 
@@ -189,7 +209,10 @@ const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }
     <Card className={`${styles.nameCard} ${isHidden ? styles.isHidden : ''}`}>
       <div className={styles.nameHeader}>
         <h3 className={styles.nameTitle}>{nameText}</h3>
-        <div className={styles.rating}>{rating.toLocaleString()}</div>
+        <div className={styles.rating}>
+          {displayRating.toLocaleString()}
+          {isAggregated && <span className={styles.ratingLabel}> avg</span>}
+        </div>
       </div>
       
       <div className={styles.stats}>
@@ -204,17 +227,38 @@ const NameCard = memo(({ name, isHidden, onToggleVisibility, onDelete, isAdmin }
             </>
           )}
         </div>
-        <div className={styles.matchInfo}>
-          <span className={styles.totalMatches}>
-            {totalMatches} {totalMatches === 1 ? 'match' : 'matches'} played
-          </span>
+        
+        <div className={styles.additionalStats}>
+          <div className={styles.statRow}>
+            <span className={styles.statLabel}>Total Matches:</span>
+            <span className={styles.statValue}>{totalMatches}</span>
+          </div>
+          {isAggregated ? (
+            <>
+              <div className={styles.statRow}>
+                <span className={styles.statLabel}>Times Rated:</span>
+                <span className={styles.statValue}>{totalVotes}</span>
+              </div>
+              <div className={styles.statRow}>
+                <span className={styles.statLabel}>Users:</span>
+                <span className={styles.statValue}>{userCount}</span>
+              </div>
+            </>
+          ) : (
+            updated_at && (
+              <div className={styles.statRow}>
+                <span className={styles.statLabel}>Last Updated:</span>
+                <span className={styles.statValue}>{formatTimestamp(updated_at)}</span>
+              </div>
+            )
+          )}
         </div>
       </div>
 
       {isAdmin && (
         <div className={styles.cardActions}>
           <button
-            onClick={() => onToggleVisibility(name.id, nameText)}
+            onClick={() => onToggleVisibility(id, nameText)}
             className={`${styles.visibilityToggle} ${isHidden ? styles.hidden : ''}`}
             aria-label={`${isHidden ? 'Show' : 'Hide'} ${nameText}`}
           >
@@ -626,7 +670,12 @@ const ChartSection = memo(({ aggregatedNames, filterStatus }) => {
   );
 });
 
-const AggregatedStats = memo(({ allUsersRatings }) => {
+const AggregatedStats = memo(({ 
+  allUsersRatings, 
+  onToggleVisibility, 
+  onDelete,
+  isAdmin 
+}) => {
   const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ALL);
   const [sortBy, setSortBy] = useState(FILTER_OPTIONS.SORT.RATING);
   const [hiddenNames, setHiddenNames] = useState(new Set());
@@ -701,6 +750,8 @@ const AggregatedStats = memo(({ allUsersRatings }) => {
         switch (sortBy) {
           case FILTER_OPTIONS.SORT.RATING:
             return b.averageRating - a.averageRating;
+          case FILTER_OPTIONS.SORT.WORST_RATING:
+            return a.averageRating - b.averageRating;
           case FILTER_OPTIONS.SORT.NAME:
             return a.name.localeCompare(b.name);
           case FILTER_OPTIONS.SORT.MATCHES:
@@ -772,38 +823,24 @@ const AggregatedStats = memo(({ allUsersRatings }) => {
 
       <div className={styles.ratingsGrid}>
         {aggregatedNames.map(name => (
-          <Card key={name.name} className={`${styles.aggregatedCard} ${name.isHidden ? styles.isHidden : ''}`}>
-            <div className={styles.nameHeader}>
-              <h3 className={styles.nameTitle}>{name.name}</h3>
-              <div className={styles.rating}>{name.averageRating.toLocaleString()}</div>
-            </div>
-            <div className={styles.stats}>
-              <div className={styles.record}>
-                <span className={styles.wins}>{name.wins} wins</span>
-                <span className={styles.separator}>•</span>
-                <span className={styles.losses}>{name.losses} losses</span>
-              </div>
-            </div>
-            <div className={styles.aggregatedStats}>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Win Rate:</span>
-                <span className={styles.statValue}>{name.winRate}%</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Times Rated:</span>
-                <span className={styles.statValue}>{name.totalVotes}</span>
-              </div>
-              <div className={styles.statRow}>
-                <span className={styles.statLabel}>Users:</span>
-                <span className={styles.statValue}>{name.userCount}</span>
-              </div>
-            </div>
-            {name.isHidden && (
-              <div className={styles.hiddenStatus}>
-                <p className={styles.hiddenText}>This name is hidden from tournaments</p>
-              </div>
-            )}
-          </Card>
+          <NameCard
+            key={name.id}
+            name={{
+              ...name,
+              name: name.name,
+              rating: name.averageRating,
+              wins: name.wins,
+              losses: name.losses,
+              averageRating: name.averageRating,
+              totalVotes: name.totalVotes,
+              userCount: name.userCount
+            }}
+            isHidden={name.isHidden}
+            onToggleVisibility={onToggleVisibility}
+            onDelete={onDelete}
+            isAdmin={isAdmin}
+            isAggregated={true}
+          />
         ))}
       </div>
     </section>
@@ -832,7 +869,8 @@ const FilterControls = memo(({ onFilterChange, onSortChange, currentFilter, curr
         onChange={(e) => onSortChange(e.target.value)}
         className={styles.filterSelect}
       >
-        <option value={FILTER_OPTIONS.SORT.RATING}>Rating</option>
+        <option value={FILTER_OPTIONS.SORT.RATING}>Best Rating</option>
+        <option value={FILTER_OPTIONS.SORT.WORST_RATING}>Worst Rating</option>
         <option value={FILTER_OPTIONS.SORT.NAME}>Name</option>
         <option value={FILTER_OPTIONS.SORT.MATCHES}>Total Matches</option>
       </select>
@@ -1043,6 +1081,8 @@ const Profile = ({ userName, onStartNewTournament }) => {
       switch (sortBy) {
         case FILTER_OPTIONS.SORT.RATING:
           return b.rating - a.rating;
+        case FILTER_OPTIONS.SORT.WORST_RATING:
+          return a.rating - b.rating;
         case FILTER_OPTIONS.SORT.NAME:
           return a.name.localeCompare(b.name);
         case FILTER_OPTIONS.SORT.LAST_UPDATED:
@@ -1109,7 +1149,12 @@ const Profile = ({ userName, onStartNewTournament }) => {
 
       <div className={styles.mainContent}>
         {showAggregated ? (
-          <AggregatedStats allUsersRatings={allUsersRatings} />
+          <AggregatedStats 
+            allUsersRatings={allUsersRatings}
+            onToggleVisibility={handleToggleNameVisibility}
+            onDelete={handleDeleteName}
+            isAdmin={isAdmin}
+          />
         ) : (
           <>
             <FilterControls 
@@ -1159,11 +1204,18 @@ const Profile = ({ userName, onStartNewTournament }) => {
               {filteredRatings.map(name => (
                 <NameCard
                   key={name.id}
-                  name={name}
-                  isHidden={name.isHidden}
+                  name={{
+                    ...name,
+                    name: name.name,
+                    averageRating: name.rating,
+                    totalVotes: 1,
+                    userCount: 1
+                  }}
+                  isHidden={hiddenNames.has(name.id)}
                   onToggleVisibility={handleToggleNameVisibility}
                   onDelete={handleDeleteName}
-                  isAdmin={true}
+                  isAdmin={isAdmin}
+                  isAggregated={false}
                 />
               ))}
             </div>
