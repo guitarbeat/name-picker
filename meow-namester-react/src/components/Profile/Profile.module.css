@@ -470,6 +470,21 @@
   .mainContent {
     background-color: transparent;
   }
+
+  .aggregatedHeader {
+    background-color: color-mix(in srgb, var(--bg-primary) 95%, var(--accent-primary));
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  }
+
+  .aggregatedHeader .sectionTitle {
+    color: var(--text-primary);
+  }
+  
+  .aggregatedHeader .sectionSubtitle {
+    color: color-mix(in srgb, var(--text-secondary) 80%, white);
+  }
 }
 
 /* Reduced Motion */

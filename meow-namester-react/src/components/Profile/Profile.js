@@ -1077,7 +1077,8 @@ const Profile = ({ userName, onStartNewTournament }) => {
   }, [setRatings]);
 
   const sortedRatings = useMemo(() => {
-    return [...ratingsData].sort((a, b) => {
+    const dataToUse = currentlyViewedUser !== userName ? currentUserRatings : ratingsData;
+    return [...dataToUse].sort((a, b) => {
       switch (sortBy) {
         case FILTER_OPTIONS.SORT.RATING:
           return b.rating - a.rating;
@@ -1093,20 +1094,25 @@ const Profile = ({ userName, onStartNewTournament }) => {
           return 0;
       }
     });
-  }, [ratingsData, sortBy]);
+  }, [ratingsData, sortBy, currentUserRatings, currentlyViewedUser, userName]);
 
   const filteredRatings = useMemo(() => {
+    const dataToUse = currentlyViewedUser !== userName ? currentUserRatings : ratingsData;
     if (filterStatus === FILTER_OPTIONS.STATUS.ALL) return sortedRatings;
     return sortedRatings.filter(r => 
       filterStatus === FILTER_OPTIONS.STATUS.ACTIVE 
         ? !hiddenNames.has(r.id) 
         : hiddenNames.has(r.id)
     );
-  }, [sortedRatings, filterStatus, hiddenNames]);
+  }, [sortedRatings, filterStatus, hiddenNames, currentlyViewedUser, userName, currentUserRatings]);
 
   const chartData = useMemo(() => 
-    prepareChartData(ratingsData, filterStatus, hiddenNames), 
-    [ratingsData, filterStatus, hiddenNames]
+    prepareChartData(
+      currentlyViewedUser !== userName ? currentUserRatings : ratingsData, 
+      filterStatus, 
+      hiddenNames
+    ), 
+    [ratingsData, filterStatus, hiddenNames, currentUserRatings, currentlyViewedUser, userName]
   );
 
   if (ratingsLoading) return <LoadingSpinner />;
@@ -1164,7 +1170,7 @@ const Profile = ({ userName, onStartNewTournament }) => {
               currentSort={sortBy}
             />
 
-            <ProfileStats ratings={ratingsData} filterStatus={filterStatus} />
+            <ProfileStats ratings={currentlyViewedUser !== userName ? currentUserRatings : ratingsData} filterStatus={filterStatus} />
 
             <div className={styles.chartContainer}>
               <Bar 

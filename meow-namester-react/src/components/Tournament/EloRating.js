@@ -5,11 +5,11 @@
  */
 
 class EloRating {
-  constructor(defaultRating = 1500, kFactor = 32) {
+  constructor(defaultRating = 1500, kFactor = 40) {
     this.defaultRating = defaultRating;
     this.kFactor = kFactor;
-    this.minRating = 1000;
-    this.maxRating = 2000;
+    this.minRating = 800;
+    this.maxRating = 2400;
   }
 
   getExpectedScore(ratingA, ratingB) {
@@ -17,8 +17,8 @@ class EloRating {
   }
 
   getKFactor(rating, games = 0) {
-    if (games < 10) return this.kFactor * 1.5;
-    if (rating < 1300 || rating > 1700) return this.kFactor * 0.75;
+    if (games < 15) return this.kFactor * 2;
+    if (rating < 1400 || rating > 2000) return this.kFactor * 1.5;
     return this.kFactor;
   }
 
@@ -62,14 +62,14 @@ class EloRating {
         winsB++;
         break;
       case 'both':
-        actualA = 0.8;
-        actualB = 0.8;
+        actualA = 0.7;
+        actualB = 0.7;
         winsA++;
         winsB++;
         break;
       case 'none':
-        actualA = 0.5;
-        actualB = 0.5;
+        actualA = 0.3;
+        actualB = 0.3;
         break;
       default:
         actualA = 0.5;
