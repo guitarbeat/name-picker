@@ -90,23 +90,42 @@ const NameSelection = ({ selectedNames, availableNames, onToggleName }) => (
   </div>
 );
 
-const StartButton = ({ selectedNames, onStart }) => (
-  <div className={styles.startSection}>
-    <button
-      onClick={() => {
-        onStart(selectedNames);
-      }}
-      className={styles.startButton}
-      disabled={selectedNames.length < 2}
-      aria-label={`Start tournament with ${selectedNames.length} names`}
-    >
-      <span className={styles.buttonText}>Let the Games Begin! 🎮</span>
-      <span className={styles.buttonSubtext}>
-        {selectedNames.length} Names Ready 🏆
-      </span>
-    </button>
-  </div>
-);
+const StartButton = ({ selectedNames, onStart }) => {
+  const validateNames = (names) => {
+    return names.every(nameObj => 
+      nameObj && 
+      typeof nameObj === 'object' && 
+      nameObj.name && 
+      typeof nameObj.name === 'string' &&
+      nameObj.id
+    );
+  };
+
+  const handleStart = () => {
+    if (!validateNames(selectedNames)) {
+      console.error('Invalid name objects detected:', selectedNames);
+      return;
+    }
+    onStart(selectedNames);
+  };
+
+  return (
+    <div className={styles.startSection}>
+      <button
+        onClick={handleStart}
+        className={styles.startButton}
+        disabled={selectedNames.length < 2}
+        aria-label={selectedNames.length < 2 ? 'Select at least 2 names to start' : 'Start Tournament'}
+      >
+        {selectedNames.length < 2 ? (
+          <>Need {2 - selectedNames.length} More Name{selectedNames.length === 0 ? 's' : ''} 🎯</>
+        ) : (
+          <>Start Tournament! 🏆</>
+        )}
+      </button>
+    </div>
+  );
+};
 
 const NameSuggestionSection = () => {
   const [name, setName] = useState('');

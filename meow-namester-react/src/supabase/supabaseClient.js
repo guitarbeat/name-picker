@@ -105,18 +105,35 @@ export const addRatingHistory = async (userName, nameId, oldRating, newRating) =
 };
 
 // Add this function to update ratings with proper timestamps
-export const updateRating = async (userName, nameId, newRating, wins = 0, losses = 0) => {
+export const updateRating = async (userName, nameId, newRating, wins = null, losses = null) => {
   const now = new Date().toISOString();
   
   try {
+    // First get existing rating data
+    const { data: existingData, error: fetchError } = await supabase
+      .from('cat_name_ratings')
+      .select('wins, losses')
+      .eq('user_name', userName)
+      .eq('name_id', nameId)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+      console.error('Error fetching existing rating:', fetchError);
+      return { error: fetchError };
+    }
+
+    // Use provided wins/losses or keep existing ones
+    const finalWins = wins !== null ? wins : (existingData?.wins || 0);
+    const finalLosses = losses !== null ? losses : (existingData?.losses || 0);
+
     const { error } = await supabase
       .from('cat_name_ratings')
       .upsert({
         user_name: userName,
         name_id: nameId,
         rating: newRating,
-        wins: wins,
-        losses: losses,
+        wins: finalWins,
+        losses: finalLosses,
         updated_at: now
       }, {
         onConflict: 'user_name,name_id'

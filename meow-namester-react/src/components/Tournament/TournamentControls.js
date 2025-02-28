@@ -88,7 +88,7 @@ const TournamentControls = ({
             className={styles.soundToggleButton}
             aria-label="Next track"
             disabled={isTransitioning}
-            title={`Now Playing: ${trackInfo.name}\nClick for next track`}
+            title={trackInfo ? `Now Playing: ${trackInfo.name}\nClick for next track` : 'Next track'}
           >
             <MusicalNoteIcon className={styles.icon} aria-hidden="true" />
           </button>
@@ -105,7 +105,7 @@ const TournamentControls = ({
           </button>
         )}
 
-        {!isMuted && trackInfo && (
+        {!isMuted && trackInfo && trackInfo.name && (
           <div className={styles.trackInfo} aria-live="polite">
             <span className={styles.trackName}>{trackInfo.name}</span>
           </div>

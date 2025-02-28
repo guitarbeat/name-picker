@@ -40,7 +40,7 @@ const SORT_CONFIG = {
 };
 
 const TIME_FILTERS = ['All Time', 'Today', 'This Week', 'This Month'];
-const DEFAULT_RATING = 1500;
+export const DEFAULT_RATING = 1500;
 const ACTIVE_THRESHOLD = 3600000; // 1 hour in milliseconds
 
 // Add new constants for filtering
@@ -128,6 +128,8 @@ const processUserRatings = (data) => {
   const lastActivity = {};
   const ratingsByUser = {};
 
+  if (!data) return { lastActivity, ratingsByUser };
+
   data.forEach(item => {
     if (!item.name_options) return;
     
@@ -147,13 +149,14 @@ const processUserRatings = (data) => {
       id: item.name_options.id,
       name: item.name_options.name,
       description: item.name_options.description,
-      rating: item.rating,
-      wins: item.wins,
-      losses: item.losses,
-      updated_at: item.updated_at
+      rating: parseInt(item.rating || DEFAULT_RATING, 10),
+      wins: parseInt(item.wins || 0, 10),
+      losses: parseInt(item.losses || 0, 10),
+      updated_at: item.updated_at || new Date().toISOString()
     });
   });
 
+  console.log('Processed user ratings by user:', ratingsByUser);
   return { lastActivity, ratingsByUser };
 };
 
@@ -676,7 +679,7 @@ const AggregatedStats = memo(({
   onDelete,
   isAdmin 
 }) => {
-  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ALL);
+  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ACTIVE);
   const [sortBy, setSortBy] = useState(FILTER_OPTIONS.SORT.RATING);
   const [hiddenNames, setHiddenNames] = useState(new Set());
 
@@ -706,6 +709,8 @@ const AggregatedStats = memo(({
     // Combine ratings for each name across all users
     Object.values(allUsersRatings).forEach(userRatings => {
       userRatings.forEach(rating => {
+        if (!rating) return; // Skip if rating is undefined
+        
         const isHidden = hiddenNames.has(rating.id);
         
         // Apply filter
@@ -722,16 +727,22 @@ const AggregatedStats = memo(({
             wins: 0,
             losses: 0,
             users: new Set(),
-            isHidden
+            isHidden,
+            updated_at: rating.updated_at || new Date().toISOString()
           });
         }
         
         const nameStats = nameMap.get(rating.name);
-        nameStats.totalRating += rating.rating || DEFAULT_RATING;
-        nameStats.wins += rating.wins || 0;
-        nameStats.losses += rating.losses || 0;
+        nameStats.totalRating += parseInt(rating.rating || DEFAULT_RATING, 10);
+        nameStats.wins += parseInt(rating.wins || 0, 10);
+        nameStats.losses += parseInt(rating.losses || 0, 10);
         nameStats.users.add(rating.user_name);
         nameStats.totalVotes++;
+        
+        // Update the latest updated_at timestamp
+        if (!nameStats.updated_at || (rating.updated_at && new Date(rating.updated_at) > new Date(nameStats.updated_at))) {
+          nameStats.updated_at = rating.updated_at;
+        }
       });
     });
 
@@ -922,16 +933,30 @@ const Profile = ({ userName, onStartNewTournament }) => {
   const [currentUserRatings, setCurrentUserRatings] = useState([]);
   const [currentlyViewedUser, setCurrentlyViewedUser] = useState(userName);
   const [showAggregated, setShowAggregated] = useState(false);
-  const [ratings, setRatings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ALL);
+  const [filterStatus, setFilterStatus] = useState(FILTER_OPTIONS.STATUS.ACTIVE);
   const [sortBy, setSortBy] = useState(FILTER_OPTIONS.SORT.RATING);
 
   // Data fetching
   const [ratingsData, setRatingsData, { loading: ratingsLoading, error: ratingsError }] = useSupabaseStorage('cat_name_ratings', [], userName);
 
+  const fetchHiddenNames = useCallback(async () => {
+    try {
+      const { data: hiddenData, error: hiddenError } = await supabase
+        .from('hidden_names')
+        .select('name_id');
+
+      if (hiddenError) throw hiddenError;
+
+      const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
+      setHiddenNames(newHiddenNames);
+    } catch (err) {
+      console.error('Error fetching hidden names:', err);
+    }
+  }, []);
+
   const fetchUserRatings = useCallback(async (targetUserName) => {
     try {
+      console.log('Fetching ratings for user:', targetUserName);
       const { data, error: fetchError } = await supabase
         .from('cat_name_ratings')
         .select(`
@@ -949,16 +974,21 @@ const Profile = ({ userName, onStartNewTournament }) => {
 
       if (fetchError) throw fetchError;
 
-      const processedRatings = data.map(item => ({
-        id: item.name_options.id,
-        name: item.name_options.name,
-        description: item.name_options.description,
-        rating: item.rating || DEFAULT_RATING,
-        wins: item.wins || 0,
-        losses: item.losses || 0,
-        updated_at: item.updated_at
-      }));
+      console.log('Raw user ratings:', data);
 
+      const processedRatings = data
+        ?.filter(item => item.name_options) // Filter out any items without name_options
+        .map(item => ({
+          id: item.name_options.id,
+          name: item.name_options.name,
+          description: item.name_options.description,
+          rating: parseInt(item.rating || DEFAULT_RATING, 10),
+          wins: parseInt(item.wins || 0, 10),
+          losses: parseInt(item.losses || 0, 10),
+          updated_at: item.updated_at || new Date().toISOString()
+        })) || [];
+
+      console.log('Processed user ratings:', processedRatings);
       setCurrentUserRatings(processedRatings);
     } catch (err) {
       console.error('Error fetching user ratings:', err);
@@ -996,24 +1026,13 @@ const Profile = ({ userName, onStartNewTournament }) => {
     }
   }, []);
 
-  const fetchHiddenNames = useCallback(async () => {
-    try {
-      const { data: hiddenData, error: hiddenError } = await supabase
-        .from('hidden_names')
-        .select('name_id');
-
-      if (hiddenError) throw hiddenError;
-
-      const newHiddenNames = new Set(hiddenData?.map(item => item.name_id) || []);
-      setHiddenNames(newHiddenNames);
-    } catch (err) {
-      console.error('Error fetching hidden names:', err);
-    }
-  }, []);
-
+  // Effects
   useEffect(() => {
-    fetchUserRatings(userName);
-  }, [userName, fetchUserRatings]);
+    console.log('Current ratings data:', ratingsData);
+    if (ratingsData?.length > 0) {
+      setCurrentUserRatings(ratingsData);
+    }
+  }, [ratingsData]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -1023,13 +1042,14 @@ const Profile = ({ userName, onStartNewTournament }) => {
   }, [isAdmin, fetchAllUsersRatings, fetchHiddenNames]);
 
   useEffect(() => {
-    // Always fetch hidden names, even for non-admin users
     fetchHiddenNames();
-  }, [fetchHiddenNames]);
+    if (currentlyViewedUser) {
+      fetchUserRatings(currentlyViewedUser);
+    }
+  }, [currentlyViewedUser, fetchHiddenNames, fetchUserRatings]);
 
   const handleUserAction = useCallback(async (action, user) => {
     if (action === 'view') {
-      // When viewing a user's profile, update the currently viewed user and fetch their ratings
       setCurrentlyViewedUser(user.name);
       await fetchUserRatings(user.name);
     } else if (action === 'delete') {
@@ -1069,12 +1089,12 @@ const Profile = ({ userName, onStartNewTournament }) => {
       const { error } = await deleteName(nameId);
       if (error) throw error;
 
-      setRatings(prev => prev.filter(r => r.id !== nameId));
+      setRatingsData(prev => prev.filter(r => r.id !== nameId));
       setShowDeleteNameConfirm(false);
     } catch (err) {
       setDeleteNameStatus({ loading: false, error: err.message });
     }
-  }, [setRatings]);
+  }, [setRatingsData]);
 
   const sortedRatings = useMemo(() => {
     const dataToUse = currentlyViewedUser !== userName ? currentUserRatings : ratingsData;
@@ -1098,13 +1118,32 @@ const Profile = ({ userName, onStartNewTournament }) => {
 
   const filteredRatings = useMemo(() => {
     const dataToUse = currentlyViewedUser !== userName ? currentUserRatings : ratingsData;
-    if (filterStatus === FILTER_OPTIONS.STATUS.ALL) return sortedRatings;
-    return sortedRatings.filter(r => 
-      filterStatus === FILTER_OPTIONS.STATUS.ACTIVE 
-        ? !hiddenNames.has(r.id) 
-        : hiddenNames.has(r.id)
-    );
-  }, [sortedRatings, filterStatus, hiddenNames, currentlyViewedUser, userName, currentUserRatings]);
+    if (filterStatus === FILTER_OPTIONS.STATUS.ALL) {
+      return dataToUse
+        .filter(r => r && r.name) // Add null check
+        .map(r => ({
+          ...r,
+          wins: parseInt(r.wins || 0, 10),
+          losses: parseInt(r.losses || 0, 10),
+          rating: parseInt(r.rating || DEFAULT_RATING, 10),
+          updated_at: r.updated_at || new Date().toISOString()
+        }));
+    }
+    
+    return dataToUse
+      .filter(r => {
+        if (!r || !r.name) return false;
+        const isHidden = hiddenNames.has(r.id);
+        return filterStatus === FILTER_OPTIONS.STATUS.ACTIVE ? !isHidden : isHidden;
+      })
+      .map(r => ({
+        ...r,
+        wins: parseInt(r.wins || 0, 10),
+        losses: parseInt(r.losses || 0, 10),
+        rating: parseInt(r.rating || DEFAULT_RATING, 10),
+        updated_at: r.updated_at || new Date().toISOString()
+      }));
+  }, [ratingsData, filterStatus, hiddenNames, currentlyViewedUser, userName, currentUserRatings]);
 
   const chartData = useMemo(() => 
     prepareChartData(
